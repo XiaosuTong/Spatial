@@ -100,3 +100,31 @@ job$noeval <- TRUE
 job.mr <- do.call("rhwatch", job)
 z <- rhex(job.mr, async = TRUE)
 
+
+########################################
+## STL fitting for each vertex
+##
+job <- list()
+job$map <- expression({
+	
+})
+job$setup <- expression(
+    map = {
+		library(stl2, lib.loc = lib.loc)
+    },
+)
+job$parameters <- list(par = par)
+job$input <- rhfmt(file.path(rh.datadir, par$dataset, "spatial", "loess01"), type = "sequence")
+job$output <- rhfmt(file.path(rh.datadir, par$dataset, "spatial", "loess01.stl"), type="sequence")
+job$mapred <- list(
+	mapred.reduce.tasks = 66, 
+	rhipe_reduce_buff_size = 10000, 
+	mapred.max.split.size = 150000 # the size of the data frame for one vertex is about this size
+)
+job$mon.sec <- 5
+job$jobname <- file.path(rh.datadir, par$dataset, "spatial", "loess01.stl")
+job$readback <- FALSE
+job$noeval <- TRUE
+job.mr <- do.call("rhwatch", job)
+z <- rhex(job.mr, async = TRUE)
+
