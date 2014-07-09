@@ -80,6 +80,14 @@ order <- ddply(.data = tmp.trend,
                 .fun = summarise,
                  mean = mean(fitted)
 )
+
+spatial <- ddply(
+	.data = tmp.trend,
+	.variables = "fac",
+	.fun = summarise,
+	 lon = unique(lon),
+	 lat = unique(lat)
+)
 order.st <- as.character(order[order(order$mean, decreasing=TRUE), ]$fac)
 tmp.trend$fac <- factor(tmp.trend$fac, levels=order.st)
 
@@ -90,7 +98,7 @@ trellis.device(postscript, file = paste(local.output, "/scatterplot_of_trend_ver
 		ylab = list(label = ylab, cex = 1.2),
 		strip = strip.custom(
 			par.strip.text = list(cex = 1), 
-			factor.levels = paste(tmp.trend$lat, tmp.trend$lon, sep = "")
+			factor.levels = paste(spatial$lat, spatial$lon, sep = ", ")
 		),
 		par.settings = list(layout.heights = list(strip = 1)),
 		xlim = c(0, 1235),
