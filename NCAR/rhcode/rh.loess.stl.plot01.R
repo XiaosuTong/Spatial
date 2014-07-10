@@ -128,3 +128,250 @@ trellis.device(postscript, file = paste(local.output, "/scatterplot_of_trend_ver
     print(b)
 dev.off()
 
+
+#####################################################
+##time series plot of trend component loess from stl2
+#####################################################
+trellis.device(postscript, file = paste(local.output, "/scatterplot_of_trend_loess_vertex_", par$dataset, ".ps", sep = ""), color=TRUE, paper="legal")
+	b <- xyplot( trend ~ time | fac,
+		data = tmp.trend[order(tmp.trend$time),],
+		xlab = list(label = "Month", cex = 1.2),
+		ylab = list(label = ylab, cex = 1.2),
+        strip = strip.custom(
+            par.strip.text = list(cex = 1),
+            factor.levels = paste(spatial$lat, spatial$lon, sep = ", ")
+        ),
+		aspect = "xy",
+		layout = c(5,2),
+		xlim = c(0, 1235),
+		key = list(
+			type = "l", 
+			text = list(label=c("loess smoothing", "trend component")),
+			lines = list(lty = c(1,6), lwd=1.5, col=col[1:2]), 
+			columns = 2
+		),
+		scales = list(
+			y = list(relation = 'free'), 
+			x = list(at = seq(0, 1236, by=300), relation = 'same')
+		),
+		prepanel = function(x,y,...) prepanel.loess(x,y,span=3/4, degree=1, ...),
+		panel = function(x, y, ...) {
+			panel.loess(x, y, degree=1, span=3/4, col=col[1], type = "l", lty=1, ...)
+			panel.xyplot(x, y, col=col[2], type= "l", lty = 6, ...)
+		}
+	)
+    print(b)
+dev.off()
+
+rm(tmp.trend)
+
+######################################################################
+#QQ plot and time series plot of Pooled remainder of max temperature 
+######################################################################
+#Create the QQ plot of temperature for one station
+result$fac <- factor(result$fac, levels=order.st)
+trellis.device(postscript, file = paste(local.output, "/QQ_plot_of_remainder_vertex_", par$dataset ,".ps", sep = ""), color=TRUE, paper="legal")
+    a <- qqmath(~ remainder | fac,
+        data = result,
+        distribution = qnorm,
+        aspect = 1,
+        strip = strip.custom(
+            par.strip.text = list(cex = 1),
+            factor.levels = paste(spatial$lat, spatial$lon, sep = ", ")
+        ),
+        pch = 16,
+        cex = 0.3,
+        layout = c(5,3),
+        xlab = list(label = "Unit normal quantile", cex = 1.2),
+        ylab = list(label = ylab, cex=1.2),
+        prepanel = prepanel.qqmathline,
+        panel = function(x, y,...) {
+            panel.grid(lty = 3, lwd = 0.5, col = "black",...)
+            panel.qqmathline(x, y = x)
+            panel.qqmath(x, y,...)
+        }
+    )
+    print(a)
+dev.off()
+
+tmp.remainder <- result
+tmp.remainder$factor <- factor(tmp.remainder$factor, levels=paste("Period", c(3,2,1,6,5,4,9,8,7)))
+trellis.device(postscript, file = paste(local.output, "/scatterplot_of_remainder_vertex_", par$dataset, ".ps", sep = ""), color=TRUE, paper="legal")
+   for(i in levels(tmp.remainder$fac)){
+	b <- xyplot( remainder ~ time2 | factor,
+		data = subset(tmp.remainder, fac == i),
+		xlab = list(label = "Month", cex = 1.2),
+		ylab = list(label = ylab, cex = 1.2),
+        main = list(label = paste("Vertex of ", "(",
+            unique(subset(result, fac == i)$lat), ", ",
+            unique(subset(result, fac == i)$lon), ")", sep="")
+        ),
+		type = "p",
+		layout = c(1,3),
+		pch = 16,
+		cex = 0.5,
+		xlim = c(0, 143),
+		strip = FALSE,
+		grib = TRUE,
+		scales = list(
+			y = list(relation = 'same', alternating=TRUE), 
+			x = list(at=seq(0, 143, by=12), relation='same')
+		),
+		panel = function(x,y,...) {
+			panel.abline(h=0, v=seq(0,143, by=12), color="lightgrey", lty=3, lwd=0.5)
+			panel.xyplot(x,y,...)
+			panel.loess(x,y,degree=2,span=1/4, col=col[2], ...)
+		}
+	)
+	print(b)
+  }
+dev.off()
+
+trellis.device(postscript, file = paste(local.output, "/scatterplot_of_remainder2_vertex_", par$dataset, ".ps", sep = ""), color=TRUE, paper="legal")
+  for(i in levels(tmp.remainder$fac)){
+	b <- xyplot( remainder ~ time,
+		data = subset(tmp.remainder, fac == i),
+		xlab = list(label = "Month", cex = 1.2),
+		ylab = list(label = paste(ylab), cex = 1.2),
+		main = list(label = paste("Vertex of ", "(",
+			unique(subset(result, fac == i)$lat), ", ",
+			unique(subset(result, fac == i)$lon), ")", sep="")
+		),
+		type = "p",
+		pch = 16,
+		cex = 0.5,
+		xlim = c(0, 1235),
+		key = list(
+			text = list(label=c("remainder","degree=2,span=0.15","degree=1,span=0.35")), 
+			lines=list(pch=c(".", "", ""), cex=4, lwd=1.5, type=c("p","l", "l"), col=col[1:3]), 
+			columns = 3
+		),
+		scales = list(y = list(relation = 'same', alternating=TRUE), x=list(at=seq(0, 1235, by=120), relation='same')),
+		panel = function(x,y,...) {
+			panel.abline(h=0)
+			panel.xyplot(x,y,...)
+			panel.loess(x,y,degree = 2, span = 0.15, col = col[2], evaluation = 100,...)
+			panel.loess(x,y,degree = 1, span = 0.35, col = col[3], evaluation = 100,...)
+		}
+	)
+	print(b)
+  }
+dev.off()
+
+#################################################
+##Auto correlation ACF for the remainder
+#################################################
+ACF <- ddply(.data=tmp.remainder,
+    .variables="fac",
+    .fun= summarise,
+     correlation = c(acf(remainder, plot=FALSE)$acf),
+     lag = c(acf(remainder, plot=FALSE)$lag)
+)
+
+trellis.device(postscript, file = paste(local.output, "/acf_of_remainder_vertex_", par$dataset, ".ps", sep = ""), color=TRUE, paper="legal")
+  for(i in levels(ACF$fac)){
+	b <- xyplot( correlation ~ lag,
+		data = subset(ACF, fac == i & lag!=0),
+		xlab = list(label = "Lag", cex = 1.2),
+		ylab = list(label = "ACF", cex = 1.2),
+		main = list(label = paste("Vertex of ", "(",
+			unique(subset(result, fac == i)$lat), ", ",
+			unique(subset(result, fac == i)$lon), ")", sep="")
+        ),
+		type = "h",
+		panel = function(x,y,...) {
+			panel.abline(h=0)
+			panel.xyplot(x,y,...)
+		}
+	)
+	print(b)
+  }
+dev.off()
+
+###############################################
+##remainder of vertex conditional on month
+###############################################
+trellis.device(postscript, file = paste(local.output, "/scatterplot_of_remainder_vertex_conditional_month_", par$dataset, ".ps", sep = ""), color=TRUE, paper="legal")
+  for(i in levels(tmp.remainder$fac)){
+	b <- xyplot( remainder ~ year | month,
+		data = subset(tmp.remainder, fac == i),
+		xlab = list(label = "Year", cex = 1.2),
+		ylab = list(label = ylab, cex = 1.2),
+        main = list(label = paste("Vertex of ", "(",
+            unique(subset(result, fac == i)$lat), ", ",
+            unique(subset(result, fac == i)$lon), ")", sep="")
+        ),
+		pch = 16,
+		cex = 0.5,
+		layout = c(12,1),
+		strip = TRUE,
+		scales = list(
+			y = list(relation = 'same', alternating = TRUE), 
+			x = list(tick.number = 10, relation = 'same')
+		),
+		panel = function(x,y,...){
+			panel.abline(h=0, color="black", lty=1)
+			panel.xyplot(x,y,...)
+			panel.loess(x,y,span=3/4, degree=1, col=col[2],...)
+		}
+	)
+	print(b)
+  }
+dev.off()
+
+trellis.device(postscript, file = paste(local.output, "/scatterplot_of_remainder2_vertex_conditional_month_", par$dataset, ".ps", sep = ""), color=TRUE, paper="legal")
+  for(i in levels(tmp.remainder$fac)){
+	b <- xyplot( remainder ~ year | month,
+		data = subset(tmp.remainder,fac == i),
+		xlab = list(label = "Year", cex = 1.2),
+		ylab = list(label = ylab, cex = 1.2),
+        main = list(label = paste("Vertex of ", "(",
+			unique(subset(result, fac == i)$lat), ", ",
+			unique(subset(result, fac == i)$lon), ")", sep="")
+        ),
+		type= "b",
+		pch=16,
+		cex=0.5,
+		layout = c(2,6),
+		strip = TRUE,
+		scales = list(
+			y = list(relation = 'same', alternating = TRUE), 
+			x = list(tick.number = 10, relation = 'same')
+		),
+		panel = function(x,y,...) {
+ 			panel.abline(h=0, color="black", lty=1)
+			panel.xyplot(x,y,...)
+		}
+	)
+	print(b)
+  }
+dev.off()
+
+trellis.device(postscript, file = paste(local.output, "/QQ_plot_of_remainder_vertex_conditional_month_", par$dataset, ".ps", sep = ""), color=TRUE, paper="legal")
+  for(i in levels(tmp.remainder$fac)){
+	a <- qqmath(~ remainder | month,
+		data = subset(tmp.remainder, fac == i),
+		distribution = qnorm,
+		aspect = 1,
+		pch = 16,
+		cex = 0.3,
+ 		layout = c(4,3),
+		xlab = list(label="Unit normal quantile", cex=1.2),
+		ylab = list(label = ylab, cex = 1.2),
+        main = list(label = paste("Vertex of ", "(",
+            unique(subset(result, fac == i)$lat), ", ",
+            unique(subset(result, fac == i)$lon), ")", sep="")
+        ),
+		prepanel = prepanel.qqmathline,
+		panel = function(x, y,...) {
+			panel.grid(lty=3, lwd=0.5, col="black",...)
+			panel.qqmathline(x, y = x)
+			panel.qqmath(x, y,...)
+		}
+	)
+	print(a)
+  }
+dev.off()
+
+rm(tmp.remainder)
+
