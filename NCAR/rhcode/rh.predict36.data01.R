@@ -77,10 +77,10 @@ job$map <- expression({
 	lat <- unique(value$lat)
 	name <- as.character(unique(value$station.name))
 	value <- subset(value, select = -c(weights, remainder, raw, sub.labels, lon, lat, station.name, elev))
-        attributes(value)$elev  <- elev
-        attributes(value)$lon <- lon
+	attributes(value)$elev  <- elev
+	attributes(value)$lon <- lon
 	attributes(value)$lat <- lat
-        attributes(value)$station.name <- name
+	attributes(value)$station.name <- name
 	rhcollect(key, value)
    })
 })
