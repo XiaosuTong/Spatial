@@ -375,3 +375,60 @@ dev.off()
 
 rm(tmp.remainder)
 
+###########################################
+##Seasonal component conditional on month
+###########################################
+tmp.seasonal <- result[, c(!(names(result) %in% c("weights","trend","remainder")))]
+tmp.seasonal$fac <- factor(tmp.seasonal$fac, levels=order.st)
+
+trellis.device(postscript, file = paste(local.output, "/scatterplot_of_seasonal_vertex_conditional_month_", par$dataset,".ps", sep = ""), color=TRUE, paper="legal")
+  for(i in order.st){
+	b <- xyplot( seasonal ~ year | month,
+		data = subset(tmp.seasonal, fac == i),
+		xlab = list(label = "Year", cex = 1.2),
+		ylab = list(label = ylab, cex = 1.2),
+		main = list(label = paste("Vertex of ", "(",
+			unique(subset(result, fac == i)$lat), ", ",
+			unique(subset(result, fac == i)$lon), ")", sep="")
+		),
+		type = c("p"),
+		pch = 16,
+		cex = 0.5,
+		layout = c(12,1),
+		strip = TRUE,
+		scales = list(y = list(relation = 'same', alternating=TRUE), x=list(tick.number=10, relation='same')),
+		panel = function(x,y,...) {
+			panel.abline(h = 0, color = "black", lty = 1)
+			panel.xyplot(x,y,...)
+		}
+	)
+	print(b)
+  }
+dev.off()
+
+trellis.device(postscript, file = paste(local.output, "/scatterplot_of_seasonal2_vertex_conditional_month_", par$dataset, ".ps", sep = ""), color=TRUE, paper="legal")
+	b <- xyplot( seasonal ~ month | fac,
+		data = subset(tmp.seasonal, year == 1895),
+		xlab = list(label = "Month", cex = 1.2),
+		ylab = list(label = ylab, cex = 1.2),
+		type = "b",
+		strip = strip.custom(
+			par.strip.text = list(cex = 1),
+			factor.levels = paste(spatial$lat, spatial$lon, sep = ", ")
+		),
+		pch = 16,
+		aspect = "xy",
+		cex = 0.5,
+		layout = c(5,4),
+		scales = list(
+			y = list(relation = 'same', alternating=TRUE), 
+			x = list(at=c(1, 3, 5, 7, 9, 11), relation='same')
+		),
+		panel = function(x,y,...) {
+			panel.xyplot(x,y,...)
+		}
+	)
+	print(b)
+dev.off()
+
+rm(tmp.seasonal)
