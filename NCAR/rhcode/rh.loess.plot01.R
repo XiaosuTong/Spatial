@@ -23,8 +23,16 @@ result$time2 <- c(rep(0:143,8), 0:83)
 lattice.theme <- trellis.par.get()
 col <- lattice.theme$superpose.symbol$col
 
+order <- ddply(.data = result,
+                .variables = "fac",
+                .fun = summarise,
+                 mean = mean(fitted)
+)
+order.st <- as.character(order[order(order$mean, decreasing=TRUE), ]$fac)
+result$fac <- factor(result$fac, levels=order.st)
+
 trellis.device(postscript, file = paste(local.output, "/scatterplot_of_vertices_", par$dataset, ".ps", sep = ""), color=TRUE, paper="legal")
-  for(i in unique(result$fac)) {
+  for(i in levels(result$fac)) {
 	b <- xyplot( fitted ~ time2 | factor,
     	data = subset(result, fac == i),
         xlab = list(label = "Month"),
@@ -37,9 +45,7 @@ trellis.device(postscript, file = paste(local.output, "/scatterplot_of_vertices_
 		pch=16,
 		cex=0.5,
 		layout = c(1,9),
-#       strip.left = TRUE,
 		strip = FALSE,
-#       aspect= 0.1,
 		grib = TRUE,
 		xlim = c(0, 143),
 #       scales = list(y = list(relation = 'free', cex=1.5), x=list(relation= 'free',format = "%b %Y", tick.number=10), cex=1.2),
@@ -74,7 +80,7 @@ print(a)
 dev.off()
 
 trellis.device(postscript, file = paste(local.output, "/QQ_plot_of_month_", par$dataset, ".ps", sep = ""), color=TRUE, paper="legal")
-  for(i in unique(result$fac)){
+  for(i in levels(result$fac)){
     a <- qqmath(~ fitted | month,
         data = subset(result, fac == i),
         distribution = qnorm,
@@ -111,7 +117,7 @@ mm <- dd[rep(row.names(dd), each=103),]
 result <- result[with(result, order(fac, month, year)), ]
 result$central <- result$fitted - mm$mean
 trellis.device(postscript, file = paste(local.output, "/", par$dataset, "_vertices_conditional_month.ps", sep = ""), color=TRUE, paper="legal")
-  for(i in unique(result$fac)) {
+  for(i in levels(result$fac)) {
     b <- xyplot( central ~ year | month,
 		data = subset(result, fac == i),
 		xlab = list(label = "Year"),
@@ -121,16 +127,13 @@ trellis.device(postscript, file = paste(local.output, "/", par$dataset, "_vertic
             unique(subset(result, fac == i)$lon), ")", sep="")
         ),
 		type = "p",
-		pch=16,
-		cex=0.5,
+		pch = 16,
+		cex = 0.5,
 		layout = c(4,3),
 		strip = TRUE,
-#       aspect= "xy",
 		grib = TRUE,
-#       scales = list(y = list(relation = 'free', cex=1.5), x=list(relation= 'free',format = "%b %Y", tick.number=10), cex=1.2),
 		scales = list(y = list(relation = 'same', alternating=TRUE), x=list(tick.number=10, relation='same')),
 		panel = function(x, y, ...) {
-#			panel.abline(h=seq(-20, 40,by=10), v=seq(1900,2000,by=10), color="lightgrey", lty=3, lwd=0.5)
 			panel.xyplot(x, y, ...)
 			panel.loess(x, y, span=2/3, degree=1, col=col[2],...)
 		}
