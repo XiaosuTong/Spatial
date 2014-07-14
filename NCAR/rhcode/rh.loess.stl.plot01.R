@@ -25,11 +25,26 @@ result$time2 <- c(rep(0:143,8), 0:83)
 lattice.theme <- trellis.par.get()
 col <- lattice.theme$superpose.symbol$col
 
+order <- ddply(.data = result,
+                .variables = "fac",
+                .fun = summarise,
+                 mean = mean(fitted)
+)
+order.st <- as.character(order[order(order$mean, decreasing = TRUE), ]$fac)
+result$fac <- factor(result$fac, levels = order.st)
+
+spatial <- ddply(
+	.data = result,
+	.variables = "fac",
+	.fun = summarise,
+	 lon = unique(lon),
+	 lat = unique(lat)
+)
 #######################################
 ##trend + seasonal component vs time
 #######################################
 trellis.device(postscript, file = paste(local.output, "/scatterplot_of_trend+seasonal_vertices_", par$dataset, ".ps", sep = ""), color=TRUE, paper="legal")
-  for(i in unique(result$fac)) {
+  for(i in levels(result$fac)) {
 	b <- xyplot( fitted ~ time2 | factor,
     	data = subset(result, fac == i),
         xlab = list(label = "Month"),
@@ -74,22 +89,6 @@ dr <- ddply(.data = tmp.trend,
 mm <- dr[rep(row.names(dr), each=12),]
 tmp.trend <- tmp.trend[with(tmp.trend, order(fac, year, month)),]
 tmp.trend <- cbind(tmp.trend, mean= mm$mean)
-
-order <- ddply(.data = tmp.trend,
-                .variables = "fac",
-                .fun = summarise,
-                 mean = mean(fitted)
-)
-
-spatial <- ddply(
-	.data = tmp.trend,
-	.variables = "fac",
-	.fun = summarise,
-	 lon = unique(lon),
-	 lat = unique(lat)
-)
-order.st <- as.character(order[order(order$mean, decreasing=TRUE), ]$fac)
-tmp.trend$fac <- factor(tmp.trend$fac, levels=order.st)
 
 trellis.device(postscript, file = paste(local.output, "/scatterplot_of_trend_vertex_", par$dataset, ".ps", sep = ""), color=TRUE, paper="legal")
 	b <- xyplot( mean ~ time | fac,
@@ -169,7 +168,7 @@ rm(tmp.trend)
 #QQ plot and time series plot of Pooled remainder of max temperature 
 ######################################################################
 #Create the QQ plot of temperature for one station
-result$fac <- factor(result$fac, levels=order.st)
+
 trellis.device(postscript, file = paste(local.output, "/QQ_plot_of_remainder_vertex_", par$dataset ,".ps", sep = ""), color=TRUE, paper="legal")
     a <- qqmath(~ remainder | fac,
         data = result,
@@ -379,7 +378,6 @@ rm(tmp.remainder)
 ##Seasonal component conditional on month
 ###########################################
 tmp.seasonal <- result[, c(!(names(result) %in% c("weights","trend","remainder")))]
-tmp.seasonal$fac <- factor(tmp.seasonal$fac, levels=order.st)
 
 trellis.device(postscript, file = paste(local.output, "/scatterplot_of_seasonal_vertex_conditional_month_", par$dataset,".ps", sep = ""), color=TRUE, paper="legal")
   for(i in order.st){
