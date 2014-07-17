@@ -60,13 +60,13 @@ job$map <- expression({
   })
 })
 job$reduce <- expression(
-	pre={
+	pre = {
 		combined <- data.frame()
 	},
-	reduce={
+	reduce = {
 		combined <- rbind(combined, do.call(rbind, reduce.values))
 	},
-	post={
+	post = {
 		if(nrow(combined) == 1236) {
 			rhcounter("BUG", "1236", 1)
 		}
