@@ -130,8 +130,8 @@ my.simple <- function (y, x, weights, span = 0.75, degree = 2L, parametric = FAL
 #            }else if (surface == "interpolate" && statistics == 
 #                "approximate"){ 
 #                statistics <- if (trace.hat == "exact") 
-#                  {"1.approx"}else "2.approx"
-#	    }
+#                  "1.approx"
+#                else "2.approx"
 #            surf.stat <- paste(surface, statistics, sep = "/")
 #            if (length(span) != 1L) 
 #                stop("invalid argument 'span'")

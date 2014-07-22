@@ -13,19 +13,19 @@
 #rh.output <- "/ln/tongx/Spatial/output/"
 
 map <- expression({
-      	lapply(seq_along(map.values), function(r) {
-      	v <- map.values[[r]]
-      	k <- map.values[[r]]$partion[1]
-      	v$obs <- !is.na(v$tmax)
-	month <- v$month
-	levels(month) <- c(4,8,12,2,1,7,6,3,5,11,10,9)
-	month <- as.numeric(factor(month, levels=c(1:12)))
-	date <- paste(v$year, month, "01", sep="-")
-	v$date <- as.POSIXct(strptime(date, format = "%Y-%m-%d"), format='%Y%m%d', tz="")
-      	v <- v[order(v$date),]
-      	v$time <- 0:1235
-	rhcollect(k, v)
-   })
+  lapply(seq_along(map.values), function(r) {
+      v <- map.values[[r]]
+      k <- map.values[[r]]$partion[1]
+      v$obs <- !is.na(v$tmax)
+      month <- v$month
+      levels(month) <- c(4,8,12,2,1,7,6,3,5,11,10,9)
+      month <- as.numeric(factor(month, levels=c(1:12)))
+      date <- paste(v$year, month, "01", sep="-")
+      v$date <- as.POSIXct(strptime(date, format = "%Y-%m-%d"), format='%Y%m%d', tz="")
+      v <- v[order(v$date),]
+      v$time <- 0:1235
+      rhcollect(k, v)
+  })
 })
 
 
