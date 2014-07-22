@@ -33,15 +33,15 @@ trellis.device(postscript, file = paste(outputdir, "QQ_plot_of_tmax_of_month", "
     for(i in stations){	
 	a <- qqmath(~ tmax | month,
 		data = tmp[tmp[,1]==i,],
-        	distribution = qnorm,
+        distribution = qnorm,
 		aspect = "xy",
 		layout = c(12,1),
 		pch = 16,
 		cex = 0.5, 
 		main = list(label= paste("Station ", i, sep=""), cex=1.5),
-        	xlab = list(label="Unit normal quantile", cex=1.2),
-        	ylab = list(label="Max Temperature(degrees centigrade)", cex=1.2),
-#        	scales = list(x = list(cex=1.5), y = list(cex=1.5)),
+        xlab = list(label="Unit normal quantile", cex=1.2),
+        ylab = list(label="Max Temperature(degrees centigrade)", cex=1.2),
+#       scales = list(x = list(cex=1.5), y = list(cex=1.5)),
 		prepanel = prepanel.qqmathline,
   		panel = function(x, y,...) {
     			panel.grid()
