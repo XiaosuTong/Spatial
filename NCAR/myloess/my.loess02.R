@@ -1,6 +1,4 @@
-
-
-my.loess <- function (formula, data, weights, subset, na.action, model = FALSE, 
+my.loess2 <- function (formula, data, weights, subset, na.action, model = FALSE, 
     span = 0.75, enp.target, degree = 2L, parametric = FALSE, 
     drop.square = FALSE, normalize = TRUE, family = c("gaussian", 
         "symmetric"), method = c("loess", "model.frame"), control = loess.control(...), 
@@ -49,15 +47,15 @@ my.loess <- function (formula, data, weights, subset, na.action, model = FALSE,
     fit <- my.simple2(y, x, w, span, degree, parametric, drop.square, 
         normalize, control$statistics, control$surface, control$cell, 
         iterations, control$trace.hat)
-#    fit$call <- match.call()
-#    fit$terms <- mt
-#    fit$xnames <- nmx
-#    fit$x <- x
-#    fit$y <- y
-#    fit$weights <- w
-#    if (model) 
-#       fit$model <- mf 
-#    fit$na.action <- attr(mf, "na.action")
+    fit$call <- match.call()
+    fit$terms <- mt
+    fit$xnames <- nmx
+    fit$x <- x
+    fit$y <- y
+    fit$weights <- w
+    if (model) 
+       fit$model <- mf 
+    fit$na.action <- attr(mf, "na.action")
     fit
 }
 
@@ -119,6 +117,7 @@ my.simple2 <- function (y, x, weights, span = 0.75, degree = 2L, parametric = FA
                 stop("invalid argument 'cell'")
             if (length(degree) != 1L) 
                 stop("invalid argument 'degree'")
+            myv = rep(0, 5000)
             z <- .C("loess_raw", y, x, weights, robust, D, N, 
                 as.double(span), as.integer(degree), as.integer(nonparametric), 
                 as.integer(order.drop.sqr), as.integer(sum.drop.sqr), 
@@ -127,12 +126,12 @@ my.simple2 <- function (y, x, weights, span = 0.75, degree = 2L, parametric = FA
                 a = integer(max.kd), xi = double(max.kd), vert = double(2L * 
                   D), vval = double((D + 1L) * max.kd), diagonal = double(N), 
                 trL = double(1L), delta1 = double(1L), delta2 = double(1L), 
-                as.integer(surf.stat == "interpolate/exact"), myv = double(1L * 5000))
-#            if (j == 1) {
-#                trace.hat.out <- z$trL
-#                one.delta <- z$delta1
-#                two.delta <- z$delta2
-#            }
+                as.integer(surf.stat == "interpolate/exact"))
+            if (j == 1) {
+                trace.hat.out <- z$trL
+                one.delta <- z$delta1
+                two.delta <- z$delta2
+            }
 #            fitted.residuals <- y - z$fitted.values
 #            if (j < iterations) 
 #                robust <- .Fortran(C_lowesw, fitted.residuals, 
@@ -146,57 +145,69 @@ my.simple2 <- function (y, x, weights, span = 0.75, degree = 2L, parametric = FA
         fit.kd <- list(parameter = pars, a = z$a[1L:pars[4L]], 
             xi = z$xi[1L:pars[4L]], vert = z$vert, vval = z$vval[1L:enough])
     }
-    #if (iterations > 1L) {
-    #    pseudovalues <- .Fortran("lowesp", N, as.double(y), as.double(z$fitted.values), 
-    #        as.double(weights), as.double(robust), integer(N), 
-    #        pseudovalues = double(N))$pseudovalues
-    #    zz <- .C("loess_raw", as.double(pseudovalues), x, weights, 
-    #        weights, D, N, as.double(span), as.integer(degree), 
-    #        as.integer(nonparametric), as.integer(order.drop.sqr), 
-    #        as.integer(sum.drop.sqr), as.double(span * cell), 
-    #        as.character(surf.stat), temp = double(N), parameter = integer(7L), 
-    #        a = integer(max.kd), xi = double(max.kd), vert = double(2L * 
-    #            D), vval = double((D + 1L) * max.kd), diagonal = double(N), 
-    #        trL = double(1L), delta1 = double(1L), delta2 = double(1L), 
-    #        0L)
-    #    pseudo.resid <- pseudovalues - zz$temp
-    #}
-    #sum.squares <- if (iterations <= 1L) 
-    #    sum(weights * fitted.residuals^2)
-    #else sum(weights * pseudo.resid^2)
-    #enp <- one.delta + 2 * trace.hat.out - N
-    #s <- sqrt(sum.squares/one.delta)
-    #pars <- list(
-    #    robust = robust, 
-    #    span = span, 
-    #    degree = degree, 
-    #    normalize = normalize, 
-    #    parametric = parametric, 
-    #    drop.square = drop.square, 
-    #    surface = surface, 
-    #    cell = cell, 
-    #    family = if (iterations <= 1L) "gaussian" else "symmetric", 
-    #    iterations = iterations
-    #)
-    #fit <- list(
-    #    n = N, 
-    #    fitted = z$fitted.values, 
-    #    residuals = fitted.residuals, 
-    #    enp = enp, 
-#   #     s = s, 
-    #    s = NULL,
-    #    one.delta = one.delta, 
-    #    two.delta = two.delta, 
-    #    trace.hat = trace.hat.out, 
-    #    divisor = divisor
-    #)
-    #fit$pars <- pars
-    #if (surface == "interpolate") 
-    #    fit$kd <- fit.kd
-    #class(fit) <- "loess"
-    z
+#    if (iterations > 1L) {
+#        pseudovalues <- .Fortran("lowesp", N, as.double(y), as.double(z$fitted.values), 
+#            as.double(weights), as.double(robust), integer(N), 
+#            pseudovalues = double(N))$pseudovalues
+#        zz <- .C("loess_raw", as.double(pseudovalues), x, weights, 
+#            weights, D, N, as.double(span), as.integer(degree), 
+#            as.integer(nonparametric), as.integer(order.drop.sqr), 
+#            as.integer(sum.drop.sqr), as.double(span * cell), 
+#            as.character(surf.stat), temp = double(N), parameter = integer(7L), 
+#            a = integer(max.kd), xi = double(max.kd), vert = double(2L * 
+#                D), vval = double((D + 1L) * max.kd), diagonal = double(N), 
+#            trL = double(1L), delta1 = double(1L), delta2 = double(1L), 
+#            0L)
+#        pseudo.resid <- pseudovalues - zz$temp
+#    }
+#    sum.squares <- if (iterations <= 1L) 
+#        sum(weights * fitted.residuals^2)
+#    else sum(weights * pseudo.resid^2)
+    enp <- one.delta + 2 * trace.hat.out - N
+#    s <- sqrt(sum.squares/one.delta)
+    pars <- list(
+        robust = robust, 
+        span = span, 
+        degree = degree, 
+        normalize = normalize, 
+        parametric = parametric, 
+        drop.square = drop.square, 
+        surface = surface, 
+        cell = cell, 
+        family = if (iterations <= 1L) "gaussian" else "symmetric", 
+        iterations = iterations
+    )
+    fit <- list(
+        n = N, 
+#        fitted = z$fitted.values, 
+#        residuals = fitted.residuals, 
+        enp = enp, 
+#        s = s, 
+        s = NULL,
+        one.delta = one.delta, 
+        two.delta = two.delta, 
+        trace.hat = trace.hat.out, 
+        divisor = divisor
+    )
+    fit$pars <- pars
+    if (surface == "interpolate") 
+        fit$kd <- fit.kd
+    class(fit) <- "loess"
+    fit
 }
 
+dyn.load("~/Github/Spatial/NCAR/myloess/shareLib/myloess2.so")
+source("my.loess01.R")
+df <- data.frame(x = rnorm(100), y = rnorm(100), z = rnorm(100), w = rnorm(100))
+newx <- data.frame(x = runif(10), y = runif(10))
+lo.fit1 <- my.loess1(z ~ x + y, data = df, span = 0.5, normalize = FALSE)
+lo.fit3 <- my.loess2(w ~ x + y, data = df, span = 0.5, normalize = FALSE)
+lo.fit2 <- my.loess2(z ~ x + y, data = df, span = 0.5, normalize = FALSE)
+
+
+##############################################
+##
+##############################################
 my.predict.loess <- function (object, newdata = NULL, se = FALSE, na.action = na.pass, 
     ...) 
 {
@@ -225,15 +236,6 @@ my.predict.loess <- function (object, newdata = NULL, se = FALSE, na.action = na
         res$df <- object$one.delta^2/object$two.delta
     res
 }
-
-##############################################
-##
-##############################################
-dyn.load("myloess2.so")
-df <- data.frame(x=rnorm(100), y=rnorm(100), z=rnorm(100), w=rnorm(100))
-newx <- data.frame(x=runif(10), y=runif(10))
-lo.fit1 <- loess(z~x+y, data = df, span = 0.5, normalize = FALSE)
-lo.fit2 <- loess(w~x+y, data = df, span = 0.5, normalize = FALSE)
 
 my.predLoess <- function (y, x, newx, s, weights, robust, span, degree, normalize, 
     parametric, drop.square, surface, cell, family, kd, divisor, 
@@ -324,3 +326,4 @@ my.predLoess <- function (y, x, newx, s, weights, robust, span, degree, normaliz
         fit
     }
 }
+

@@ -4,7 +4,7 @@
 # the fitting step which fit the loess at data point. Only save useful list
 # object which will be necessary for predict.loess function.
 #
-my.loess <- function (formula, data, weights, subset, na.action, model = FALSE, 
+my.loess1 <- function (formula, data, weights, subset, na.action, model = FALSE, 
     span = 0.75, enp.target, degree = 2L, parametric = FALSE, 
     drop.square = FALSE, normalize = TRUE, family = c("gaussian", 
         "symmetric"), method = c("loess", "model.frame"), control = loess.control(...), 
@@ -61,7 +61,7 @@ my.loess <- function (formula, data, weights, subset, na.action, model = FALSE,
         !is.character(control$statistics) || !is.character(control$trace.hat) || 
         !is.numeric(control$cell) || !is.numeric(iterations)) 
         stop("invalid 'control' argument")
-    fit <- my.simple(y, x, w, span, degree, parametric, drop.square, 
+    fit <- my.simple1(y, x, w, span, degree, parametric, drop.square, 
         normalize, control$statistics, control$surface, control$cell, 
         iterations, control$trace.hat)
     fit$call <- match.call()
@@ -77,7 +77,7 @@ my.loess <- function (formula, data, weights, subset, na.action, model = FALSE,
 }
 
 
-my.simple <- function (y, x, weights, span = 0.75, degree = 2L, parametric = FALSE, 
+my.simple1 <- function (y, x, weights, span = 0.75, degree = 2L, parametric = FALSE, 
     drop.square = FALSE, normalize = TRUE, statistics = "approximate", 
     surface = "interpolate", cell = 0.2, iterations = 1L, trace.hat = "exact") 
 {

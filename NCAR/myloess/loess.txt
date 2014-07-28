@@ -1,0 +1,28 @@
+#The default arguments for loess.control are:
+$surface
+[1] "interpolate"
+$statistics
+[1] "approximate"
+$trace.hat
+[1] "exact"
+$cell
+[1] 0.2
+$iterations
+[1] 4
+
+#stats::model.frame
+‘model.frame’ (a generic function) and its methods return a
+‘data.frame’ with the variables needed to use ‘formula’ and any
+‘...’ arguments.
+Even though the value from model.frame is a data.frame, it has 
+other multiple attributes, which can be assessed by using
+attr(mf, "terms")
+
+#storage.mode(x)
+‘mode(x) <- "newmode"’ changes the ‘mode’ of object ‘x’ to ‘newmode’
+
+#set the names of an object
+setNames()
+
+#Create the .so file
+R CMD SHLIB ../shareLib/loessc.c ../shareLib/loessf.f -o myloess.so
