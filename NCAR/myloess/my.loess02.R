@@ -200,7 +200,7 @@ dyn.load("~/Github/Spatial/NCAR/myloess/shareLib/myloess2.so")
 source("my.loess01.R")
 df <- data.frame(x = rnorm(100), y = rnorm(100), z = rnorm(100), w = rnorm(100))
 newx <- data.frame(x = runif(10), y = runif(10))
-lo.fit1 <- my.loess1(z ~ x + y, data = df, span = 0.5, normalize = FALSE)
+lo.fit1 <- my.loess1(z ~ x + y, data = df, span = 0.5, normalize = FALSE, control = loess.control(surface = "direct"))
 lo.fit3 <- my.loess2(w ~ x + y, data = df, span = 0.5, normalize = FALSE)
 lo.fit2 <- my.loess2(z ~ x + y, data = df, span = 0.5, normalize = FALSE)
 
