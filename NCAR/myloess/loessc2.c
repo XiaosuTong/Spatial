@@ -125,8 +125,13 @@ loess_raw(double *y, double *x, double *weights, double *robust, int *d,
     printf("iv 11 is: %d \n", iv[10]);
     printf("lv is :%d \n", lv);
     printf("iv 24 is:%d \n", iv[23]);
-    printf("iv 29 is:%d \n", iv[28]);
-
+    printf("nv is:%d \n", iv[5]);
+    printf("nc is:%d \n", iv[4]);
+    for(i = 0; i < lv; i++){
+        printf("%f ", v[i]);
+        if(i%10 == 0) printf("\n");
+    }
+    printf("\n");
     /*  something should be done here to change the vval or something else
     in order to assign new predict value at each node of kd tree*/
     }
