@@ -121,6 +121,11 @@ loess_raw(double *y, double *x, double *weights, double *robust, int *d,
     for(i = 0; i < (*n); i++) *trL = *trL + diagonal[i];
     F77_CALL(lowesa)(trL, n, d, &tau, &nsing, one_delta, two_delta);
     loess_prune(parameter, a, xi, vert, vval);
+    for(j = 0; j < *d; j++) {
+      for(i = 0; i < (iv[10] - 1); i++) {
+        vert2[i + j*nvmax] = v[iv[10] - 1 + j*nvmax + i];
+      }
+    }
 /*    
     printf("iv 12 is: %d \n", iv[12]);
     printf("iv 13 is: %d \n", iv[13]);
@@ -136,11 +141,12 @@ loess_raw(double *y, double *x, double *weights, double *robust, int *d,
     }
     printf("\n");
 */
-    for(j = 0; j < *d; j++) {
-      for(i = 0; i < (iv[10] - 1); i++) {
-        vert2[i + j*nvmax] = v[iv[10] - 1 + j*nvmax + i];
-      }
+    printf("liv is: %d \n", liv);
+    for(i = 0; i < liv; i++){
+        printf("%d ", iv[i]);
+        if(i%10 == 0) printf("\n");
     }
+    printf("\n");
     /*  something should be done here to change the vval or something else
     in order to assign new predict value at each node of kd tree*/
     }
@@ -316,6 +322,7 @@ loess_prune(int *parameter, int *a, double *xi, double *vert,
     printf("vv1 is: %d \n", vv1);
     printf("k is: %d \n", k);
 */
+    printf("iv 19 is: %d \n", iv[18]);
 }
 
 static void
