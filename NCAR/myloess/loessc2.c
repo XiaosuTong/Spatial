@@ -90,11 +90,12 @@ loess_raw(double *y, double *x, double *weights, double *robust, int *d,
 	  int *drop_square, int *sum_drop_sqr, double *cell,
 	  char **surf_stat, double *surface, int *parameter,
 	  int *a, double *xi, double *vert, double *vval, double *diagonal,
-	  double *trL, double *one_delta, double *two_delta, int *setLf)
+	  double *trL, double *one_delta, double *two_delta, int *setLf, double *vert2)
 {
-    int zero = 0, one = 1, two = 2, nsing, i, k;
+    int zero = 0, one = 1, two = 2, nsing, i, j, k;
     double *hat_matrix, *LL, dzero=0.0;
-
+    int nvmax;
+    nvmax = max(200, *n);
     *trL = 0;
 
     loess_workspace(d, n, span, degree, nonparametric, drop_square,
@@ -120,11 +121,13 @@ loess_raw(double *y, double *x, double *weights, double *robust, int *d,
     for(i = 0; i < (*n); i++) *trL = *trL + diagonal[i];
     F77_CALL(lowesa)(trL, n, d, &tau, &nsing, one_delta, two_delta);
     loess_prune(parameter, a, xi, vert, vval);
-    printf("iv 12 is: %d \n", iv[11]);
-    printf("iv 13 is: %d \n", iv[12]);
-    printf("iv 11 is: %d \n", iv[10]);
+/*    
+    printf("iv 12 is: %d \n", iv[12]);
+    printf("iv 13 is: %d \n", iv[13]);
+    printf("iv 11 is: %d \n", iv[11]);
+    printf("iv 10 is: %d \n", iv[10]);
     printf("lv is :%d \n", lv);
-    printf("iv 24 is:%d \n", iv[23]);
+    printf("iv 24 is:%d \n", iv[23]); 
     printf("nv is:%d \n", iv[5]);
     printf("nc is:%d \n", iv[4]);
     for(i = 0; i < lv; i++){
@@ -132,6 +135,12 @@ loess_raw(double *y, double *x, double *weights, double *robust, int *d,
         if(i%10 == 0) printf("\n");
     }
     printf("\n");
+*/
+    for(j = 0; j < *d; j++) {
+      for(i = 0; i < (iv[10] - 1); i++) {
+        vert2[i + j*nvmax] = v[iv[10] - 1 + j*nvmax + i];
+      }
+    }
     /*  something should be done here to change the vval or something else
     in order to assign new predict value at each node of kd tree*/
     }
@@ -303,8 +312,10 @@ loess_prune(int *parameter, int *a, double *xi, double *vert,
     k = (d + 1) * nv;
     for(i = 0; i < k; i++)
 	vval[i] = v[vv1 + i];
+/*
     printf("vv1 is: %d \n", vv1);
     printf("k is: %d \n", k);
+*/
 }
 
 static void

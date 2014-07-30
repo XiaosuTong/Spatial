@@ -126,7 +126,7 @@ my.simple2 <- function (y, x, weights, span = 0.75, degree = 2L, parametric = FA
                 a = integer(max.kd), xi = double(max.kd), vert = double(2L * 
                   D), vval = double((D + 1L) * max.kd), diagonal = double(N), 
                 trL = double(1L), delta1 = double(1L), delta2 = double(1L), 
-                as.integer(surf.stat == "interpolate/exact"))
+                as.integer(surf.stat == "interpolate/exact"), vert2 = double(D * max.kd))
             if (j == 1) {
                 trace.hat.out <- z$trL
                 one.delta <- z$delta1
@@ -142,8 +142,14 @@ my.simple2 <- function (y, x, weights, span = 0.75, degree = 2L, parametric = FA
             "nv", "liv", "lv"))
         enough <- (D + 1L) * pars["nv"]
         ## nv is the number of vertex
-        fit.kd <- list(parameter = pars, a = z$a[1L:pars[4L]], 
-            xi = z$xi[1L:pars[4L]], vert = z$vert, vval = z$vval[1L:enough])
+        fit.kd <- list(
+            parameter = pars, 
+            a = z$a[1L:pars[4L]], 
+            xi = z$xi[1L:pars[4L]], 
+            vert = z$vert, 
+            vval = z$vval[1L:enough],
+            vert2 = data.frame(matrix(z$vert2, ncol = D))[1:pars["nv"],] 
+        )
     }
 #    if (iterations > 1L) {
 #        pseudovalues <- .Fortran("lowesp", N, as.double(y), as.double(z$fitted.values), 
@@ -198,11 +204,21 @@ my.simple2 <- function (y, x, weights, span = 0.75, degree = 2L, parametric = FA
 
 dyn.load("~/Github/Spatial/NCAR/myloess/shareLib/myloess2.so")
 source("my.loess01.R")
+set.seed(100)
 df <- data.frame(x = rnorm(100), y = rnorm(100), z = rnorm(100), w = rnorm(100))
 newx <- data.frame(x = runif(10), y = runif(10))
 lo.fit1 <- my.loess1(z ~ x + y, data = df, span = 0.5, normalize = FALSE, control = loess.control(surface = "direct"))
-lo.fit3 <- my.loess2(w ~ x + y, data = df, span = 0.5, normalize = FALSE)
 lo.fit2 <- my.loess2(z ~ x + y, data = df, span = 0.5, normalize = FALSE)
+kd <- lo.fit2$kd$vert2
+value <-predict(lo.fit1, data.frame(x = kd$X1, y = kd$X2))
+tmp <- data.frame(matrix(lo.fit2$kd$vval, byrow=TRUE, ncol=3))
+names(tmp) <- c("b0", "b1", "b2")
+fit <- cbind(tmp, kd)
+fit$fitted <- with(fit, b1*X1 + b2*X2)
+lo.fit3 <- my.loess2(w ~ x + y, data = df, span = 0.5, normalize = FALSE)
+lo.fit13 <- my.loess1(w ~ x + y, data = df, span = 0.5, normalize = FALSE, control = loess.control(surface = "direct"))
+value3 <-predict(lo.fit13, data.frame(x = lo.fit3$kd$vert2$X1, y = lo.fit3$kd$vert2$X2))
+
 
 
 ##############################################
