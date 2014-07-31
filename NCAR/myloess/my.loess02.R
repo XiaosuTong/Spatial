@@ -308,6 +308,7 @@ my.predLoess <- function (y, x, newx, s, weights, robust, span, degree, normaliz
             (x.evaluate >= rep(ranges[1L, ], rep(M, D)))
         inside <- inside %*% rep(1, D) == D
         inside[is.na(inside)] <- FALSE
+        #M1 is the number of new points want to be fitted
         M1 <- sum(inside)
         fit <- rep(NA_real_, M)
         if (any(inside)) 
