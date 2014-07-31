@@ -15,14 +15,14 @@ regression fit. The maximum of k is 15, which means we only can have 4 predictor
   5. In ehg127, for design matrix, a preliminary factorization X = QR into R and Q with Q'Q = I
 followed by SVD of R allows the pseudo-inverse to be computed efficiently.
 ```
-lowesb -> ehg131 --> ehg126(built kd-tree)
-                 |-> ehg124
-                 |-> ehg139(fit at vertices, vval passed into as s(0:od, nv))
-                       |---> ehg127(called for each vertex(nv), s(0:od) is passed into)
+lowesb -> ehg131 -> ehg126(built kd-tree)
+                |-> ehg124
+                |-> ehg139(fit at vertices, vval passed into as s(0:od, nv))
+                       |-> ehg127(called for each vertex(nv), s(0:od) is passed into)
 ```
 - lowese: interpolation based on kd-tree
 ```
-lowese -> ehg133 -->
+lowese -> ehg133 --> ehg128(interpolation, delta is X for each newobs)
 ```
 
 ### R code: "kd" element of loess object ###
