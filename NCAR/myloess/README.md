@@ -21,6 +21,15 @@ lowesb -> ehg131 -> ehg126(built kd-tree)
                        |-> ehg127(called for each vertex(nv), s(0:od) is passed into)
 ```
 - lowese: interpolation based on kd-tree
+  1. For each vertex, the fitted value g(hat) and d derivatives of g(hat) which estimated by taking the
+slopes of the locally linear or locally quadratic fit are saved and used to do the interpolation.
+  2. Ech cell boundary consists of four segments that meet at vertices. On each segment, function value
+g(hat) are interpolated using the unique *cubic polynomial* determined by the function and derivative 
+data at the vertices, this cubic polynomial should be an univariate interpolation since there is only one
+dimension at edges of cells; normal derivatives are *interpolated linearly* along the segment.
+  3. Finally, blending functions interpolate across the cell by using *cubic polynomial* as well. Certain 
+cross derivative terms are neeeded, as described by Barnhill(1977), but we have obtained acceptable 
+results by setting those cross derivative to 0.
 ```
 lowese -> ehg133 --> ehg128(interpolation, delta is X for each newobs)
 ```
