@@ -140,13 +140,14 @@ loess_raw(double *y, double *x, double *weights, double *robust, int *d,
         if(i%10 == 0) printf("\n");
     }
     printf("\n");
-*/
+
     printf("liv is: %d \n", liv);
     for(i = 0; i < liv; i++){
         printf("%d ", iv[i]);
         if(i%10 == 0) printf("\n");
     }
     printf("\n");
+*/
     /*  something should be done here to change the vval or something else
     in order to assign new predict value at each node of kd tree*/
     }
@@ -321,8 +322,8 @@ loess_prune(int *parameter, int *a, double *xi, double *vert,
 /*
     printf("vv1 is: %d \n", vv1);
     printf("k is: %d \n", k);
-*/
     printf("iv 19 is: %d \n", iv[18]);
+*/
 }
 
 static void
