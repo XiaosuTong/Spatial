@@ -1658,6 +1658,8 @@ c     initialize permutation
       if(.not.(iv(28).eq.173))then
          call ehg182(173)
       end if
+c     print function in Fortran
+      PRINT *, 'iv(iv(8)) is: ', iv(iv(8))
       call ehg133(iv(3),iv(2),iv(4),iv(14),iv(5),iv(17),iv(iv(7)),iv(iv(
      +8)),iv(iv(9)),iv(iv(10)),wv(iv(11)),wv(iv(13)),wv(iv(12)),m,z,s)
       return

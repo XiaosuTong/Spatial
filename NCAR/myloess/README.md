@@ -30,6 +30,20 @@ dimension at edges of cells; normal derivatives are *interpolated linearly* alon
   3. Finally, blending functions interpolate across the cell by using *cubic polynomial* as well. Certain 
 cross derivative terms are neeeded, as described by Barnhill(1977), but we have obtained acceptable 
 results by setting those cross derivative to 0.
+  4. Cubic spline/Cubic interpolation/Cubic Hermite spline:
+On the unit interval (0,1), given a starting point p0 at t=0 and an ending point p1 at t=1 with starting 
+tangent m0 at t=0 and ending tangent m1 at t=1, the polynomial can be defined by
+```
+\boldsymbol{p}(t) = (2t^3-3t^2+1)\boldsymbol{p}_0 + (t^3-2t^2+t)\boldsymbol{m}_0 + (-2t^3+3t^2)\boldsymbol{p}_1 +(t^3-t^2)\boldsymbol{m}_1 
+```
+In `ehg128`, the cubic interpolation on boundaries are done as following:
+```
+c Hermite basis
+phi0=(1-h)**2*(1+2*h)
+phi1=h**2*(3-2*h)
+psi0=h*(1-h)**2
+psi1=h**2*(h-1)
+```
 ```
 lowese -> ehg133 --> ehg128(interpolation, delta is X for each newobs)
 ```
