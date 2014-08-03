@@ -2,6 +2,12 @@
 - lowesb: kd-tree construction and fitting
 v is a long vector with length lv which contains the whole information about kd-tree and some other
 things. Memory is assigned by using Calloc() function in C, `loess_workspace()`.
+```
+lowesb -> ehg131 -> ehg126(built kd-tree)
+                |-> ehg124
+                |-> ehg139(fit at vertices, vval passed into as s(0:od, nv))
+                       |-> ehg127(called for each vertex(nv), s(0:od) is passed into)
+```
   1. vval is vector with length nvmax = max(200, N) in v. It starts at v(iv(13)) in Fortran, which is 
 v[iv[12]-1] in C. Length of vval is (d+1)\*nvmax, but useful length is (d+1)\*nv.
   2. vert is vector only has max and min of kd-tree vertices for every dimension of predictors. All kd-tree
@@ -14,13 +20,11 @@ can be found in v from v(iv(12)) in Fortran, v[iv[11]-1] in C.
 regression fit. The maximum of k is 15, which means we only can have 4 predictors at most.
   5. In ehg127, for design matrix, a preliminary factorization X = QR into R and Q with Q'Q = I
 followed by SVD of R allows the pseudo-inverse to be computed efficiently.
-```
-lowesb -> ehg131 -> ehg126(built kd-tree)
-                |-> ehg124
-                |-> ehg139(fit at vertices, vval passed into as s(0:od, nv))
-                       |-> ehg127(called for each vertex(nv), s(0:od) is passed into)
-```
+
 - lowese: interpolation based on kd-tree
+```
+lowese -> ehg133 --> ehg128(interpolation, delta is X for each newobs)
+```
   1. For each vertex, the fitted value g(hat) and d derivatives of g(hat) which estimated by taking the
 slopes of the locally linear or locally quadratic fit are saved and used to do the interpolation.
   2. Ech cell boundary consists of four segments that meet at vertices. On each segment, function value
@@ -43,9 +47,6 @@ phi0=(1-h)**2*(1+2*h)
 phi1=h**2*(3-2*h)
 psi0=h*(1-h)**2
 psi1=h**2*(h-1)
-```
-```
-lowese -> ehg133 --> ehg128(interpolation, delta is X for each newobs)
 ```
 
 ### R code: "kd" element of loess object ###
