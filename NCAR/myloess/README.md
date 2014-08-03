@@ -23,7 +23,7 @@ followed by SVD of R allows the pseudo-inverse to be computed efficiently.
 
 - lowese: interpolation based on kd-tree
 ```
-lowese -> ehg133 --> ehg128(interpolation, delta is X for each newobs)
+lowese -> ehg133 -> ehg128(interpolation, delta is X for each newobs)
 ```
   1. For each vertex, the fitted value g(hat) and d derivatives of g(hat) which estimated by taking the
 slopes of the locally linear or locally quadratic fit are saved and used to do the interpolation.
@@ -38,16 +38,18 @@ results by setting those cross derivative to 0.
 On the unit interval (0,1), given a starting point p0 at t=0 and an ending point p1 at t=1 with starting 
 tangent m0 at t=0 and ending tangent m1 at t=1, the polynomial can be defined by
 ```
-\boldsymbol{p}(t) = (2t^3-3t^2+1)\boldsymbol{p}_0 + (t^3-2t^2+t)\boldsymbol{m}_0 + (-2t^3+3t^2)\boldsymbol{p}_1 +(t^3-t^2)\boldsymbol{m}_1 
+P_t = (2t^3-3t^2+1)P_0 + (t^3-2t^2+t)M_0 + (-2t^3+3t^2)P_1 +(t^3-t^2)M_1 
 ```
 In `ehg128`, the cubic interpolation on boundaries are done as following:
 ```
 c Hermite basis
-phi0=(1-h)**2*(1+2*h)
-phi1=h**2*(3-2*h)
-psi0=h*(1-h)**2
-psi1=h**2*(h-1)
+phi0=(1-h)**2*(1+2*h) --> P_0
+phi1=h**2*(3-2*h)     --> P_1
+psi0=h*(1-h)**2       --> M_0
+psi1=h**2*(h-1)       --> M_1
 ```
+where the `h` is a standardized value of a particular edge of cells. Cubic polynomial of edges of 
+cells are done in lop 7.
 
 ### R code: "kd" element of loess object ###
 - kd$xi is the nodes from original data, if loess(z \~ x+y), xi can be either x-coordinate or 
