@@ -118,9 +118,9 @@ loess_raw(double *y, double *x, double *weights, double *robust, int *d,
     F77_CALL(lowesb)(x, y, weights, diagonal, &one, iv, &liv, &lv, v);
     /* lowese function is commented out because it is the computation
     for interpolation of all fitted value based on kd tree nodes.*/
-    /*
+    
     F77_CALL(lowese)(iv, &liv, &lv, v, n, x, surface);
-    */
+    
     nsing = iv[29];
     for(i = 0; i < (*n); i++) *trL = *trL + diagonal[i];
     F77_CALL(lowesa)(trL, n, d, &tau, &nsing, one_delta, two_delta);
@@ -323,6 +323,7 @@ loess_prune(int *parameter, int *a, double *xi, double *vert,
     k = (d + 1) * nv;
     for(i = 0; i < k; i++)
 	vval[i] = v[vv1 + i];
+/*
     printf("iv 8 is: %d \n", iv[7]);
     printf("iv 250 is: %d \n", iv[249]);
     printf("iv 17 is: %d \n", iv[16]);
@@ -331,7 +332,6 @@ loess_prune(int *parameter, int *a, double *xi, double *vert,
         if(i % iv[16] == 0) printf("\n");
     }
     printf("\n");
-/*
     printf("vv1 is: %d \n", vv1);
     printf("k is: %d \n", k);
     printf("iv 19 is: %d \n", iv[18]);

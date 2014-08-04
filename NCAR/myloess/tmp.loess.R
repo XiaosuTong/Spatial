@@ -1,3 +1,5 @@
+source("my.loess02.R")
+
 set.seed(100)
 df <- data.frame(x = rnorm(100), y = rnorm(100), z = rnorm(100), w = rnorm(100))
 newx <- data.frame(x = runif(10), y = runif(10))

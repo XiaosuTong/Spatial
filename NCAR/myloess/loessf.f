@@ -484,6 +484,7 @@ c Var
          do 4 i1=1,d
             delta(i1)=z(i,i1)
     4    continue
+         PRINT *, 'i am here!'
          s(i)=ehg128(delta,d,ncmax,vc,a,xi,lo,hi,c,v,nvmax,vval)
     3 continue
       return
@@ -903,6 +904,7 @@ c     tensor
     6    continue
     5 continue
       lg=vc
+      PRINT *, 'lg is: ', lg
       ll=c(1,j)
       ur=c(vc,j)
       do 7 i=d,1,-1
@@ -1659,7 +1661,7 @@ c     initialize permutation
          call ehg182(173)
       end if
 c     print function in Fortran
-      PRINT *, 'iv(iv(8)) is: ', iv(iv(8))
+c     PRINT *, 'iv(iv(8)) is:', iv(iv(8))
       call ehg133(iv(3),iv(2),iv(4),iv(14),iv(5),iv(17),iv(iv(7)),iv(iv(
      +8)),iv(iv(9)),iv(iv(10)),wv(iv(11)),wv(iv(13)),wv(iv(12)),m,z,s)
       return
