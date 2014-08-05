@@ -327,9 +327,9 @@ loess_prune(int *parameter, int *a, double *xi, double *vert,
     printf("iv 8 is: %d \n", iv[7]);
     printf("iv 250 is: %d \n", iv[249]);
     printf("iv 17 is: %d \n", iv[16]);
-    for(i = 0; i < vc*iv[16]; i++){
-        printf("%d ", iv[249+i]);
-        if(i % iv[16] == 0) printf("\n");
+    for(i = 0; i < nvmax*d; i++){
+        printf("%f ", v[iv[10] - 1 + i]);
+        if(i % 10 == 0) printf("\n");
     }
     printf("\n");
     printf("vv1 is: %d \n", vv1);

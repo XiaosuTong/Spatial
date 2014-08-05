@@ -4,10 +4,12 @@ v is a long vector with length lv which contains the whole information about kd-
 things. Memory is assigned by using Calloc() function in C, `loess_workspace()`.
 ```
 lowesb -> ehg131 -> ehg126(built kd-tree)
-                |-> ehg124
+                |-> ehg124(not sure what this function is for)
                 |-> ehg139(fit at vertices, vval passed into as s(0:od, nv))
                        |-> ehg127(called for each vertex(nv), s(0:od) is passed into)
-```
+                       |-> ehg137(try to compare the cutting points xi with vertex)
+                       |-> ehg128(interpolation function is called here based on vval2)
+```	
   1. vval is vector with length nvmax = max(200, N) in v. It starts at v(iv(13)) in Fortran, which is 
 v[iv[12]-1] in C. Length of vval is (d+1)\*nvmax, but useful length is (d+1)\*nv.
   2. vert is vector only has max and min of kd-tree vertices for every dimension of predictors. All kd-tree
@@ -20,6 +22,7 @@ can be found in v from v(iv(12)) in Fortran, v[iv[11]-1] in C.
 regression fit. The maximum of k is 15, which means we only can have 4 predictors at most.
   5. In ehg127, for design matrix, a preliminary factorization X = QR into R and Q with Q'Q = I
 followed by SVD of R allows the pseudo-inverse to be computed efficiently.
+  6. Not sure what is vval2?
 
 - lowese: interpolation based on kd-tree
 ```

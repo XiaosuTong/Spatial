@@ -484,7 +484,7 @@ c Var
          do 4 i1=1,d
             delta(i1)=z(i,i1)
     4    continue
-         PRINT *, 'i am here!'
+c        PRINT *, 'i am here!'
          s(i)=ehg128(delta,d,ncmax,vc,a,xi,lo,hi,c,v,nvmax,vval)
     3 continue
       return
@@ -904,7 +904,7 @@ c     tensor
     6    continue
     5 continue
       lg=vc
-      PRINT *, 'lg is: ', lg
+c      PRINT *, 'lg is: ', lg
       ll=c(1,j)
       ur=c(vc,j)
       do 7 i=d,1,-1
