@@ -55,7 +55,7 @@ are interpolated using cubic polynomial using function and derivative data at th
 values used, `g0(2)` and `g0(2)`, are respective to orthogonal direction. That is why derivatives are interpolated
 linearly.
 
-- blending interpolation
+### Blending Interpolation ###
 In order to understand the blending, first thing we can have a look at is the bilinearly blending on the unit
 square S: 0<= u,v <= 1
 ```
