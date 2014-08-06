@@ -939,6 +939,7 @@ c           Hermite basis
     9       continue
     8    continue
     7 continue
+c     s here is the composition P_1P_2F in Barnhill(1977)
       s=g(0,1)
 c     blending
       if(d.eq.2)then
@@ -999,7 +1000,12 @@ c        Hermite basis
          phi1=h**2*(3-2*h)
          psi0=h*(1-h)**2
          psi1=h**2*(h-1)
+c        gn is the blending interpolation to calculate project values on north side 
+c        of edge, here two derivative values used (g1(1) and g0(1)) are respective to same direction.
          gn=phi0*g0(0)+phi1*g1(0)+(psi0*g0(1)+psi1*g1(1))*(v1-v0)
+
+c        gpn is the linearly interpolation to calculate project derivative on north side
+c        of edge, here two derivative values used (g0(2) and g0(2)) are respective to orthogonal direction.
          gpn=phi0*g0(2)+phi1*g1(2)
 c        ----- South -----
          v0=v(ll,1)
@@ -1185,6 +1191,7 @@ c        Hermite basis
          phi1=h**2*(3-2*h)
          psi0=h*(1-h)**2
          psi1=h**2*(h-1)
+c        sns is the P_2F in Barnhill(1977)
          sns=phi0*gs+phi1*gn+(psi0*gps+psi1*gpn)*(v(ur,2)-v(ll,2))
 c        EW
          h=(z(1)-v(ll,1))/(v(ur,1)-v(ll,1))
@@ -1193,6 +1200,7 @@ c        Hermite basis
          phi1=h**2*(3-2*h)
          psi0=h*(1-h)**2
          psi1=h**2*(h-1)
+c        sew is the P_1F in Barnhill(1977)
          sew=phi0*gw+phi1*ge+(psi0*gpw+psi1*gpe)*(v(ur,1)-v(ll,1))
          s=(sns+sew)-s
       end if

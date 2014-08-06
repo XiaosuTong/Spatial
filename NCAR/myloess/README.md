@@ -43,7 +43,23 @@ tangent m0 at t=0 and ending tangent m1 at t=1, the polynomial can be defined by
 ```
 P_t = (2t^3-3t^2+1)P_0 + (t^3-2t^2+t)M_0 + (-2t^3+3t^2)P_1 +(t^3-t^2)M_1 
 ```
-In `ehg128`, the cubic interpolation on boundaries are done as following:
+  5. In `ehg128`, `z` is the location for interpolation. `z` is a vector with length d. 
+loop3 is finding the cell for the `z` location.
+loop5 & 6 is about assigning `vval` to `g`.
+`lg` is the number of vertices per cell, and `ll` is the lower left of cell, `ur` is the upper right of 
+cell.
+loop7 calculates the P1P2F(called the tensor product of P1 and P2). `h` is the standardized  value of a particular
+edge of cells. output from loop7 is `s`.
+Then each section separated by `----` is calculating the projection of values and derivatives on each edge. For
+example, `gn` is the blending interpolation to calculate project values on north side of edge, here two 
+derivative values used, `g1(1)` and `g0(1)`, are respective to same direction. That is why function value
+are interpolated using cubic polynomial using function and derivative data at the vertices.
+`gpn` is the linearly interpolation to calculate project derivative on north side of edge, here two derivative 
+values used, `g0(2)` and `g0(2)`, are respective to orthogonal direction. That is why derivatives are interpolated
+linearly.
+
+
+the cubic interpolation coefficients are done as following:
 ```
 c Hermite basis
 phi0=(1-h)**2*(1+2*h) --> P_0
@@ -51,8 +67,10 @@ phi1=h**2*(3-2*h)     --> P_1
 psi0=h*(1-h)**2       --> M_0
 psi1=h**2*(h-1)       --> M_1
 ```
-where the `h` is a standardized value of a particular edge of cells. Cubic polynomial of edges of 
-cells are done in lop 7.
+Cubic interpolation is used multiple times. First we used to interpolate the projection of g(u,v) on each edge using
+vertices function values and derivatives. At the same time, we linearly interpolated drivatives at projection 
+of g(u,v) on each edge. Then we use four projection to cubic interpolate the g(u,v).
+
 
 ### R code: "kd" element of loess object ###
 - kd$xi is the nodes from original data, if loess(z \~ x+y), xi can be either x-coordinate or 
