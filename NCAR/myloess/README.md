@@ -78,12 +78,11 @@ phi1=h**2*(3-2*h)     --> P_1
 psi0=h*(1-h)**2       --> M_0
 psi1=h**2*(h-1)       --> M_1
 ```
-and using cubic Hermite spline(interpolation on a single interval shown as following) to interpolate G(u,v) 
-based on projections, G(0,v), etc., 
+and using cubic Hermite spline(interpolation on a single interval shown as following) 
 ```
 P_t = (2t^3-3t^2+1)P_0 + (t^3-2t^2+t)M_0 + (-2t^3+3t^2)P_1 +(t^3-t^2)M_1
 ```
-the interpolation now becomes:
+to interpolate G(u,v) based on projections, G(0,v), etc.,the interpolation now becomes:
 ```
 G(u,v) = P1F + P2F - P1P2F
 ```
@@ -104,19 +103,21 @@ P1P2F = [phi0(u) phi1(u) psi0(u) psi1(u)]*B*[phi0(v)]
       		                                [psi0(v)]
             	                            [psi1(v)]
 
+B = [G(0,0) G(0,1)  | Gv(0,0) Gv(0,1)  ] = [Positions | v-Slopes ]
+    [G(1,0) G(1,1)  | Gv(1,0) Gv(1,1)  ]   [----------|----------]
+    [---------------|------------------]   [u-Slopes  | Twists   ]
+    [Gu(0,0) Gu(0,1)| Gvu(0,0) Gvu(0,1)] 
+	[Gu(1,0) Gu(1,1)| Gvu(1,0) Gvu(1,1)]
 ```
-the cubic interpolation coefficients are done as following:
-```
-c Hermite basis
-phi0=(1-h)**2*(1+2*h) --> P_0
-phi1=h**2*(3-2*h)     --> P_1
-psi0=h*(1-h)**2       --> M_0
-psi1=h**2*(h-1)       --> M_1
-```
-Cubic interpolation is used multiple times. First we used to interpolate the projection of g(u,v) on each edge using
-vertices function values and derivatives. At the same time, we linearly interpolated drivatives at projection 
-of g(u,v) on each edge. Then we use four projection to cubic interpolate the g(u,v).
-
+Twists here are second derivatives, they are usually assumed to be independent of the 
+order of differentiation. But in our case, we assume these cross-derivatives are zero.
+Cubic interpolation is used multiple times. First we used to interpolate the projection of g(u,v) 
+on each edge using vertices function values and derivatives. At the same time, we linearly 
+interpolated derivatives at projection of g(u,v) on each edge. Then we use four projections and four
+linear interpolated derivatives to cubic interpolate the g(u,v). It should be noted that the 
+direction of derivatives used in interpolation of projections on each edge are different with the
+direction of derivatives first linearly interpolated then used in cubic interpolation with four
+projections and four derivatives.
 
 ### R code: "kd" element of loess object ###
 - kd$xi is the nodes from original data, if loess(z \~ x+y), xi can be either x-coordinate or 
