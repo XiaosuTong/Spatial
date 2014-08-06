@@ -10,12 +10,12 @@ lowesb -> ehg131 -> ehg126(built kd-tree)
                        |-> ehg137(try to compare the cutting points xi with vertex)
                        |-> ehg128(interpolation function is called here based on vval2)
 ```	
-  1. vval is vector with length nvmax = max(200, N) in v. It starts at v(iv(13)) in Fortran, which is 
+  1. `vval` is vector with length nvmax = max(200, N) in v. It starts at v(iv(13)) in Fortran, which is 
 v[iv[12]-1] in C. Length of vval is (d+1)\*nvmax, but useful length is (d+1)\*nv.
-  2. vert is vector only has max and min of kd-tree vertices for every dimension of predictors. All kd-tree
+  2. `vert` is vector only has max and min of kd-tree vertices for every dimension of predictors. All kd-tree
 vertices can be found starting from v(iv(11)) in Fortran, which is v[iv[10]-1] in C, and from 
 v(iv(11)+nvmax) in Fortran, which is v[iv[10]-1+nvmax]. Length of vertices is nv which is iv[5].
-  3. xi is vector of all node points from original predictors. Length of xi is nc which is iv[4]. xi
+  3. `xi` is vector of all node points from original predictors. Length of xi is nc which is iv[4]. xi
 can be found in v from v(iv(12)) in Fortran, v[iv[11]-1] in C.
   4. In ehg127 function, "b" is the design matrix, b(nf, k). k is iv(29), which equal to 
 (d+2)\*(d+1)/2, for example two predictors, degree is 2, then there are 6 terms in local 
@@ -55,8 +55,55 @@ are interpolated using cubic polynomial using function and derivative data at th
 values used, `g0(2)` and `g0(2)`, are respective to orthogonal direction. That is why derivatives are interpolated
 linearly.
 
+- blending interpolation
+In order to understand the blending, first thing we can have a look at is the bilinearly blending on the unit
+square S: 0<= u,v <= 1
+```
+G(u,v) = [1-u u]*[G(0,v)] + [G(u,0) G(u,1)]*[1-v] - [1-u u]*[G(0,0) G(0,1)]*[1-v]
+				 [G(1,v)]				    [  v]			[G(1,0) G(1,1)] [  v]
+```
+All information we used in bilinearly blending are projection of G(u,v) on each edge, G(0,v),G(u,1), etc.,
+and the function value at four corners, G(0,0),G(1,0), etc. If projections, G(0,v), etc. are replaced by their
+linear interpolants, e.g.,
+```
+G(0,v) = (1-v)G(0,0) + vG(0,1)
+G(1,v) = (1-v)G(1,0) + vG(1,1)
+```
+the result `G(u,v)` is become only the third term in previous equation, which called bilinear interpolant.
+Then based on this, if we replace the linear coefficients, (1-u),u,v,(1-v) by cubic Hermite spline basis
+```
+c Hermite basis
+phi0=(1-h)**2*(1+2*h) --> P_0
+phi1=h**2*(3-2*h)     --> P_1
+psi0=h*(1-h)**2       --> M_0
+psi1=h**2*(h-1)       --> M_1
+```
+and using cubic Hermite spline(interpolation on a single interval shown as following) to interpolate G(u,v) 
+based on projections, G(0,v), etc., 
 ```
 P_t = (2t^3-3t^2+1)P_0 + (t^3-2t^2+t)M_0 + (-2t^3+3t^2)P_1 +(t^3-t^2)M_1
+```
+the interpolation now becomes:
+```
+G(u,v) = P1F + P2F - P1P2F
+```
+where
+```
+P1F = [phi0(u) phi1(u) psi0(u) psi1(u)]*[G(0,v) ]
+										[G(1,v) ]
+										[Gu(0,v)]
+										[Gu(1,v)]
+
+P2F = [G(u,0) G(u,1) Gv(u,0) Gv(u,1)]*[phi0(v)]
+                                      [phi1(v)]
+                                      [psi0(v)]
+                                      [psi1(v)]
+
+P1P2F = [phi0(u) phi1(u) psi0(u) psi1(u)]*B*[phi0(v)]
+	                                        [phi1(v)]
+      		                                [psi0(v)]
+            	                            [psi1(v)]
+
 ```
 the cubic interpolation coefficients are done as following:
 ```
