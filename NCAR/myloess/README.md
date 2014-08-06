@@ -40,9 +40,6 @@ results by setting those cross derivative to 0.
   4. Cubic spline/Cubic interpolation/Cubic Hermite spline:
 On the unit interval (0,1), given a starting point p0 at t=0 and an ending point p1 at t=1 with starting 
 tangent m0 at t=0 and ending tangent m1 at t=1, the polynomial can be defined by
-```
-P_t = (2t^3-3t^2+1)P_0 + (t^3-2t^2+t)M_0 + (-2t^3+3t^2)P_1 +(t^3-t^2)M_1 
-```
   5. In `ehg128`, `z` is the location for interpolation. `z` is a vector with length d. 
 loop3 is finding the cell for the `z` location.
 loop5 & 6 is about assigning `vval` to `g`.
@@ -58,7 +55,9 @@ are interpolated using cubic polynomial using function and derivative data at th
 values used, `g0(2)` and `g0(2)`, are respective to orthogonal direction. That is why derivatives are interpolated
 linearly.
 
-
+```
+P_t = (2t^3-3t^2+1)P_0 + (t^3-2t^2+t)M_0 + (-2t^3+3t^2)P_1 +(t^3-t^2)M_1
+```
 the cubic interpolation coefficients are done as following:
 ```
 c Hermite basis
