@@ -10,9 +10,15 @@ kdtree <- function(df, alpha)
 	oname <- names(df)[(D-1):D]
 	names(df)[(D-1):D] <- c("x","y")
 	rx <- range(df$x)
+	rx1 <- rx[1] - 0.005*diff(rx)
+	rx2 <- rx[2] + 0.005*diff(rx)
+	rx <- c(rx1,rx2)
 	ry <- range(df$y)
+	ry1 <- ry[1] - 0.005*diff(ry)
+	ry2 <- ry[2] + 0.005*diff(ry)
+	ry <- c(ry1, ry2)
 	dif.rx <- diff(rx)
-	dif.rx <- diff(ry)
+	dif.ry <- diff(ry)
 	box.x <- rx
 	box.y <- ry
 	package <- list(df, box.x, box.y)
