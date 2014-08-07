@@ -11,6 +11,7 @@ lo.fit1 <- my.loess1(
 	normalize = FALSE, 
 	control = loess.control(surface = "direct")
 )
+
 lo.fit2 <- my.loess2(
 	z ~ x + y, 
 	data = df, 
@@ -18,10 +19,17 @@ lo.fit2 <- my.loess2(
 	degree = 1, 
 	normalize = FALSE
 )
-
 tmp <- data.frame(matrix(lo.fit2$kd$vval, byrow=TRUE, ncol=3))
 tmp <- cbind(tmp, lo.fit2$kd$vert2)
 tmp <- setNames(tmp, c("fitted", "b1", "b2", "x","y"))
+
+source("../code/spatial/kdtree.R")
+kd <- kdtree(df[c("x","y")], 0.5/5)
+tmp <- rbind(setNames(lo.fit2$kd$vert2, c("x","y")), kd[[1]])
+
+
+
+
 
 
 

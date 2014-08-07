@@ -484,7 +484,6 @@ c Var
          do 4 i1=1,d
             delta(i1)=z(i,i1)
     4    continue
-c        PRINT *, 'i am here!'
          s(i)=ehg128(delta,d,ncmax,vc,a,xi,lo,hi,c,v,nvmax,vval)
     3 continue
       return
