@@ -26,9 +26,13 @@ tmp <- setNames(tmp, c("fitted", "b1", "b2", "x","y"))
 source("../code/spatial/kdtree.R")
 kd <- kdtree(df[c("x","y")], 0.5/5)
 tmp <- rbind(setNames(lo.fit2$kd$vert2, c("x","y")), kd[[1]])
+tmp$group <- rep(1:2, each=34)
 
-
-
+library(lattice)
+xyplot(y~x,
+	data = tmp,
+	group = group
+)
 
 
 
