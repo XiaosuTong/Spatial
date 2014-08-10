@@ -11,20 +11,18 @@ lo.fit1 <- my.loess1(
 	normalize = FALSE, 
 	control = loess.control(surface = "direct")
 )
-
-lo.fit2 <- my.loess2(
+	lo.fit2 <- my.loess2(
 	z ~ x + y, 
 	data = df, 
 	span = 0.5,
 	degree = 1, 
 	normalize = FALSE
 )
-
 library(lattice)
 xyplot(X2 ~ X1,
 	data = lo.fit2$kd$vert2,
 	panel = function(x,y,...){
-		panel.xyplot(x,y,...)
+	panel.xyplot(x,y,...)
 		for(i in seq(1,(length(x)),2)) {
 			if( i ==1){
 				panel.segments(x[i],y[i],x[i+2],y[i+2])
@@ -35,15 +33,25 @@ xyplot(X2 ~ X1,
 		}
 	}
 )
-
 tmp <- lo.fit2$kd$vert2[with(lo.fit2$kd$vert2, order(X2,X1)),]
 
 for(i in 1:ncol(tmp)){
 	x <- tmp[i,1]
 	y <- tmp[i,2]
-	yu <- sort(tmp[which(tmp[, 1] == x & tmp[, 2] < y), 2], decreasing = TRUE)[1]
-	yl <- sort(tmp[which(tmp[, 1] == x & tmp[, 2] > y), 2])[1]
-	xu <- sort(tmp[which(tmp[, 2])])
+	yl <- sort(
+		tmp[which(tmp[, 1] == x & tmp[, 2] < y), 2], 
+		decreasing = TRUE
+	)[1]
+	yu <- sort(
+		tmp[which(tmp[, 1] == x & tmp[, 2] > y), 2]
+	)[1]
+	xl <- sort(
+		tmp[which(tmp[, 2] == y & tmp[, 1] < x), 1], 
+		decreasing = TRUE
+	)[1]
+	xu <- sort(
+		tmp[which(tmp[, 2] == y & tmp[, 1] > x), 1]
+	)[1]
 
 }
 
