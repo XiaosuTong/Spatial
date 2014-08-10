@@ -29,7 +29,13 @@ kdtree <- function(df, alpha)
 	  length(li) <- length(li) - 1
 	  if(dim(package[[1]])[1] > max(alpha*N, 1)){
 		rx <- range(package[[1]]$x)
+		rx1 <- rx[1] - 0.005*diff(rx)
+		rx2 <- rx[2] + 0.005*diff(rx)
+		rx <- c(rx1, rx2)
 		ry <- range(package[[1]]$y)
+		ry1 <- ry[1] - 0.005*diff(ry)
+		ry2 <- ry[2] + 0.005*diff(ry)
+		ry <- c(ry1, ry2)
 		dif.rx <- diff(rx)
 		dif.ry <- diff(ry)
 		if(dif.rx >= dif.ry){

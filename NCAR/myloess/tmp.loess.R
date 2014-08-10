@@ -19,23 +19,33 @@ lo.fit2 <- my.loess2(
 	degree = 1, 
 	normalize = FALSE
 )
-tmp <- data.frame(matrix(lo.fit2$kd$vval, byrow=TRUE, ncol=3))
-tmp <- cbind(tmp, lo.fit2$kd$vert2)
-tmp <- setNames(tmp, c("fitted", "b1", "b2", "x","y"))
-
-source("../code/spatial/kdtree.R")
-kd <- kdtree(df[c("x","y")], 0.5/5)
-tmp <- rbind(setNames(lo.fit2$kd$vert2, c("x","y")), kd[[1]])
-tmp$group <- rep(1:2, each=34)
 
 library(lattice)
-xyplot(y~x,
-	data = tmp,
-	group = group
+xyplot(X2 ~ X1,
+	data = lo.fit2$kd$vert2,
+	panel = function(x,y,...){
+		panel.xyplot(x,y,...)
+		for(i in seq(1,(length(x)),2)) {
+			if( i ==1){
+				panel.segments(x[i],y[i],x[i+2],y[i+2])
+			}else if(i ==3){
+				panel.segments(x[i-1],y[i-1],x[i+1],y[i+1])
+			}
+			panel.segments(x[i],y[i],x[i+1],y[i+1])
+		}
+	}
 )
 
+tmp <- lo.fit2$kd$vert2[with(lo.fit2$kd$vert2, order(X2,X1)),]
 
+for(i in 1:ncol(tmp)){
+	x <- tmp[i,1]
+	y <- tmp[i,2]
+	yu <- sort(tmp[which(tmp[, 1] == x & tmp[, 2] < y), 2], decreasing = TRUE)[1]
+	yl <- sort(tmp[which(tmp[, 1] == x & tmp[, 2] > y), 2])[1]
+	xu <- sort(tmp[which(tmp[, 2])])
 
+}
 
 #kd <- lo.fit2$kd$vert2
 #value <-predict(lo.fit1, data.frame(x = kd$X1, y = kd$X2))
