@@ -1,6 +1,6 @@
 source("my.loess02.R")
 
-set.seed(100)
+set.seed(10)
 df <- data.frame(x = rnorm(100), y = rnorm(100), z = rnorm(100), w = rnorm(100))
 newx <- data.frame(x = runif(10), y = runif(10))
 lo.fit1 <- my.loess1(
@@ -37,7 +37,7 @@ tmp <- lo.fit2$kd$vert2
 fit <- setNames(data.frame(matrix(lo.fit2$kd$vval, byrow=TRUE, ncol=3)), c("fitted","dx","dy"))
 fit$dxx <- rep(0, ncol(tmp))
 fit$dyy <- rep(0, ncol(tmp))
-for(i in 1:ncol(tmp)){
+for(i in 1:nrow(tmp)){
 	x <- tmp[i,1]
 	y <- tmp[i,2]
 	yl <- sort(
@@ -83,10 +83,6 @@ for(i in 1:ncol(tmp)){
 	}else{
 		dw <- 0
 	}
-	print(ds)
-	print(dn)
-	print(dw)
-	print(de)
 	if((!is.na(xu)) & (!is.na(xl))){
 		dx <- ((xu - x)/(xu - xl))*de + ((x - xl)/(xu - xl))*dw
 	}else if(is.na(xu)){
@@ -101,8 +97,6 @@ for(i in 1:ncol(tmp)){
 	}else if(is.na(yl)){
 		dy <- dn
 	}
-	print(dx)
-	print(dy)
 	fit[i, "dxx"] <- dx
 	fit[i, "dyy"] <- dy
 }
