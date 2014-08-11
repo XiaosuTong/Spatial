@@ -33,8 +33,10 @@ xyplot(X2 ~ X1,
 		}
 	}
 )
-tmp <- lo.fit2$kd$vert2[with(lo.fit2$kd$vert2, order(X2,X1)),]
-
+tmp <- lo.fit2$kd$vert2
+fit <- setNames(data.frame(matrix(lo.fit2$kd$vval, byrow=TRUE, ncol=3)), c("fitted","dx","dy"))
+fit$dxx <- rep(0, ncol(tmp))
+fit$dyy <- rep(0, ncol(tmp))
 for(i in 1:ncol(tmp)){
 	x <- tmp[i,1]
 	y <- tmp[i,2]
@@ -52,7 +54,57 @@ for(i in 1:ncol(tmp)){
 	xu <- sort(
 		tmp[which(tmp[, 2] == y & tmp[, 1] > x), 1]
 	)[1]
-
+	N <- c(x, yu)
+	S <- c(x, yl)
+	E <- c(xu, y)
+	W <- c(xl, y)
+	F <- fit[i, 1]
+	NF <- fit[which(tmp$X1 == N[1] & tmp$X2 == N[2]), 1]
+	SF <- fit[which(tmp$X1 == S[1] & tmp$X2 == S[2]), 1]
+	EF <- fit[which(tmp$X1 == E[1] & tmp$X2 == E[2]), 1]
+	WF <- fit[which(tmp$X1 == W[1] & tmp$X2 == W[2]), 1]
+	if(length(NF)!=0){
+		dn <- (NF - F)/(yu - y)
+	}else{
+		dn <- 0
+	}
+	if(length(SF)!=0){
+		ds <- (F - SF)/(y - yl)
+	}else{
+		ds <- 0
+	}
+	if(length(EF)!=0){
+		de <- (EF - F)/(xu - x)
+	}else{
+		de <- 0
+	}
+	if(length(WF)!=0){
+		dw <- (F - WF)/(x - xl)
+	}else{
+		dw <- 0
+	}
+	print(ds)
+	print(dn)
+	print(dw)
+	print(de)
+	if((!is.na(xu)) & (!is.na(xl))){
+		dx <- ((xu - x)/(xu - xl))*de + ((x - xl)/(xu - xl))*dw
+	}else if(is.na(xu)){
+		dx <- dw
+	}else if(is.na(xl)){
+		dx <- de  
+	}
+	if((!is.na(yu)) & (!is.na(yl))){
+		dy <- ((yu - y)/(yu - yl))*dn + ((y - yl)/(yu - yl))*ds
+	}else if(is.na(yu)){
+		dy <- ds
+	}else if(is.na(yl)){
+		dy <- dn
+	}
+	print(dx)
+	print(dy)
+	fit[i, "dxx"] <- dx
+	fit[i, "dyy"] <- dy
 }
 
 #kd <- lo.fit2$kd$vert2
