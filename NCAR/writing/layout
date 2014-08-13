@@ -1,0 +1,7 @@
+latex main
+bibtex main
+latex main
+latex main
+dvips -o main.ps -t letter -Ppdf -G0 main.dvi
+#ps2pdf main.ps
+#mv main.pdf DRperformance.pdf
