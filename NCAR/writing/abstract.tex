@@ -1,6 +1,6 @@
-\section{Spatial and Temporal Modeling with LOESS and D\&R}
+\section{Spatial and Temporal Modeling}
 
-\subsection{LOESS}
+\subsection{LOESS for Spatial}
 Local regression methods model the relationship between an independent and dependent variable 
 through weighted fitting of polynomials in local neighborhoods of the design space. A popular 
 method, loess, is a local regression method with favorable statistical and computational properties.
@@ -9,19 +9,20 @@ deterministic seasonal and trend components with the STL method (seasonal trend 
 loess). On the other hand, Loess modeling can be easily applied to spatial data in two dimensions. 
 It is nothing but a quadratic fit with respect to longitude and latitude. 
 
-\subsection{STL+}
+\subsection{STL+ for Temporal}
+STL is a filtering procedure for decomposing a seasonal time series into three components: trend,
+seasonal, and remainder. The long term change in the time series is captured by the trend component.
+A cyclical pattern is reflected in the seasonal component. The residuals, the remaining variation, 
+are the remainder component.
 Several improvements have been made to the STL implementation, packaged as “stl2”. The main function
 of the package is stl2(), which has the same arguments as the original stl() function. In addition, 
 it offers the following. First, local quadratic support for seasonal, trend, and low-pass loess 
 smoothing by specifying s.degree = 2, etc. Second, loess cubic interpolation is used instead of 
 linear interpolation, using the estimated derivatives. Third, blending for seasonal, trend, and 
-low-pass loess smoothing by specifying $\delta$, e.g. s.blend=0.5, etc. Forth, further trend 
-smoothing by specifying vectors fc.window and fc.degree for the spans and degrees of the post-trend 
-components to be estimated. These are carried out in the order they are specified. Fifth, capability
-to handle missing value.
-
-\subsection{Divide and Recombined (D\&R)}
-Divide and recombined concept has been applied to the analysis through various place. 
+low-pass loess smoothing by specifying s.blend=0.5, etc. Forth, further trend smoothing by 
+specifying vectors fc.window and fc.degree for the spans and degrees of the post-trend components to 
+be estimated. These are carried out in the order they are specified. Fifth, capability to handle 
+missing value.
 
 \subsection{Climate Data}
 The data set we are going to download is about observed monthly total precipitation and monthly 
@@ -31,16 +32,21 @@ precipitation. For each station, an unique ID, station name, elevation, longitud
 available. If a measurement of a specific station at a specific month is treated as one observation,
 then there are 6,204,442 observations for precipitation and 4,285,841 observations for temperature. 
 
-Third paragraph talks something about the modeling and diagnostics.
-However,missing value is one of the problem for this climate data. In order to examinate the 
-temporal modeling using STL+, 100 stations will no missing values are selected randomly from 
-stations. 
+However, missing value is one of the problem for this climate data. Less than 10 percent of stations
+have no missing observations across the 1,236 months. Less than 20 percent of stations only have 800
+valid observations during the 103 years. Measurement status of monthly observation for each station
+has been visualized. It is reasonable to assume that all missing values happened at random time 
+points. In order to examinate the temporal modeling using STL+, 100 stations will no missing values 
+are selected randomly. 
 
-Forth paragraph talks something about tuning parameter selection.
-In the experiment 1, we are trying to use 600 observations to predict oncoming 36 months of 
-maximum temperature. Then the predicton error is calculated to measure the prediction ability. 
-We want to see how the different parameter setting affect the prediction ability. For each station,
-we use the first 600 observations to predict 36 oncoming observations, then move the range window 
-of training dataset one observation ahead, and predict the next 36 observations. There are 1236 
-observations for each station, so we conduct 601 replicates for each station.
+Tuning parameter selection is one of the most important step for all nonparametric methods. Multiple 
+experiments with different smoothing parameters were performed in this work, which used 600 
+observations to predict oncoming 36 months of observations. Then the range window of training 
+dataset one was moved observation ahead, and the next 36 observations were predicted. The predicton 
+error is calculated to measure the prediction ability. For each of the 100 stations, normal quantile
+plot of the prediction error conditional on the prediction lag 
 
+For each station, we use the first 600 
+observations to predict 36 oncoming observations,  There are 1236 observations for each 
+station, so we conduct 601 replicates for each station. Divide and recombined computation concept 
+has been applied here to parallelly 
