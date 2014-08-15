@@ -14,39 +14,76 @@ STL is a filtering procedure for decomposing a seasonal time series into three c
 seasonal, and remainder. The long term change in the time series is captured by the trend component.
 A cyclical pattern is reflected in the seasonal component. The residuals, the remaining variation, 
 are the remainder component.
-Several improvements have been made to the STL implementation, packaged as “stl2”. The main function
+Several improvements have been made to the STL implementation, packaged as "stl2". The main function
 of the package is stl2(), which has the same arguments as the original stl() function. In addition, 
 it offers the following. First, local quadratic support for seasonal, trend, and low-pass loess 
 smoothing by specifying s.degree = 2, etc. Second, loess cubic interpolation is used instead of 
 linear interpolation, using the estimated derivatives. Third, blending for seasonal, trend, and 
-low-pass loess smoothing by specifying s.blend=0.5, etc. Forth, further trend smoothing by 
+low-pass loess smoothing by specifying $s.blend = 0.5$, etc. Forth, further trend smoothing by 
 specifying vectors fc.window and fc.degree for the spans and degrees of the post-trend components to 
 be estimated. These are carried out in the order they are specified. Fifth, capability to handle 
 missing value.
 
 \subsection{Climate Data}
-The data set we are going to download is about observed monthly total precipitation and monthly 
+The data set we are going to analyze is about observed monthly total precipitation and monthly 
 average minimum and maximum daily temperatures for the coterminous US 1895-1997. Totally, there are 
 12,392 stations all over the nation, 8,125 stations for temperature, 11,918 stations for 
 precipitation. For each station, an unique ID, station name, elevation, longitude, and altitude are
 available. If a measurement of a specific station at a specific month is treated as one observation,
 then there are 6,204,442 observations for precipitation and 4,285,841 observations for temperature. 
-
 However, missing value is one of the problem for this climate data. Less than 10 percent of stations
-have no missing observations across the 1,236 months. Less than 20 percent of stations only have 800
-valid observations during the 103 years. Measurement status of monthly observation for each station
-has been visualized. It is reasonable to assume that all missing values happened at random time 
-points. In order to examinate the temporal modeling using STL+, 100 stations will no missing values 
-are selected randomly. 
+have no missing observations across the 1,236 months. Measurement status of monthly observation for 
+each station has been visualized. It is reasonable to assume that all missing values happened at 
+random time points. In order to examine the temporal modeling using STL+, 100 stations with no 
+missing values are selected randomly. 
 
-Tuning parameter selection is one of the most important step for all nonparametric methods. Multiple 
-experiments with different smoothing parameters were performed in this work, which used 600 
-observations to predict oncoming 36 months of observations. Then the range window of training 
-dataset one was moved observation ahead, and the next 36 observations were predicted. The predicton 
-error is calculated to measure the prediction ability. For each of the 100 stations, normal quantile
-plot of the prediction error conditional on the prediction lag 
+Modeling and diagnostic plots were helpful not only to screen the potential parameters set up, but 
+also to understand the behavior of each component. First of all, the time series plot of each 
+station was drawn to help understanding the temporal behaviors of each station independently. Then a
+series of experiments with different smoothing parameters set up were conducted based on the 
+components plots of STL modeling. For example, trend component and yearly means against time was 
+plotted, which was designed to illustrate if the trend component readily grasps the peaks and 
+valleys of the time series. It is found that the trend component missed amount of peaks and valleys
+even the quadratic local fitting was chosen. This can be solved by either decreasing the span 
+window of trend component or including a higher frequency component. Seasonal subseries plots, 
+seasonal component against year conditional on month, illustrated that it will be sufficient to set 
+the seasonal span window to be "periodic". Normal quantile plots and autocorrelation plots for 
+remainder of each station were also plotted to checked distribution of the remainders.
 
-For each station, we use the first 600 
-observations to predict 36 oncoming observations,  There are 1236 observations for each 
-station, so we conduct 601 replicates for each station. Divide and recombined computation concept 
-has been applied here to parallelly 
+Tuning parameter selection is one of the most important step for all nonparametric methods.
+Multiple factorial designs, with the design space covering increasingly bigger span window for 
+seasonal and trend based on clues from previous experiments, were performed in this work. For a 
+given smoothing parameter set up, 600 observations were used to predict oncoming 36 months of 
+observations. Then the time range of training dataset was moved one observation ahead, and the 
+next 36 observations were predicted. The absolute prediction error and prediction error were chosen 
+as the model selection criterion. For each of the 100 stations, normal quantile plot of the 
+prediction error conditional on the prediction lag were plotted on one page. And the order of the 
+stations were decided by the amount of deviation from the distribution of prediction error from 
+normal distribution. Based on the normal quantile plots for each station, every lap has 601 
+replicates whose distribution can be well approximated by a normal distribution with different means
+and standard deviations. So for each lap, it is reasonable and sufficient to use only the mean and 
+standard deviation to sum up the information of prediction ability for that lap length. Of course, 
+the accuracy of the prediction is affected by the model which is decided by smoothing parameters, as 
+well as the length of the predicting lag. The visualization of the mean of prediction error and 
+absolute value of it against lag superposing on different smoothing parameters setting are achieved 
+to assess the effect of tuning parameters to the prediction ability.
+Finally, the mean and standard deviation across all predicting lags for each station are calculated,
+which represents the overall prediction ability of one smoothing parameter set up for one station. 
+Then the distribution of on parameter set up can be visualized by including all 100 stations using 
+one dot plot from lattice package in R. Different smoothing parameter set up were superposed on the 
+same scatter plot in order to visualize the difference between those set up with respect to the
+prediction error and absolute value of prediction error.
+
+For each station, the first 600 observations were used to predict 36 oncoming observations. There were 
+1236 observations for each station, which means there were 601 replicates for each station. Divide and 
+recombined computation concept has been applied here to parallelly conduct those experiments. The 
+data has been divided into $601 \times 100 \times k$ subsets, where k is the total number of 
+experiments in factorial designs, and there are 601 predicting job for each of 100 stations. Within
+each subset, there were 600 observations that was the training part, and next 36 observations which
+was validation part. Of course, there were some overlapping across all subsets since only one
+observation was shifted every time. And then validation part of each subset was predicted by using 
+stl+ modeling, prediction error was calculated consequently. In the recombined step, for each 
+parameter set up, prediction error of the same station and lap length were grouped together, and the
+mean and standard deviation of prediction error would be calculated. For different purpose, for each
+parameter set up, prediction error of the same station could be grouped together in recombined step,
+then mean and standard deviation across all 601 replicates and 36 laps could be easily calculated.
