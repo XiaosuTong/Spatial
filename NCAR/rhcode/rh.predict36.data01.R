@@ -55,16 +55,6 @@ if(index == "E1"){
   parameter$sw <- as.character(parameter$sw)
 }
 
-lattice.theme <- trellis.par.get()
-col <- lattice.theme$superpose.symbol$col
-
-if(dataset == "tmax"){	
-  ylab <- "Maximum Temperature"
-}else if(dataset == "tmin"){
-  ylab <- "Minimum Temperature"
-}else {
-  ylab <- "Precipitation"
-}
 ######################################################################################
 ## The output runk is from the kth parameter setting. The key is c(station.id, group), 
 ## which group is from 1 to 9. For each parameter setting, each station, there will

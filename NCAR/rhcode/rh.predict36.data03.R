@@ -22,21 +22,30 @@ index <- "Emultiple2"
 #Load the station.id for the 100 stations for Tmax
 load(file.path(local.datadir, paste(dataset,"div.stations.RData", sep="")))
 load(file.path(local.datadir, "stations.RData"))
-if(index == "Emultiple"){
-	parameter <- expand.grid(sw=c(25, 125, "periodic"), tw=1141, td=1, sd=1, fcw=1141, fcd=1, ssw=c(361,511,825), ssd=2)
+if(index == "Emultiple2"){
+	parameter <- expand.grid(
+    sw = c(25, 125, "periodic"), 
+    tw = 1141, 
+    td = 1, 
+    sd = 1, 
+    fcw = 1141, 
+    fcd = 1, 
+    ssw = c(361,511,825), 
+    ssd = 2
+  )
 	parameter$sw <- as.character(parameter$sw)
 }else{
-    parameter <- expand.grid(sw="periodic", tw=1141, td=1, sd=1, fcw=c(495, 811, 1141), fcd=1, ssw=c(361,511,825), ssd=2)
-    parameter$sw <- as.character(parameter$sw)
-}
-lattice.theme <- trellis.par.get()
-col <- lattice.theme$superpose.symbol$col
-if(dataset == "tmax"){	
-ylab <- "Maximum Temperature"
-}else if(dataset == "tmin"){
-	ylab <- "Minimum Temperature"
-}else {
-	ylab <- "Precipitation"
+  parameter <- expand.grid(
+    sw = "periodic", 
+    tw = 1141, 
+    td = 1, 
+    sd = 1, 
+    fcw = c(495, 811, 1141), 
+    fcd = 1, 
+    ssw = c(361,511,825),
+    ssd = 2
+  )
+  parameter$sw <- as.character(parameter$sw)
 }
 ######################################################################################
 ## The output runk is from the kth parameter setting. The key is c(station.id, group), 
