@@ -23,19 +23,40 @@ index <- "Emultiple"
 load(file.path(local.datadir, paste(dataset,"div.stations.RData", sep="")))
 load(file.path(local.datadir, "stations.RData"))
 if(index == "Emultiple1"){
-	parameter <- list(list(sw="periodic", tw=1855, sd=1, td=1, fcw=1855, fcd=1, ssw=121, ssd=2, multiple=TRUE))
+	parameter <- list(
+    list(
+      sw = "periodic", 
+      tw = 1855, 
+      sd = 1, 
+      td = 1, 
+      fcw = 1855, 
+      fcd = 1, 
+      ssw = 121, 
+      ssd = 2, 
+      multiple = TRUE
+    )
+  )
 }else{
-	parameter <- list(run1=list(sw="periodic", tw=1855, sd=1, td=1, fcw=1855, fcd=1, ssw=241, ssd=1, multiple=TRUE),
-					  run2=list(sw="periodic", tw=241, sd=1, td=1, multiple=FALSE))
-}
-lattice.theme <- trellis.par.get()
-col <- lattice.theme$superpose.symbol$col
-if(dataset == "tmax"){	
-ylab <- "Maximum Temperature"
-}else if(dataset == "tmin"){
-	ylab <- "Minimum Temperature"
-}else {
-	ylab <- "Precipitation"
+	parameter <- list(
+    run1 = list(
+      sw = "periodic", 
+      tw = 1855, 
+      sd = 1, 
+      td = 1, 
+      fcw = 1855, 
+      fcd = 1, 
+      ssw = 241, 
+      ssd = 1, 
+      multiple = TRUE
+    ),
+		run2 = list(
+      sw = "periodic", 
+      tw = 241, 
+      sd = 1, 
+      td = 1, 
+      multiple = FALSE
+    )
+  )
 }
 ######################################################################################
 ## The output runk is from the kth parameter setting. The key is c(station.id, group), 
@@ -44,69 +65,151 @@ ylab <- "Maximum Temperature"
 ## the corresponding dataframe which has stl fitting for coming 36 months based on 
 ## previous 600 months.
 ######################################################################################
-for (k in 1:length(parameter))
-{
-job <- list()
-job$map <- expression({
-   library(lattice)
-   library(yaImpute, lib.loc = lib.loc)
-   library(stl2, lib.loc = lib.loc)
-   lapply(seq_along(map.values), function(r) {
-	i <- ceiling(map.keys[[r]]/601)
-	j <- map.keys[[r]] - (i - 1)*601
-	v <- subset(get(paste(dataset, ".100stations", sep="")), station.id == unique(get(paste(dataset, ".100stations", sep=""))$station.id)[i])
-	key <- c(levels(get(paste(dataset, ".100stations", sep=""))$station.id)[i], k)
-	v$month <- factor(v$month, levels=c("Jan", "Feb", "Mar","Apr","May","June","July","Aug","Sep","Oct","Nov","Dec"))
-	v <- v[order(v$year, v$month), ]
-	v$time <- 0:1235
-	v <- v[j:(600 + j - 1 + 36),]
-	v.raw <- tail(v, 36)
-	v.model <- v
-	v.model[601:636, c(dataset)] <- NA
-	if(flag){
-		v.predict <- tail(do.call("cbind", stl2(v.model[,c(dataset)], v.model$time, n.p=12, s.window=sw, s.degree=sd, t.window=tw, t.degree=td, fc.window=c(fcw,ssw), fc.degree=c(fcd,ssd), inner=inner, outer=outer)[c("data","fc")]), 36)
-	}else{
-		v.predict <- tail(stl2(v.model[,c(dataset)], v.model$time, n.p=12, s.window=sw, s.degree=sd, t.window=tw, t.degree=td, inner=inner, outer=outer)$data, 36)
-	}
-	value <- cbind(v.raw, v.predict)
-	names(value)[grep("fc.fc", names(value))] <- c("fc.trend", "fc.seasonal")
-	value$lap <- c(1:36)
-	elev <- unique(value$elev)
-	lon <- unique(value$lon)
-	lat <- unique(value$lat)
-	name <- as.character(unique(value$station.name))
-	if(flag){
-		value <- subset(value, select = -c(data.weights, data.remainder, data.raw, data.sub.labels, lon, lat, station.name, elev))
-	}else{
-		value <- subset(value, select = -c(weights, remainder, raw, sub.labels, lon, lat, station.name, elev))
-	} 
-	attributes(value)$elev  <- elev
-	attributes(value)$lon <- lon
-	attributes(value)$lat <- lat
-	attributes(value)$station.name <- name
-	rhcollect(key, value)
-   })
-})
-job$setup <- expression(
-  map = {
-#   suppressMessages(library(bit,lib.loc=lib.loc))
-    load(paste(dataset, ".100stations.RData", sep=""))
-})
-job$shared <- c(
+for (k in 1:length(parameter)) {
+  job <- list()
+  job$map <- expression({
+    lapply(seq_along(map.values), function(r) {
+      i <- ceiling(map.keys[[r]]/601)
+      j <- map.keys[[r]] - (i - 1)*601
+      v <- subset(
+        get(paste(dataset, ".100stations", sep = "")), 
+        station.id == unique(get(paste(dataset, ".100stations", sep=""))$station.id)[i]
+      )
+      key <- c(
+        levels(get(paste(dataset, ".100stations", sep = ""))$station.id)[i],
+        k
+      )
+      v$month <- factor(
+        v$month, 
+        levels = c(
+          "Jan", "Feb", "Mar", "Apr", "May", "June",
+          "July","Aug", "Sep", "Oct", "Nov", "Dec"
+        )
+      )
+      v <- v[order(v$year, v$month), ]
+      v$time <- 0:1235
+      v <- v[j:(600 + j - 1 + 36),]
+      v.raw <- tail(v, 36)
+      v.model <- v
+      v.model[601:636, c(dataset)] <- NA
+      if(flag) { 
+        v.predict <- tail(
+          do.call("cbind", 
+            stl2(
+              x = v.model[,c(dataset)], 
+              t = v.model$time, 
+              n.p = 12, 
+              s.window = sw, 
+              s.degree = sd, 
+              t.window = tw, 
+              t.degree = td, 
+              fc.window = c(fcw, ssw), 
+              fc.degree = c(fcd, ssd), 
+              inner = inner, 
+              outer = outer
+            )[c("data","fc")]
+          ), 
+          36
+        )
+      }else{
+        v.predict <- tail(
+          stl2(
+            x = v.model[,c(dataset)], 
+            t = v.model$time, 
+            n.p = 12, 
+            s.window = sw, 
+            s.degree = sd, 
+            t.window = tw, 
+            t.degree = td, 
+            inner = inner, 
+            outer = outer
+          )$data, 
+          36
+        )
+      }
+      value <- cbind(v.raw, v.predict)
+      names(value)[grep("fc.fc", names(value))] <- c("fc.trend", "fc.seasonal")
+      value$lap <- c(1:36)
+      elev <- unique(value$elev)
+      lon <- unique(value$lon)
+      lat <- unique(value$lat)
+      name <- as.character(unique(value$station.name))
+      if(flag) {
+        value <- subset(
+          value, 
+          select = -c(
+            data.weights, data.remainder, data.raw, 
+            data.sub.labels, lon, lat, station.name, elev
+          )
+        )
+      }else{
+        value <- subset(
+          value, 
+          select = -c(
+            weights, remainder, raw, sub.labels, 
+            lon, lat, station.name, elev
+          )
+        )
+      } 
+      attributes(value)$elev  <- elev
+      attributes(value)$lon <- lon
+      attributes(value)$lat <- lat
+      attributes(value)$station.name <- name
+      rhcollect(key, value)
+    })
+  })
+  job$setup <- expression(
+    map = {
+      library(lattice)
+      library(yaImpute, lib.loc = lib.loc)
+      library(stl2, lib.loc = lib.loc)
+#     suppressMessages(library(bit,lib.loc=lib.loc))
+      load(paste(dataset, ".100stations.RData", sep=""))
+    }
+  )
+  job$shared <- c(
     file.path(rh.datadir,dataset,"100stations","Rdata", paste(dataset, ".100stations.RData", sep=""))
-)
-if (parameter[[k]]$multiple){
-job$parameters <- list(sw=parameter[[k]]$sw, tw=parameter[[k]]$tw, sd=parameter[[k]]$sd, td=parameter[[k]]$td, fcw=parameter[[k]]$fcw, fcd=parameter[[k]]$fcd, ssw=parameter[[k]]$ssw, ssd=parameter[[k]]$ssd, inner=10, outer=0, dataset = dataset, flag=parameter[[k]]$multiple)
-}else{
-job$parameters <- list(sw=parameter[[k]]$sw, tw=parameter[[k]]$tw, sd=parameter[[k]]$sd, td=parameter[[k]]$td, inner=10, outer=0, dataset = dataset, flag=parameter[[k]]$multiple)
-}
-job$input <- c(60100, 220)
-job$output <- rhfmt(file.path(rh.datadir, dataset, "100stations","sharepredict", index, paste("run", k, sep="")), type="sequence")
-job$mapred <- list(mapred.reduce.tasks = 72, rhipe_reduce_full_size=10000)
-job$jobname <- paste(dataset, "predict", k)
-job$mon.sec <- 10
-job$readback <- FALSE
-job.mr <- do.call("rhwatch", job)
+  )
+  if (parameter[[k]]$multiple){
+    job$parameters <- list(
+      sw = parameter[[k]]$sw, 
+      tw = parameter[[k]]$tw, 
+      sd = parameter[[k]]$sd, 
+      td = parameter[[k]]$td, 
+      fcw = parameter[[k]]$fcw, 
+      fcd = parameter[[k]]$fcd, 
+      ssw = parameter[[k]]$ssw, 
+      ssd = parameter[[k]]$ssd, 
+      inner = 10, 
+      outer = 0, 
+      dataset = dataset, 
+      flag = parameter[[k]]$multiple
+    )
+  }else{
+    job$parameters <- list(
+      sw = parameter[[k]]$sw, 
+      tw = parameter[[k]]$tw, 
+      sd = parameter[[k]]$sd, 
+      td = parameter[[k]]$td, 
+      inner = 10, 
+      outer = 0, 
+      dataset = dataset, 
+      flag = parameter[[k]]$multiple
+    )
+  }
+  job$input <- c(60100, 220)
+  job$output <- rhfmt(
+    file.path(rh.datadir, dataset, "100stations","sharepredict", index, paste("run", k, sep="")), 
+    type = "sequence"
+  )
+  job$mapred <- list(
+    mapred.reduce.tasks = 72, 
+    rhipe_reduce_full_size = 10000
+  )
+  job$jobname <- paste(dataset, "predict", k)
+  job$mon.sec <- 10
+  job$readback <- FALSE
+  job.mr <- do.call("rhwatch", job)
 }
 
 

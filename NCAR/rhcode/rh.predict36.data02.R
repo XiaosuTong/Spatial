@@ -62,7 +62,10 @@ for (k in 1:dim(parameter)[1]) {
       )
       v$month <- factor(
         v$month, 
-        levels = c("Jan", "Feb", "Mar","Apr","May","June","July","Aug","Sep","Oct","Nov","Dec")
+        levels = c(
+          "Jan", "Feb", "Mar", "Apr", "May", "June",
+          "July","Aug", "Sep", "Oct", "Nov", "Dec"
+        )
       )
       v <- v[order(v$year, v$month), ]
       v$time <- 0:1235
@@ -80,7 +83,8 @@ for (k in 1:dim(parameter)[1]) {
           t.window = tw, 
           t.degree = td, 
           inner = inner, 
-          outer = outer)$data, 
+          outer = outer
+        )$data, 
         36
       )
       value <- cbind(v.raw, v.predict)
@@ -91,7 +95,10 @@ for (k in 1:dim(parameter)[1]) {
       name <- as.character(unique(value$station.name))
       value <- subset(
         value, 
-        select = -c(weights, remainder, raw, sub.labels, lon, lat, station.name, elev)
+        select = -c(
+          weights, remainder, raw, sub.labels, 
+          lon, lat, station.name, elev
+        )
       )
       attributes(value)$elev  <- elev
       attributes(value)$lon <- lon
@@ -227,7 +234,10 @@ job$map <- expression({
       .variables="station.id",
       .fun = summarise,
       lap = lap[1:5],
-      quantiles = quantile(residual, probs=c(0.05, 0.25, 0.5, 0.75, 0.95)),
+      quantiles = quantile(
+        x = residual, 
+        probs = c(0.05, 0.25, 0.5, 0.75, 0.95)
+      ),
       type = c(0.05, 0.25, 0.5, 0.75, 0.95)
     )
     tmp$group <- rep(map.keys[[r]][1], dim(tmp)[1])
