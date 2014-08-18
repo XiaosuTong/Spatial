@@ -10,11 +10,6 @@
 ##
 ####################################################################################
 
-#The output directory for saving plots should have all permission since the plots are 
-#written to the output directory by a user related to hadoop.
-#In the reduce step, the permission for the plots should be changed to be all +wrx.
-
-#The dataset for Tmax on HDFS is already Ordered the stations by the observation counts
 
 dataset <- "tmax"
 index <- "Emultiple2"

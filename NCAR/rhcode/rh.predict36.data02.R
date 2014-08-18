@@ -9,14 +9,10 @@
 ## stations information is in USinfo.RData which is also on HDFS.
 ##
 ####################################################################################
-
-#The output directory for saving plots should have all permission since the plots are 
-#written to the output directory by a user related to hadoop.
-#In the reduce step, the permission for the plots should be changed to be all +wrx.
-
-#The dataset for Tmax on HDFS is already Ordered the stations by the observation counts
-
-dataset <- "tmin"
+#E4 is the experiment4
+#final else is not on web page.
+#In data02 this script, t.window and t.degree are varied.
+dataset <- "tmax"
 index <- "E4"
 
 #Load the station.id for the 100 stations for Tmax

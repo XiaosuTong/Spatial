@@ -9,13 +9,9 @@
 ## stations information is in USinfo.RData which is also on HDFS.
 ##
 ####################################################################################
-
-#The output directory for saving plots should have all permission since the plots are 
-#written to the output directory by a user related to hadoop.
-#In the reduce step, the permission for the plots should be changed to be all +wrx.
-
-#The dataset for Tmax on HDFS is already Ordered the stations by the observation counts
-
+#E1 is the experiment1, E2 is the experiment2, E3 is the experiment3
+#final else is not on web page.
+#In data01 this script, only s.window and t.window are varied.
 dataset <- "tmax"
 index <- "E3"
 
@@ -78,7 +74,10 @@ for (k in 1:dim(parameter)[1]) {
       )
       v$month <- factor(
         v$month, 
-        levels = c("Jan", "Feb", "Mar","Apr","May","June","July","Aug","Sep","Oct","Nov","Dec")
+        levels = c(
+          "Jan", "Feb", "Mar", "Apr", "May", "June",
+          "July","Aug", "Sep", "Oct", "Nov", "Dec"
+        )
       )
       v <- v[order(v$year, v$month), ]
       v$time <- 0:1235
@@ -107,7 +106,10 @@ for (k in 1:dim(parameter)[1]) {
       name <- as.character(unique(value$station.name))
       value <- subset(
         value, 
-        select = -c(weights, remainder, raw, sub.labels, lon, lat, station.name, elev)
+        select = -c(
+          weights, remainder, raw, sub.labels, 
+          lon, lat, station.name, elev
+        )
       )
       attributes(value)$elev  <- elev
       attributes(value)$lon <- lon
@@ -238,9 +240,12 @@ job$map <- expression({
 	tmp <- ddply(.data=v, 
 		.variables="station.id",
 		.fun = summarise,
-		 lap = lap[1:5],
-		 quantiles = quantile(residual, probs=c(0.05, 0.25, 0.5, 0.75, 0.95)),
-		 type = c(0.05, 0.25, 0.5, 0.75, 0.95)
+		lap = lap[1:5],
+		quantiles = quantile(
+      x = residual, 
+      probs = c(0.05, 0.25, 0.5, 0.75, 0.95)
+    ),
+		type = c(0.05, 0.25, 0.5, 0.75, 0.95)
 	)
 	tmp$group <- rep(map.keys[[r]][1], dim(tmp)[1])
 	lapply(1:dim(tmp)[1], function(i){
@@ -258,15 +263,15 @@ job$map <- expression({
 })
 
 job$reduce <- expression(
-   pre={
-        combined <- data.frame()
-   },
-   reduce={
-        combined <- rbind(combined, do.call(rbind, reduce.values))
-   },
-   post={
-        rhcollect(reduce.key, combined)
-   }
+  pre = {
+    combined <- data.frame()
+  },
+  reduce = {
+    combined <- rbind(combined, do.call(rbind, reduce.values))
+  },
+  post = {
+    rhcollect(reduce.key, combined)
+  }
 )
 
 job$setup <- expression(
