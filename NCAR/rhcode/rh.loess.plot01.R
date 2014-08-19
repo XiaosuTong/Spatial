@@ -23,13 +23,19 @@ result$time2 <- c(rep(0:143,8), 0:83)
 lattice.theme <- trellis.par.get()
 col <- lattice.theme$superpose.symbol$col
 
-order <- ddply(.data = result,
-                .variables = "fac",
-                .fun = summarise,
-                 mean = mean(fitted)
+order <- ddply(
+	.data = result,
+    .variables = "fac",
+    .fun = summarise,
+    mean = mean(fitted)
 )
-order.st <- as.character(order[order(order$mean, decreasing=TRUE), ]$fac)
-result$fac <- factor(result$fac, levels=order.st)
+order.st <- as.character(
+	order[order(order$mean, decreasing=TRUE), ]$fac
+)
+result$fac <- factor(
+	result$fac, 
+	levels = order.st
+)
 
 trellis.device(postscript, file = paste(local.output, "/scatterplot_of_vertices_", par$dataset, ".ps", sep = ""), color=TRUE, paper="legal")
   for(i in levels(result$fac)) {
@@ -49,7 +55,10 @@ trellis.device(postscript, file = paste(local.output, "/scatterplot_of_vertices_
 		grib = TRUE,
 		xlim = c(0, 143),
 #       scales = list(y = list(relation = 'free', cex=1.5), x=list(relation= 'free',format = "%b %Y", tick.number=10), cex=1.2),
-		scales = list(y = list(relation = 'same', alternating=TRUE), x=list(at=seq(0,143,by=12), relation='same')),
+		scales = list(
+			y = list(relation = 'same', alternating=TRUE), 
+			x = list(at=seq(0,143,by=12), relation='same')
+		),
 		panel = function(...) {
 			panel.abline( v=seq(0,145,by=12), color="lightgrey", lty=3, lwd=0.5)
 			panel.xyplot(...)
@@ -132,7 +141,10 @@ trellis.device(postscript, file = paste(local.output, "/", par$dataset, "_vertic
 		layout = c(4,3),
 		strip = TRUE,
 		grib = TRUE,
-		scales = list(y = list(relation = 'same', alternating=TRUE), x=list(tick.number=10, relation='same')),
+		scales = list(
+			y = list(relation = 'same', alternating=TRUE), 
+			x = list(tick.number=10, relation='same')
+		),
 		panel = function(x, y, ...) {
 			panel.xyplot(x, y, ...)
 			panel.loess(x, y, span=2/3, degree=1, col=col[2],...)

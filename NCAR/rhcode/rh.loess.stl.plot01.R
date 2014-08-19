@@ -12,7 +12,10 @@ par$loess <- "loess01"
 
 rst <- rhread(file.path(rh.datadir, par$dataset, "spatial", paste(par$loess, "stl", sep="." )))
 result <- do.call("rbind", lapply(rst, "[[", 2))
-result$factor <- factor(rep(rep(paste("Period", 1:9), c(rep(144,8),84)), times=66), levels=paste("Period", c(9:1)))
+result$factor <- factor(
+	rep(rep(paste("Period", 1:9), c(rep(144,8),84)), times=66), 
+	levels = paste("Period", c(9:1))
+)
 if(par$dataset == "precip") {
 	ylab <- "Precipitation (millimeters)"
 }else if(par$dataset == "tmax") {
@@ -25,10 +28,11 @@ result$time2 <- c(rep(0:143,8), 0:83)
 lattice.theme <- trellis.par.get()
 col <- lattice.theme$superpose.symbol$col
 
-order <- ddply(.data = result,
-                .variables = "fac",
-                .fun = summarise,
-                 mean = mean(fitted)
+order <- ddply(
+	.data = result,
+    .variables = "fac",
+    .fun = summarise,
+    mean = mean(fitted)
 )
 order.st <- as.character(order[order(order$mean, decreasing = TRUE), ]$fac)
 result$fac <- factor(result$fac, levels = order.st)
@@ -110,7 +114,10 @@ trellis.device(postscript, file = paste(local.output, "/scatterplot_of_trend_ver
 			columns = 2
 		),
 		cex = 0.3,
-		scales = list(y = list(relation = 'free'), x=list(at=seq(0, 1236, by=600), relation = 'same')),
+		scales = list(
+			y = list(relation = 'free'), 
+			x = list(at=seq(0, 1236, by=600), relation = 'same')
+		),
 		prepanel = function(x, y, subscripts,...){
 			v <- tmp.trend[subscripts,]
 			ylim <- range(v$mean)
@@ -245,7 +252,10 @@ trellis.device(postscript, file = paste(local.output, "/scatterplot_of_remainder
 			lines=list(pch=c(".", "", ""), cex=4, lwd=1.5, type=c("p","l", "l"), col=col[1:3]), 
 			columns = 3
 		),
-		scales = list(y = list(relation = 'same', alternating=TRUE), x=list(at=seq(0, 1235, by=120), relation='same')),
+		scales = list(
+			y = list(relation = 'same', alternating=TRUE), 
+			x = list(at=seq(0, 1235, by=120), relation='same')
+		),
 		panel = function(x,y,...) {
 			panel.abline(h=0)
 			panel.xyplot(x,y,...)
@@ -260,11 +270,12 @@ dev.off()
 #################################################
 ##Auto correlation ACF for the remainder
 #################################################
-ACF <- ddply(.data=tmp.remainder,
+ACF <- ddply(
+	.data=tmp.remainder,
     .variables="fac",
     .fun= summarise,
-     correlation = c(acf(remainder, plot=FALSE)$acf),
-     lag = c(acf(remainder, plot=FALSE)$lag)
+    correlation = c(acf(remainder, plot=FALSE)$acf),
+    lag = c(acf(remainder, plot=FALSE)$lag)
 )
 
 trellis.device(postscript, file = paste(local.output, "/acf_of_remainder_vertex_", par$dataset, ".ps", sep = ""), color=TRUE, paper="legal")
@@ -394,7 +405,10 @@ trellis.device(postscript, file = paste(local.output, "/scatterplot_of_seasonal_
 		cex = 0.5,
 		layout = c(12,1),
 		strip = TRUE,
-		scales = list(y = list(relation = 'same', alternating=TRUE), x=list(tick.number=10, relation='same')),
+		scales = list(
+			y = list(relation = 'same', alternating=TRUE), 
+			x = list(tick.number=10, relation='same')
+		),
 		panel = function(x,y,...) {
 			panel.abline(h = 0, color = "black", lty = 1)
 			panel.xyplot(x,y,...)

@@ -37,17 +37,26 @@ job$map <- expression({
   lapply(seq_along(map.values), function(r) {
 	i <- ceiling(map.keys[[r]]/12)
 	j <- map.keys[[r]] - (i - 1)*12
-	month <- c("Jan","Feb","Mar","Apr","May","June","July","Aug", "Sep", "Oct", "Nov", "Dec")
+	month <- c(
+		"Jan","Feb","Mar","Apr","May","June",
+		"July","Aug", "Sep", "Oct", "Nov", "Dec"
+	)
 	m <- month[j]
 	y <- i + 1894
-	v <- subset(get(par$dataset), year == y & month == m)[, c("station.id", "elev", "lon", "lat", par$dataset)]
+	v <- subset(
+		get(par$dataset), 
+		year == y & month == m
+	)[, c("station.id", "elev", "lon", "lat", par$dataset)]
 	lo.fit <- my.loess( get(par$dataset) ~ lon + lat, 
 		data    = v, 
 		degree  = par$degree, 
 		span    = par$span, 
 		control = loess.control(surface = "direct")
 	)
-	value <- predict(lo.fit, data.frame(lon = kd$vertix$lon, lat = kd$vertix$lat))
+	value <- predict(
+		lo.fit, 
+		data.frame(lon = kd$vertix$lon, lat = kd$vertix$lat)
+	)
 	value <- cbind(kd$vertix, value)
 	names(value) <- c("lon","lat","fitted")
 	value$year <- rep(y, nrow(value))
@@ -71,9 +80,12 @@ job$reduce <- expression(
 			rhcounter("BUG", "1236", 1)
 		}
 		stopifnot(nrow(combined) == 1236)
-		combined$month <- factor(combined$month, 
-			levels = c("Jan", "Feb", "Mar", "Apr", "May", "June", 
-    		"July", "Aug", "Sep", "Oct", "Nov", "Dec")
+		combined$month <- factor(
+			combined$month, 
+			levels = c(
+				"Jan", "Feb", "Mar", "Apr", "May", "June", 
+				"July", "Aug", "Sep", "Oct", "Nov", "Dec"
+			)
 		)
 		combined <- combined[with(combined, order(year, month)), ]
 		combined$time <- 0:1235
@@ -90,10 +102,20 @@ job$shared <- c(
 	file.path(rh.datadir, par$dataset, "Rdata", "kd.RData"),
 	file.path(rh.datadir, par$dataset, "Rdata", paste(par$dataset, "RData", sep="."))
 )
-job$parameters <- list(par = par, my.loess = my.loess, my.simple = my.simple)
+job$parameters <- list(
+	par = par, 
+	my.loess = my.loess, 
+	my.simple = my.simple
+)
 job$input <- c(par$N, 242) 
-job$output <- rhfmt(file.path(rh.datadir, par$dataset, "spatial", "loess01"), type="sequence")
-job$mapred <- list(mapred.reduce.tasks = 66, rhipe_reduce_buff_size=10000)
+job$output <- rhfmt(
+	file.path(rh.datadir, par$dataset, "spatial", "loess01"), 
+	type = "sequence"
+)
+job$mapred <- list(
+	mapred.reduce.tasks = 66, 
+	rhipe_reduce_buff_size = 10000
+)
 job$mon.sec <- 5
 job$jobname <- file.path(rh.datadir, par$dataset, "spatial", "loess01")
 job$readback <- FALSE
@@ -124,7 +146,10 @@ job$map <- expression({
    			inner = par$inner,
     		outer = par$outer
 		)[c("data","fc")])
-		tmp <- cbind(tmp, dr[, c(!(names(dr) %in% c("station.id", "data.raw", "data.sub.labels")))])
+		tmp <- cbind(
+			tmp, 
+			dr[, c(!(names(dr) %in% c("station.id", "data.raw", "data.sub.labels")))]
+		)
 		names(tmp)[grep("fc.fc", names(tmp))] <- c("fc.trend", "fc.second")
 	}else{
     	dr <- stl2(tmp$fitted, tmp$time,
@@ -135,7 +160,10 @@ job$map <- expression({
     		t.degree = par$td,
     		inner = par$inner,
     		outer = par$outer)$data
-		tmp <- cbind(tmp, dr[, c(!(names(dr) %in% c("station.id", "raw", "sub.labels")))])
+		tmp <- cbind(
+			tmp, 
+			dr[, c(!(names(dr) %in% c("station.id", "raw", "sub.labels")))]
+		)
 	}
 	rhcollect(map.keys[[r]], tmp)
   })
@@ -147,9 +175,17 @@ job$setup <- expression(
 		library(stl2, lib.loc = lib.loc)
     },
 )
-job$parameters <- list(par = par)
-job$input <- rhfmt(file.path(rh.datadir, par$dataset, "spatial", "loess01"), type = "sequence")
-job$output <- rhfmt(file.path(rh.datadir, par$dataset, "spatial", "loess01.stl"), type="sequence")
+job$parameters <- list(
+	par = par
+)
+job$input <- rhfmt(
+	file.path(rh.datadir, par$dataset, "spatial", "loess01"), 
+	type = "sequence"
+)
+job$output <- rhfmt(
+	file.path(rh.datadir, par$dataset, "spatial", "loess01.stl"), 
+	type = "sequence"
+)
 job$mapred <- list(
 	mapred.reduce.tasks = 66, 
 	rhipe_reduce_buff_size = 10000, 
