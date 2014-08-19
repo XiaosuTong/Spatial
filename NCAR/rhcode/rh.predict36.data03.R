@@ -10,7 +10,9 @@
 ##
 ####################################################################################
 
-
+#Emultiple2 has been removed from web, which varied two low-frequency components.
+#in data03, the code actually saves for the situation of last else,
+#which varied ssw and fcw
 dataset <- "tmax"
 index <- "Emultiple2"
 
