@@ -37,8 +37,8 @@ tmp <- dlply(
         tmaxSub <- r[,c(6,7,9)]
         attributes(tmaxSub)$lat  <- unique(r$lat)
         attributes(tmaxSub)$elev  <- unique(r$elev)
-	attributes(tmaxSub)$lon <- unique(r$lon)
-	attributes(tmaxSub)$station.name <- as.character((unique(r$station.name)))
+        attributes(tmaxSub)$lon <- unique(r$lon)
+        attributes(tmaxSub)$station.name <- as.character((unique(r$station.name)))
         list(as.character(r$station.id)[1], tmaxSub)
     }
 )
