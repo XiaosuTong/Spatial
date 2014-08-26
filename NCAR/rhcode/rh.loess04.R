@@ -32,7 +32,7 @@ job$map <- expression({
 		v.tmp <- v[
 				with(v, which(station.id %in% tmp[[r]]$station.id)), 
 				c("station.id", "elev", "lon", "lat", dataset)
-			]
+		]
 		lo.fit <- loess( get(dataset) ~ lon + lat, 
 			data    = v.tmp, 
 			degree  = 1,

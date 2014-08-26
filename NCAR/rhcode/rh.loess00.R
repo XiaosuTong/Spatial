@@ -2,15 +2,20 @@
 source("~/Rhipe/rhinitial.R")
 source("~/Projects/Spatial/NCAR/rhcode/rh.setup.R")
 dataset <- "tmax"
-#for each divided subset, predict the loess fitting at vertix of kdtree, then recombined fitted value through all subsets.
-#subsets are conducted by using Near Exact Replicate idea. Randomly sampled one observation from each cell to get one subset.
+#for each divided subset, predict the loess fitting at vertix of kdtree, 
+#then recombined fitted value through all subsets. subsets are conducted 
+#by using Near Exact Replicate idea. Randomly sampled one observation from 
+#each cell to get one subset.
 N <- 1236
 job <- list()
 job$map <- expression({
   lapply(seq_along(map.values), function(r) {
 	i <- ceiling(map.keys[[r]]/12)
 	j <- map.keys[[r]] - (i - 1)*12
-	month <- c("Jan","Feb","Mar","Apr","May","June","July","Aug", "Sep", "Oct", "Nov", "Dec")
+	month <- c(
+		"Jan","Feb","Mar","Apr","May","June",
+		"July","Aug", "Sep", "Oct", "Nov", "Dec"
+	)
 	m <- month[j]
 	y <- i + 1894
 	v <- subset(get(dataset), year == y & month == m)
