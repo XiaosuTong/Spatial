@@ -1,6 +1,6 @@
 ##dynamic load a shared library file .so
 dyn.load("~/Github/Spatial/NCAR/myloess/shareLib/myloess2.so")
-source("my.loess01.R")
+#source("my.loess01.R")
 
 my.loess2 <- function (formula, data, weights, subset, na.action, model = FALSE, 
     span = 0.75, enp.target, degree = 2L, parametric = FALSE, 
