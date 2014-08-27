@@ -1,35 +1,19 @@
 ###############################################
 ##
-##get the loess fit at each vertix of the kd tree using the whole 
+##Get the loess fit at each vertix of the kd tree using the whole 
 ##dataset. The output key is the vertix id, and value is the 1236 
 ##fitted value for that vertix.
 ##
 ##initialize the rhipe and setup the directories
 source("~/Rhipe/rhinitial.R")
 source("~/Projects/Spatial/NCAR/rhcode/rh.setup.R")
-source("~/Projects/Spatial/NCAR/rhcode/my.loess.R")
+source("~/Projects/Spatial/NCAR/rhcode/my.loess02.R")
 ##set up the parameters
 par <- list()
 par$dataset <- "tmax"
 par$N <- 1236
 par$span <- 0.2
 par$degree <- 2
-##construct the kd tree for given parameters of span and degree
-##station information is in USpinfo and UStinfo object.
-if(par$dataset == "precip"){
-	load(file.path(local.datadir, "USpinfo.RData"))
-    info <- USpinfo
-}else{
-	load(file.path(local.datadir, "UStinfo.RData"))
-    info <- UStinfo
-}
-rm(list=grep("US", ls(), value=T))
-source("~/Projects/Spatial/NCAR/code/spatial/kdtree.R")
-kd <- kdtree(info[, c("station.id","lon","lat")], alpha = par$span/5)
-rhsave(
-	list = ("kd"), 
-	file = file.path(rh.datadir, par$dataset, "Rdata", paste("kd", ".RData", sep=""))
-)
 
 ##loess fit at each vertices
 job <- list()
@@ -47,18 +31,22 @@ job$map <- expression({
 		get(par$dataset), 
 		year == y & month == m
 	)[, c("station.id", "elev", "lon", "lat", par$dataset)]
-	lo.fit <- my.loess( get(par$dataset) ~ lon + lat, 
+	lo.fit <- my.loess2( get(par$dataset) ~ lon + lat, 
 		data    = v, 
 		degree  = par$degree, 
 		span    = par$span, 
-		control = loess.control(surface = "direct")
 	)
-	value <- predict(
-		lo.fit, 
-		data.frame(lon = kd$vertix$lon, lat = kd$vertix$lat)
+	#value1 is the fitted value and first derivatives of each vertices
+	value1 <- setNames(
+		data.frame(matrix(lo.fit$kd$vval, byrow = TRUE, ncol = 3)),
+		c("fitted", "dlon", "dlat")
 	)
-	value <- cbind(kd$vertix, value)
-	names(value) <- c("lon","lat","fitted")
+	#value2 is the location of each vertices
+	value2 <- setNames(
+		lo.fit$kd$vert2,
+		c("lon", "lat")
+	)
+	value <- cbind(value2, value1)
 	value$year <- rep(y, nrow(value))
 	value$month <- rep(m, nrow(value))
 	value$fac <- seq_len(nrow(value))
@@ -94,18 +82,18 @@ job$reduce <- expression(
 )
 job$setup <- expression(
 	map = {
-		load("kd.RData")
+		dyn.load("myloess2.so")
 	    load(paste(par$dataset, "RData", sep="."))
 	}
 )
 job$shared <- c(
-	file.path(rh.datadir, par$dataset, "Rdata", "kd.RData"),
+	file.path(rh.datadir, par$dataset, "shareRLib", "myloess2.so"),
 	file.path(rh.datadir, par$dataset, "Rdata", paste(par$dataset, "RData", sep="."))
 )
 job$parameters <- list(
 	par = par, 
-	my.loess = my.loess, 
-	my.simple = my.simple
+	my.loess = my.loess2, 
+	my.simple = my.simple2
 )
 job$input <- c(par$N, 242) 
 job$output <- rhfmt(
