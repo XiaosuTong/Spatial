@@ -25,7 +25,13 @@ job$map <- expression({
 			span = par$span,
 			degree = par$degree
 		)
-		rhcollect(map.keys[[r]], lo.fit$kd$vert2)
+		value <- list(
+			vert = setNames(lo.fit$kd$vert2, c("x","y")), 
+			fitted = setNames(
+				data.frame(matrix(lo.fit$kd$vval, byrow = TRUE, ncol = 3)),
+				c("fitted", "dx", "dy")
+		)
+		rhcollect(map.keys[[r]], do.call("cbind", value))
 	})
 })
 job$reduce <- expression(
