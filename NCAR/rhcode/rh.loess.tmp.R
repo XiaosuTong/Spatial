@@ -43,7 +43,7 @@ job$setup <- expression(
 	}
 )
 job$shared <- c(
-	"/ln/tongx/myloess/myloess2.so",
+	"/ln/tongx/myloess/myloess2.so"
 )
 job$parameters <- list(
 	par = par, 
@@ -64,3 +64,4 @@ job$jobname <- "/ln/tongx/userhipe/loess"
 job$readback <- FALSE
 job.mr <- do.call("rhwatch", job)
 
+rst <- rhread("/ln/tongx/userhipe/loess")

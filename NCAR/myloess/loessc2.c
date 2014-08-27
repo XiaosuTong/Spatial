@@ -126,7 +126,7 @@ loess_raw(double *y, double *x, double *weights, double *robust, int *d,
     F77_CALL(lowesa)(trL, n, d, &tau, &nsing, one_delta, two_delta);
     loess_prune(parameter, a, xi, vert, vval);
     for(j = 0; j < *d; j++) {
-      for(i = 0; i < (iv[10] - 1); i++) {
+      for(i = 0; i < iv[5]; i++) {
         vert2[i + j*nvmax] = v[iv[10] - 1 + j*nvmax + i];
       }
     }
@@ -134,7 +134,7 @@ loess_raw(double *y, double *x, double *weights, double *robust, int *d,
     printf("iv 12 is: %d \n", iv[12]);
     printf("iv 13 is: %d \n", iv[13]);
     printf("iv 11 is: %d \n", iv[11]);
-    printf("iv 10 is: %d \n", iv[10]);
+    printf("iv 5 is: %d \n", iv[5]);
     printf("lv is :%d \n", lv);
     printf("iv 24 is:%d \n", iv[23]); 
     printf("nv is:%d \n", iv[5]);
@@ -327,13 +327,11 @@ loess_prune(int *parameter, int *a, double *xi, double *vert,
     printf("iv 8 is: %d \n", iv[7]);
     printf("iv 250 is: %d \n", iv[249]);
     printf("iv 17 is: %d \n", iv[16]);
-*/
     for(i = 0; i < nvmax*d; i++){
         printf("%f ", v[iv[10] - 1 + i]);
         if(i % 10 == 0) printf("\n");
     }
     printf("\n");
-/*
     printf("vv1 is: %d \n", vv1);
     printf("k is: %d \n", k);
     printf("iv 19 is: %d \n", iv[18]);
