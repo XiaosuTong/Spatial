@@ -13,6 +13,11 @@ if(par$dataset == "precip"){
     info <- UStinfo
 }
 rm(list=grep("US", ls(), value=T))
+#load stations.RData, have to check this part
+load(file.path(datadir, "stations.RData"))
+stations.100 <- get(grep(par$dataset, ls(), value=T))
+par$stations.100 <- stations.100$station.id
+
 job <- list()
 job$map <- expression({
   lapply(seq_along(map.values), function(r) {
@@ -26,7 +31,7 @@ job$map <- expression({
 	y <- i + 1894
 	v <- subset(
 		get(par$dataset), 
-		year == y & month == m
+		year == y & month == m & station.id %in% par$stations.100
 	)[, c("station.id", "elev", "lon", "lat", par$dataset)]
 	lo.fit <- loess( get(par$dataset) ~ lon + lat, 
 		data    = v, 
