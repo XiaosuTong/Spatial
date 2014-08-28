@@ -26,7 +26,6 @@ job$map <- expression({
 		year == y & month == m
 	)[, c("station.id", "elev", "lon", "lat", par$dataset)]
 	v <- na.omit(v)
-	kd <- kdtree(
 	lo.fit <- my.loess2( get(par$dataset) ~ lon + lat, 
 		data    = v, 
 		degree  = par$degree, 
