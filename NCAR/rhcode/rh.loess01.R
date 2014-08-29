@@ -7,14 +7,31 @@
 ##initialize the rhipe and setup the directories
 source("~/Rhipe/rhinitial.R")
 source("~/Projects/Spatial/NCAR/rhcode/rh.setup.R")
-source("~/Projects/Spatial/NCAR/rhcode/my.loess02.R")
+source("~/Projects/Spatial/NCAR/myloess/my.loess02.R")
+source("~/Projects/Spatial/NCAR/myloess/my.loess01.R")
+
 ##set up the parameters
 par <- list()
 par$dataset <- "tmax"
 par$N <- 1236
 par$span <- 0.2
 par$degree <- 2
-
+load(file.path(local.datadir, "info.RData"))
+if(par$dataset == "precip"){
+	info <- USpinfo
+}else{
+	info <- UStinfo
+}
+info$fack <- rep(1, nrow(info))
+dyn.load("~/Projects/Spatial/NCAR/myloess/shareLib/myloess2.so")
+par$kdwhole <- my.loess2(
+	fack ~ lon + lat, 
+	data    = info, 
+	degree  = par$degree, 
+	span    = par$span,
+	normalize = FALSE
+)$kd$vert2
+names(par$kdwhole) <- c("lon", "lat")
 ##loess fit at each vertices
 job <- list()
 job$map <- expression({
@@ -31,22 +48,19 @@ job$map <- expression({
 		get(par$dataset), 
 		year == y & month == m
 	)[, c("station.id", "elev", "lon", "lat", par$dataset)]
-	lo.fit <- my.loess2( get(par$dataset) ~ lon + lat, 
+	lo.fit <- my.loess1( get(par$dataset) ~ lon + lat, 
 		data    = v, 
 		degree  = par$degree, 
-		span    = par$span, 
+		span    = par$span,
+		control = loess.control(surface = "direct")
 	)
-	#value1 is the fitted value and first derivatives of each vertices
-	value1 <- setNames(
-		data.frame(matrix(lo.fit$kd$vval, byrow = TRUE, ncol = 3)),
-		c("fitted", "dlon", "dlat")
+	pred <- data.frame(
+		fitted = predict(
+			lo.fit, 
+        	data.frame(lon = par$kdwhole$lon, lat = par$kdwhole$lat)
+		)
 	)
-	#value2 is the location of each vertices
-	value2 <- setNames(
-		lo.fit$kd$vert2,
-		c("lon", "lat")
-	)
-	value <- cbind(value2, value1)
+	value <- cbind(par$kdwhole, pred)
 	value$year <- rep(y, nrow(value))
 	value$month <- rep(m, nrow(value))
 	value$fac <- seq_len(nrow(value))
@@ -64,10 +78,6 @@ job$reduce <- expression(
 		combined <- rbind(combined, do.call(rbind, reduce.values))
 	},
 	post = {
-		if(nrow(combined) == 1236) {
-			rhcounter("BUG", "1236", 1)
-		}
-		stopifnot(nrow(combined) == 1236)
 		combined$month <- factor(
 			combined$month, 
 			levels = c(
@@ -82,20 +92,18 @@ job$reduce <- expression(
 )
 job$setup <- expression(
 	map = {
-		dyn.load("myloess2.so")
 	    load(paste(par$dataset, "RData", sep="."))
 	}
 )
 job$shared <- c(
-	file.path(rh.datadir, par$dataset, "shareRLib", "myloess2.so"),
 	file.path(rh.datadir, par$dataset, "Rdata", paste(par$dataset, "RData", sep="."))
 )
 job$parameters <- list(
 	par = par, 
-	my.loess = my.loess2, 
-	my.simple = my.simple2
+	my.loess1 = my.loess1, 
+	my.simple1 = my.simple1
 )
-job$input <- c(par$N, 242) 
+job$input <- c(par$N, 100) 
 job$output <- rhfmt(
 	file.path(rh.datadir, par$dataset, "spatial", "loess01"), 
 	type = "sequence"
@@ -107,9 +115,7 @@ job$mapred <- list(
 job$mon.sec <- 5
 job$jobname <- file.path(rh.datadir, par$dataset, "spatial", "loess01")
 job$readback <- FALSE
-job$noeval <- TRUE
 job.mr <- do.call("rhwatch", job)
-z <- rhex(job.mr, async = TRUE)
 
 
 ########################################
@@ -182,7 +188,6 @@ job$mapred <- list(
 job$mon.sec <- 5
 job$jobname <- file.path(rh.datadir, par$dataset, "spatial", "loess01.stl")
 job$readback <- FALSE
-job$noeval <- TRUE
 job.mr <- do.call("rhwatch", job)
-z <- rhex(job.mr, async = TRUE)
+
 

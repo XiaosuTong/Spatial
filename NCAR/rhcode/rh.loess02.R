@@ -60,7 +60,7 @@ job$parameters <- list(
 	my.loess = my.loess2, 
 	my.simple = my.simple2
 )
-job$input <- c(par$N, 242) 
+job$input <- c(par$N, 100) 
 job$output <- rhfmt(
 	file.path(rh.datadir, par$dataset, "spatial", "loess02"), 
 	type = "sequence"

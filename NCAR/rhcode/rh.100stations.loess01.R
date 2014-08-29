@@ -22,8 +22,8 @@ job$map <- expression({
 	m <- month[j]
 	y <- i + 1894
 	v <- subset(
-		get(par$dataset), 
-		year == y & month == m & station.id %in% par$stations.100
+		get(paste(par$dataset, "100stations", sep=".")), 
+		year == y & month == m
 	)[, c("station.id", "elev", "lon", "lat", par$dataset)]
 	lo.fit <- loess( get(par$dataset) ~ lon + lat, 
 		data    = v, 
@@ -62,11 +62,17 @@ job$reduce <- expression(
 )
 job$setup <- expression(
 	map = {
-	    load(paste(par$dataset, "RData", sep="."))
+	    load(paste(par$dataset, "100stations", "RData", sep="."))
 	}
 )
 job$shared <- c(
-	file.path(rh.datadir, par$dataset, "Rdata", paste(par$dataset, "RData", sep="."))
+	file.path(
+		rh.datadir, 
+		par$dataset, 
+		"100stations", 
+		"Rdata", 
+		paste(par$dataset, "100stations", "RData", sep=".")
+	)
 )
 job$parameters <- list(
 	par = par
