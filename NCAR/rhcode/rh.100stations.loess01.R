@@ -5,18 +5,10 @@ par$dataset <- "tmax"
 par$N <- 1236
 par$span <- 0.2
 par$degree <- 2
-if(par$dataset == "precip"){
-	load(file.path(local.datadir, "USpinfo.RData"))
-    info <- USpinfo
-}else{
-	load(file.path(local.datadir, "UStinfo.RData"))
-    info <- UStinfo
-}
-rm(list=grep("US", ls(), value=T))
 #load stations.RData, have to check this part
-load(file.path(datadir, "stations.RData"))
+load(file.path(local.datadir, "stations.RData"))
 stations.100 <- get(grep(par$dataset, ls(), value=T))
-par$stations.100 <- stations.100$station.id
+par$stations.100 <- stations.100
 
 job <- list()
 job$map <- expression({
@@ -36,13 +28,14 @@ job$map <- expression({
 	lo.fit <- loess( get(par$dataset) ~ lon + lat, 
 		data    = v, 
 		degree  = par$degree, 
-		span    = par$span
+		span    = par$span,
+		control = loess.control(surface = "direct")
 	)
 	v$fitted <- lo.fit$fitted
-	v$year <- rep(y, nrow(value))
-	v$month <- rep(m, nrow(value))
-	lapply(1:nrow(v), function(r) {
-		key <- v$station.id[k]
+	v$year <- rep(y, nrow(v))
+	v$month <- rep(m, nrow(v))
+	lapply(1:nrow(v), function(k) {
+		key <- as.character(v$station.id[k])
 		rhcollect(key, v[k , !(names(v) %in% c("station.id"))])
 	})
   })
@@ -55,10 +48,6 @@ job$reduce <- expression(
 		combined <- rbind(combined, do.call(rbind, reduce.values))
 	},
 	post = {
-		if(nrow(combined) != 1236) {
-			rhcounter("BUG", "1236", 1)
-		}
-		stopifnot(nrow(combined) != 1236)
 		combined$month <- factor(
 			combined$month, 
 			levels = c(
@@ -80,9 +69,9 @@ job$shared <- c(
 	file.path(rh.datadir, par$dataset, "Rdata", paste(par$dataset, "RData", sep="."))
 )
 job$parameters <- list(
-	par = par,
+	par = par
 )
-job$input <- c(par$N, 242) 
+job$input <- c(par$N, 100) 
 job$output <- rhfmt(
 	file.path(rh.datadir, par$dataset, "spatial", "100stations", "loess01"), 
 	type = "sequence"
@@ -94,6 +83,4 @@ job$mapred <- list(
 job$mon.sec <- 5
 job$jobname <- file.path(rh.datadir, par$dataset, "spatial", "100stations", "loess01")
 job$readback <- FALSE
-job$noeval <- TRUE
 job.mr <- do.call("rhwatch", job)
-z <- rhex(job.mr, async = TRUE)

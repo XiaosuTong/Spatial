@@ -71,3 +71,16 @@ job$readback <- FALSE
 job.mr <- do.call("rhwatch", job)
 
 rst <- rhread("/ln/tongx/userhipe/loess")
+
+
+set.seed(99)
+x = rnorm(100)
+set.seed(100)
+y = rnorm(100)
+z = rnorm(100)
+df <- data.frame(
+	x = x,
+	y = y,
+	z = z
+)
+lo.fit <- my.loess2(z ~ x+y, df)
