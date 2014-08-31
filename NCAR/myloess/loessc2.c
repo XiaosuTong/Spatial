@@ -118,9 +118,9 @@ loess_raw(double *y, double *x, double *weights, double *robust, int *d,
     F77_CALL(lowesb)(x, y, weights, diagonal, &one, iv, &liv, &lv, v);
     /* lowese function is commented out because it is the computation
     for interpolation of all fitted value based on kd tree nodes.*/
-    
+    /*
     F77_CALL(lowese)(iv, &liv, &lv, v, n, x, surface);
-    
+    */
     nsing = iv[29];
     for(i = 0; i < (*n); i++) *trL = *trL + diagonal[i];
     F77_CALL(lowesa)(trL, n, d, &tau, &nsing, one_delta, two_delta);
