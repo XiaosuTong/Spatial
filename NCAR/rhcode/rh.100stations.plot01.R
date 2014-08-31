@@ -24,14 +24,133 @@ col <- lattice.theme$superpose.symbol$col
 
 order <- ddply(
 	.data = result,
-    .variables = "fac",
+    .variables = "station.id",
     .fun = summarise,
     mean = mean(fitted)
 )
 order.st <- as.character(
-	order[order(order$mean, decreasing=TRUE), ]$fac
+	order[order(order$mean, decreasing=TRUE), ]$station.id
 )
-result$fac <- factor(
-	result$fac, 
+result$station.id <- factor(
+	result$station.id, 
 	levels = order.st
 )
+trellis.device(
+	postscript, 
+	file = paste(local.output, "/scatterplot_of_loess.fit.diff_", par$dataset, ".ps", sep = ""), 
+	color = TRUE,
+	paper = "legal"
+)
+  for(i in levels(result$station.id)) {
+	b <- xyplot( get(par$dataset)-fitted ~ time2 | factor,
+		#response changed to be fitted only, then the ps file named as loess.fit
+		#save space here
+    	data = subset(result, station.id == i),
+        xlab = list(label = "Month"),
+        ylab = list(label = ylab),
+		main = list(label = paste("Station", i, sep=" ")),
+		type = "b",
+		pch = 16,
+		cex = 0.5,
+		layout = c(1,9),
+		strip = FALSE,
+		grib = TRUE,
+		xlim = c(0, 143),
+		scales = list(
+			y = list(relation = 'same', alternating=TRUE), 
+			x = list(at=seq(0,143,by=12), relation='same')
+		),
+		panel = function(...) {
+			panel.abline(v=seq(0,145,by=12), color="lightgrey", lty=3, lwd=0.5)
+			panel.xyplot(...)
+		}
+	)
+	print(b)
+  }
+dev.off()
+
+trellis.device(
+	device = postscript, 
+	file = paste(local.output, "/QQ_plot_diff_conditional_month_", par$dataset, ".ps", sep = ""), 
+	color = TRUE, 
+	paper = "legal"
+)
+  for(i in levels(result$station.id)){
+    a <- qqmath(~ (get(par$dataset)-fitted) | month,
+    	#response changed to be fitted only, then the ps file named as QQ_plot_conditional_month
+		#save space here
+        data = subset(result, station.id == i),
+        distribution = qnorm,
+        aspect = "xy",
+        layout = c(12,1),
+        pch  = 16,
+        cex  = 0.5,
+		main = list(label = paste("Station", i, sep=" ")),
+		xlab = list(label = "Unit normal quantile"),
+		ylab = list(label = ylab, cex=1.2),
+        prepanel = prepanel.qqmathline,
+        panel = function(x, y,...) {
+                panel.grid()
+               panel.qqmathline(x, y=x)
+                panel.qqmath(x, y, ...)
+        }
+    )
+    print(a)
+  }
+dev.off()
+
+trellis.device(
+	device = postscript, 
+	file = paste(local.output, "/quantile_plot_diff_conditional_month_", par$dataset, ".ps", sep = ""), 
+	color = TRUE, 
+	paper = "legal"
+)
+  for(i in levels(result$station.id)){
+    a <- qqmath(~ (get(par$dataset)-fitted) | month,
+        data = subset(result, station.id == i),
+        distribution = qunif,
+        aspect = "xy",
+        layout = c(12,1),
+        pch  = 16,
+        cex  = 0.5,
+		main = list(label = paste("Station", i, sep=" ")),
+		xlab = list(label = "f-value"),
+		ylab = list(label = ylab, cex=1.2),
+#        prepanel = prepanel.qqmathline,
+        panel = function(x, y,...) {
+                panel.grid()
+#               panel.qqmathline(x, y=x)
+                panel.qqmath(x, y, ...)
+        }
+    )
+    print(a)
+  }
+dev.off()
+
+trellis.device(
+	device = postscript, 
+	file = paste(local.output, "/quantile_plot_diff_", par$dataset, ".ps", sep = ""), 
+	color = TRUE, 
+	paper = "legal"
+)
+  for(i in levels(result$station.id)){
+    a <- qqmath(~ (get(par$dataset)-fitted),
+        data = subset(result, station.id == i),
+        distribution = qunif,
+        aspect = "xy",
+        layout = c(1,1),
+        pch  = 16,
+        cex  = 0.5,
+		main = list(label = paste("Station", i, sep=" ")),
+		xlab = list(label = "f-value"),
+		ylab = list(label = ylab, cex=1.2),
+#        prepanel = prepanel.qqmathline,
+        panel = function(x, y,...) {
+                panel.grid()
+#               panel.qqmathline(x, y=x)
+                panel.qqmath(x, y, ...)
+        }
+    )
+    print(a)
+  }
+dev.off()

@@ -37,7 +37,12 @@ result$fac <- factor(
 	levels = order.st
 )
 
-trellis.device(postscript, file = paste(local.output, "/scatterplot_of_vertices_", par$dataset, ".ps", sep = ""), color=TRUE, paper="legal")
+trellis.device(
+	device = postscript, 
+	file = paste(local.output, "/scatterplot_of_vertices_", par$dataset, ".ps", sep = ""), 
+	color = TRUE, 
+	paper = "legal"
+)
   for(i in levels(result$fac)) {
 	b <- xyplot( fitted ~ time2 | factor,
     	data = subset(result, fac == i),
@@ -48,19 +53,18 @@ trellis.device(postscript, file = paste(local.output, "/scatterplot_of_vertices_
 			unique(subset(result, fac == i)$lon), ")", sep="")
 		),
 		type = "b",
-		pch=16,
-		cex=0.5,
+		pch = 16,
+		cex = 0.5,
 		layout = c(1,9),
 		strip = FALSE,
 		grib = TRUE,
 		xlim = c(0, 143),
-#       scales = list(y = list(relation = 'free', cex=1.5), x=list(relation= 'free',format = "%b %Y", tick.number=10), cex=1.2),
 		scales = list(
-			y = list(relation = 'same', alternating=TRUE), 
-			x = list(at=seq(0,143,by=12), relation='same')
+			y = list(relation = 'same', alternating = TRUE), 
+			x = list(at = seq(0, 143, by = 12), relation = 'same')
 		),
 		panel = function(...) {
-			panel.abline( v=seq(0,145,by=12), color="lightgrey", lty=3, lwd=0.5)
+			panel.abline(v = seq(0, 145, by = 12), color = "lightgrey", lty = 3, lwd =0.5)
 			panel.xyplot(...)
 		}
 	)
@@ -70,7 +74,12 @@ dev.off()
 
 library(maps)
 us.map <- map('state', plot = FALSE, fill = TRUE)
-trellis.device(postscript, file = paste(local.output, "/map_vertices_", par$dataset, ".ps", sep = ""), color=TRUE, paper="legal")
+trellis.device(
+	device = postscript, 
+	file = paste(local.output, "/map_vertices_", par$dataset, ".ps", sep = ""), 
+	color=TRUE, 
+	paper="legal"
+)
 a <- xyplot( lat ~ lon,
 	data  = result,
 	xlab  = list(label = "Longitude"),
@@ -88,7 +97,12 @@ a <- xyplot( lat ~ lon,
 print(a)
 dev.off()
 
-trellis.device(postscript, file = paste(local.output, "/QQ_plot_of_month_", par$dataset, ".ps", sep = ""), color=TRUE, paper="legal")
+trellis.device(
+	device = postscript, 
+	file = paste(local.output, "/QQ_plot_of_month_", par$dataset, ".ps", sep = ""), 
+	color = TRUE, 
+	paper = "legal"
+)
   for(i in levels(result$fac)){
     a <- qqmath(~ fitted | month,
         data = subset(result, fac == i),
