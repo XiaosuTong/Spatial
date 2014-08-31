@@ -36,7 +36,7 @@ job$map <- expression({
 	v$month <- rep(m, nrow(v))
 	lapply(1:nrow(v), function(k) {
 		key <- as.character(v$station.id[k])
-		rhcollect(key, v[k , !(names(v) %in% c("station.id"))])
+		rhcollect(key, v[k, ])
 	})
   })
 })
