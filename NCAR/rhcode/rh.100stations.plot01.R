@@ -133,26 +133,21 @@ trellis.device(
 	color = TRUE, 
 	paper = "legal"
 )
-  for(i in levels(result$station.id)){
-    a <- qqmath(~ (get(par$dataset)-fitted),
-        data = subset(result, station.id == i),
-        distribution = qunif,
-        aspect = "xy",
-        layout = c(1,1),
-        pch  = 16,
-        cex  = 0.5,
-		main = list(label = paste("Station", i, sep=" ")),
-		xlab = list(label = "f-value"),
-		ylab = list(label = ylab, cex=1.2),
-#       prepanel = prepanel.qqmathline,
-        panel = function(x, y,...) {
-                panel.grid()
-#               panel.qqmathline(x, y=x)
-                panel.qqmath(x, y, ...)
-        }
-    )
-    print(a)
-  }
+a <- qqmath(~ (get(par$dataset)-fitted) | station.id,
+	data = result,
+	distribution = qunif,
+	aspect = "xy",
+	layout = c(5,1),
+	pch  = 16,
+	cex  = 0.5,
+	xlab = list(label = "f-value"),
+	ylab = list(label = ylab, cex=1.2),
+	panel = function(x, y,...) {
+		panel.grid()
+		panel.qqmath(x, y, ...)
+	}
+)
+print(a)
 dev.off()
 
 dd <- ddply(
