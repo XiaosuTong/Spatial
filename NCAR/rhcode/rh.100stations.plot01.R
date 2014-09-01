@@ -29,7 +29,7 @@ order <- ddply(
     mean = mean(fitted)
 )
 order.st <- as.character(
-	order[order(order$mean, decreasing=TRUE), ]$station.id
+	order[order(order$mean, decreasing = TRUE), ]$station.id
 )
 result$station.id <- factor(
 	result$station.id, 
@@ -54,7 +54,6 @@ trellis.device(
 		cex = 0.5,
 		layout = c(1,9),
 		strip = FALSE,
-		grib = TRUE,
 		xlim = c(0, 143),
 		scales = list(
 			y = list(relation = 'same', alternating=TRUE), 
@@ -144,7 +143,7 @@ trellis.device(
 		main = list(label = paste("Station", i, sep=" ")),
 		xlab = list(label = "f-value"),
 		ylab = list(label = ylab, cex=1.2),
-#        prepanel = prepanel.qqmathline,
+#       prepanel = prepanel.qqmathline,
         panel = function(x, y,...) {
                 panel.grid()
 #               panel.qqmathline(x, y=x)
@@ -153,4 +152,127 @@ trellis.device(
     )
     print(a)
   }
+dev.off()
+
+dd <- ddply(
+	.data = result,
+	.variables = c("station.id", "month"),
+	.fun = summarise,
+	mean = mean(fitted),
+	lon = lon[1],
+	lat = lat[1]
+)
+mm <- dd[rep(row.names(dd), each = 103), ]
+result <- result[with(result, order(station.id, month, year)), ]
+result$central <- result$fitted - mm$mean
+trellis.device(
+	device = postscript, 
+	file = paste(local.output, "/", par$dataset, "loess.fit_conditional_month.ps", sep = ""), 
+	color = TRUE, 
+	paper = "legal"
+)
+  for(i in levels(result$station.id)) {
+    b <- xyplot( central ~ year | month,
+		data = subset(result, station.id == i),
+		xlab = list(label = "Year"),
+		ylab = list(label = ylab),
+		main = list(label = paste("Station", i, sep=" ")),
+		type = "p",
+		pch = 16,
+		cex = 0.5,
+		layout = c(4, 3),
+		strip = TRUE,
+		key = list(
+			text = list(
+				label = c("fitted","loess smoothing")
+			), 
+			lines = list(
+				pch = c(".", ""), 
+				cex = 4, 
+				lwd = 1.5, 
+				type = c("p","l"), 
+				col = col[1:2]
+			),
+			columns = 2
+		),		
+		scales = list(
+			y = list(relation = 'same', alternating = TRUE), 
+			x = list(tick.number = 10, relation = 'same')
+		),
+		panel = function(x, y, ...) {
+			panel.xyplot(x, y, ...)
+			panel.loess(x, y, span = 2/3, degree = 1, col = col[2],...)
+		}
+	)
+	print(b)
+  }
+dev.off()
+
+trellis.device(
+	device = postscript, 
+	file = paste(local.output, "/", par$dataset, "loess.fit_diff_conditional_month.ps", sep = ""), 
+	color = TRUE, 
+	paper = "legal"
+)
+  for(i in levels(result$station.id)) {
+    b <- xyplot( get(par$dataset)-fitted ~ year | month,
+		data = subset(result, station.id == i),
+		xlab = list(label = "Year"),
+		ylab = list(label = ylab),
+		main = list(label = paste("Station", i, sep=" ")),
+		type = "p",
+		pch = 16,
+		cex = 0.5,
+		layout = c(4, 3),
+		strip = TRUE,
+		key = list(
+			text = list(
+				label = c("raw - fitted","loess smoothing")
+			), 
+			lines = list(
+				pch = c(".", ""), 
+				cex = 4, 
+				lwd = 1.5, 
+				type = c("p","l"), 
+				col = col[1:2]
+			),
+			columns = 2
+		),
+		scales = list(
+			y = list(relation = 'same', alternating = TRUE), 
+			x = list(tick.number = 10, relation = 'same')
+		),
+		panel = function(x, y, ...) {
+			panel.xyplot(x, y, ...)
+			panel.loess(x, y, span = 2/3, degree = 1, col = col[2],...)
+		}
+	)
+	print(b)
+  }
+dev.off()
+
+trellis.device(
+	device = postscript, 
+	file = paste(local.output, "/", par$dataset, "loess.fit_month.mean_vs_lon.ps", sep = ""), 
+	color = TRUE, 
+	paper = "legal"
+)
+    b <- xyplot( mean ~ lon | month,
+		data = dd,
+		xlab = list(label = "Longitude"),
+		ylab = list(label = ylab),
+		type = "p",
+		pch = 16,
+		cex = 0.5,
+		layout = c(4, 3),
+		strip = TRUE,
+		scales = list(
+			y = list(relation = 'same', alternating = TRUE), 
+			x = list(tick.number = 10, relation = 'same')
+		),
+		panel = function(x, y, ...) {
+			panel.xyplot(x, y, ...)
+		}
+	)
+	print(b)
 dev.off()

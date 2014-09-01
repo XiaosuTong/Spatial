@@ -137,7 +137,7 @@ dd <- ddply(
 	mean = mean(fitted)
 )
 mm <- dd[rep(row.names(dd), each=103),]
-result <- result[with(result, order(fac, month, year)), ]
+result <- result[with(result, order(station.id, month, year)), ]
 result$central <- result$fitted - mm$mean
 trellis.device(postscript, file = paste(local.output, "/", par$dataset, "_vertices_conditional_month.ps", sep = ""), color=TRUE, paper="legal")
   for(i in levels(result$fac)) {
