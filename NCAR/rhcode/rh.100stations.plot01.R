@@ -136,8 +136,7 @@ trellis.device(
 a <- qqmath(~ (get(par$dataset)-fitted) | station.id,
 	data = result,
 	distribution = qunif,
-	aspect = "xy",
-	layout = c(5,1),
+	layout = c(10,1),
 	pch  = 16,
 	cex  = 0.5,
 	xlab = list(label = "f-value"),
@@ -156,7 +155,8 @@ dd <- ddply(
 	.fun = summarise,
 	mean = mean(fitted),
 	lon = lon[1],
-	lat = lat[1]
+	lat = lat[1],
+	elev = elev[1]
 )
 mm <- dd[rep(row.names(dd), each = 103), ]
 result <- result[with(result, order(station.id, month, year)), ]
@@ -249,13 +249,13 @@ dev.off()
 
 trellis.device(
 	device = postscript, 
-	file = paste(local.output, "/", par$dataset, "loess.fit_month.mean_vs_lon.ps", sep = ""), 
+	file = paste(local.output, "/", par$dataset, "loess.fit_month.mean_vs_elev.ps", sep = ""), 
 	color = TRUE, 
 	paper = "legal"
 )
-    b <- xyplot( mean ~ lon | month,
+    b <- xyplot( mean ~ elev | month,
 		data = dd,
-		xlab = list(label = "Longitude"),
+		xlab = list(label = "Elevation"),
 		ylab = list(label = ylab),
 		type = "p",
 		pch = 16,
