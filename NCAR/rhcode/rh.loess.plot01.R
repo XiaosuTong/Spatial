@@ -137,7 +137,7 @@ dd <- ddply(
 	mean = mean(fitted)
 )
 mm <- dd[rep(row.names(dd), each=103),]
-result <- result[with(result, order(station.id, month, year)), ]
+result <- result[with(result, order(fac, month, year)), ]
 result$central <- result$fitted - mm$mean
 trellis.device(postscript, file = paste(local.output, "/", par$dataset, "_vertices_conditional_month.ps", sep = ""), color=TRUE, paper="legal")
   for(i in levels(result$fac)) {
@@ -154,7 +154,19 @@ trellis.device(postscript, file = paste(local.output, "/", par$dataset, "_vertic
 		cex = 0.5,
 		layout = c(4,3),
 		strip = TRUE,
-		grib = TRUE,
+		key = list(
+			text = list(
+				label = c("centralized fitted","loess smoothing")
+			), 
+			lines = list(
+				pch = c(".", ""), 
+				cex = 4, 
+				lwd = 1.5, 
+				type = c("p","l"), 
+				col = col[1:2]
+			),
+			columns = 2
+		),		
 		scales = list(
 			y = list(relation = 'same', alternating=TRUE), 
 			x = list(tick.number=10, relation='same')
