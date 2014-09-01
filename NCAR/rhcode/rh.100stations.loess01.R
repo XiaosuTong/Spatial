@@ -1,10 +1,11 @@
 source("~/Rhipe/rhinitial.R")
-source("~/Projects/Spatial/NCAR/rhcode/rh.setup.R")
 par <- list()
+par$machine <- "gacrux"
 par$dataset <- "tmax"
 par$N <- 1236
 par$span <- 0.2
 par$degree <- 2
+source("~/Projects/Spatial/NCAR/rhcode/rh.setup.R")
 #load stations.RData, have to check this part
 load(file.path(local.datadir, "stations.RData"))
 stations.100 <- get(grep(par$dataset, ls(), value=T))

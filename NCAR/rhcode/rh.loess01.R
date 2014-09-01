@@ -6,16 +6,17 @@
 ##
 ##initialize the rhipe and setup the directories
 source("~/Rhipe/rhinitial.R")
+##set up the parameters
+par <- list()
+par$dataset <- "tmax"
+par$machine <- "gacrux"
+par$N <- 1236
+par$span <- 0.2
+par$degree <- 2
 source("~/Projects/Spatial/NCAR/rhcode/rh.setup.R")
 source("~/Projects/Spatial/NCAR/myloess/my.loess02.R")
 source("~/Projects/Spatial/NCAR/myloess/my.loess01.R")
 
-##set up the parameters
-par <- list()
-par$dataset <- "tmax"
-par$N <- 1236
-par$span <- 0.2
-par$degree <- 2
 load(file.path(local.datadir, "info.RData"))
 if(par$dataset == "precip"){
 	info <- USpinfo

@@ -1,8 +1,9 @@
 source("~/Rhipe/rhinitial.R")
-source("~/Projects/Spatial/NCAR/rhcode/rh.setup.R")
 par <- list()
+par$machine <- "gacrux"
 par$dataset <- "tmax"
 par$loess <- "loess01"
+source("~/Projects/Spatial/NCAR/rhcode/rh.setup.R")
 
 rst <- rhread(file.path(rh.datadir, par$dataset, "spatial", "100stations", par$loess))
 result <- do.call("rbind", lapply(rst, "[[", 2))

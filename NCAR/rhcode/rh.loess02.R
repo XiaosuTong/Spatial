@@ -1,14 +1,15 @@
 #initialize the rhipe and setup the directories
 source("~/Rhipe/rhinitial.R")
-source("~/Projects/Spatial/NCAR/rhcode/rh.setup.R")
-source("~/Projects/Spatial/NCAR/rhcode/my.loess02.R")
-#get the loess fit at each vertix of the kd tree(different tree for each month) using the whole dataset. 
-#The output key is the c(year, month), and value is the fitted value of all vertixes for that time.
 par <- list()
 par$dataset <- "tmax"
 par$N <- 1236
 par$span <- 0.2
 par$degree <- 2
+par$machine <- "gacrux"
+source("~/Projects/Spatial/NCAR/rhcode/rh.setup.R")
+source("~/Projects/Spatial/NCAR/rhcode/my.loess02.R")
+#get the loess fit at each vertix of the kd tree(different tree for each month) using the whole dataset. 
+#The output key is the c(year, month), and value is the fitted value of all vertixes for that time.
 
 job <- list()
 job$map <- expression({

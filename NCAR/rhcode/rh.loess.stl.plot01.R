@@ -3,12 +3,11 @@
 ##
 ##initialize the rhipe and setup the directories
 source("~/Rhipe/rhinitial.R")
-source("~/Projects/Spatial/NCAR/rhcode/rh.setup.R")
-library(lattice)
-library(plyr)
 par <- list()
 par$dataset <- "tmax"
 par$loess <- "loess01"
+par$machine <- "gacrux"
+source("~/Projects/Spatial/NCAR/rhcode/rh.setup.R")
 
 rst <- rhread(file.path(rh.datadir, par$dataset, "spatial", paste(par$loess, "stl", sep="." )))
 result <- do.call("rbind", lapply(rst, "[[", 2))
