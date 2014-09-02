@@ -253,9 +253,9 @@ trellis.device(
 	color = TRUE, 
 	paper = "legal"
 )
-    b <- xyplot( mean ~ elev | month,
+    b <- xyplot( mean ~ log2(elev) | month,
 		data = dd,
-		xlab = list(label = "Elevation"),
+		xlab = list(label = "Log of Elevation(log base 2 meters)"),
 		ylab = list(label = ylab),
 		type = "p",
 		pch = 16,
