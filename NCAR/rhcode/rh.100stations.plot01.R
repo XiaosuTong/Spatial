@@ -38,14 +38,12 @@ result$station.id <- factor(
 )
 trellis.device(
 	postscript, 
-	file = paste(local.output, "/scatterplot_of_loess.fit.diff_", par$dataset, ".ps", sep = ""), 
+	file = paste(local.output, "/scatterplot_of_loess.fit_", par$dataset, ".ps", sep = ""), 
 	color = TRUE,
 	paper = "legal"
 )
   for(i in levels(result$station.id)) {
-	b <- xyplot( get(par$dataset)-fitted ~ time2 | factor,
-		#response changed to be fitted only, then the ps file named as loess.fit
-		#save space here
+	b <- xyplot( fitted ~ time2 | factor,
     	data = subset(result, station.id == i),
         xlab = list(label = "Month"),
         ylab = list(label = ylab),
@@ -58,6 +56,51 @@ trellis.device(
 		xlim = c(0, 143),
 		scales = list(
 			y = list(relation = 'same', alternating=TRUE), 
+			x = list(at=seq(0,143,by=12), relation='same')
+		),
+		key = list(
+			text = list(
+				label = c("observed","fitted")
+			), 
+			lines = list(
+				cex = 4, 
+				lwd = 1.5, 
+				type = c("l","l"), 
+				col = col[1:2]
+			),
+			columns = 2
+		),		
+		panel = function(x, y, subscripts,...) {
+			tmp <- subset(result, station.id == i)[subscripts, ]
+			panel.abline(v=seq(0,145,by=12), color="lightgrey", lty=3, lwd=0.5)
+			panel.xyplot(x, y, col = col[2],...)
+			panel.xyplot(x, tmp[, par$dataset], col = col[1], ...)
+		}
+	)
+	print(b)
+  }
+dev.off()
+
+trellis.device(
+postscript,
+file = paste(local.output, "/scatterplot_of_loess.fit.diff_", par$dataset, ".ps", sep = ""),
+color = TRUE,
+paper = "legal"
+)
+  for(i in levels(result$station.id)) {
+	b <- xyplot( get(par$dataset)-fitted ~ time2 | factor,
+		data = subset(result, station.id == i),
+		xlab = list(label = "Month"),
+		ylab = list(label = ylab),
+		main = list(label = paste("Station", i, sep=" ")),
+		type = "b",
+		pch = 16,
+		cex = 0.5,
+		layout = c(1,9),
+		strip = FALSE,
+		xlim = c(0, 143),
+		scales = list(
+			y = list(relation = 'same', alternating=TRUE),
 			x = list(at=seq(0,143,by=12), relation='same')
 		),
 		panel = function(...) {
