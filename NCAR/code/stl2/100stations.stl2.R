@@ -15,21 +15,31 @@ load(paste(datadir,"stations.RData", sep=""))
 dataset <- "tmax"
 #parameter <- list(sw="periodic", sd=1, tw=1141, td=1, inner=10, outer=0, flag=FALSE)
 #parameter <- list(sw="periodic", sd=1, tw=1855, td=1, fcw=c(1855,121), fcd=c(1,2), inner=10, outer=0, flag=TRUE)
-parameter <- list(sw="periodic", sd=1, tw=1855, td=1, fcw=c(1855,241), fcd=c(1,1), inner=10, outer=0, flag=TRUE)
+parameter <- list(
+    sw="periodic", 
+    sd=1, 
+    tw=1855, 
+    td=1, 
+    fcw=c(1855,241), 
+    fcd=c(1,1), 
+    inner=10, 
+    outer=0, 
+    flag=TRUE
+)
 
 if(dataset == "tmax"){
-ylab <- "Maximum Temperature (degrees centigrade)"
+    ylab <- "Maximum Temperature (degrees centigrade)"
 }else if(dataset == "tmin"){
-        ylab <- "Minimum Temperature (degrees centigrade)"
+    ylab <- "Minimum Temperature (degrees centigrade)"
 }else {
-        ylab <- "Precipitation (millimeters)"
+    ylab <- "Precipitation (millimeters)"
 }
 if(dataset %in% c("tmax", "tmin")){
-        data <- UStemp
-        datainfo <- UStinfo
+    data <- UStemp
+    datainfo <- UStinfo
 }else{
-        data <- USppt
-        ddatainfo <- USpinfo
+    data <- USppt
+    ddatainfo <- USpinfo
 }
 rm(list=grep("US", ls(), value=TRUE))
 #find the 100 stations with largest observation number for max temperature
@@ -45,7 +55,10 @@ tmp$date <- as.POSIXct(strptime(date, format = "%Y-%m-%d"), format='%Y%m%d', tz=
 column <- c("station.id", "year","month","date", dataset)
 tmp <- tmp[with(tmp, order(station.id, date)), column]
 names(tmp)[dim(tmp)[2]] <- "response"
-tmp$factor <- factor(rep(rep(paste("Period", 1:9), c(rep(144,8),84)), times=100), levels=paste("Period", c(9:1)))
+tmp$factor <- factor(
+    rep(rep(paste("Period", 1:9), c(rep(144,8),84)), times=100), 
+    levels=paste("Period", c(9:1))
+)
 tmp$time <- c(rep(0:143,8), 0:83)
 
 lattice.theme <- trellis.par.get()
@@ -83,7 +96,19 @@ tmp <- cbind(tmp, dr[, c(!(names(dr) %in% c("station.id", "raw", "sub.labels")))
 ##################################
 ##trend+seasonal time series plot
 ##################################
-trellis.device(postscript, file = paste(outputdir, "scatterplot_of_", dataset, "_with_stl2_trend+seasonal_for_100_stations",".ps", sep = ""), color=TRUE, paper="legal")
+trellis.device(
+    device = postscript, 
+    file = paste(
+        outputdir, 
+        "scatterplot_of_", 
+        dataset, 
+        "_with_stl2_trend+seasonal_for_100_stations",
+        ".ps", 
+        sep = ""
+    ), 
+    color=TRUE, 
+    paper="legal"
+)
 	for(i in stations){
     	b <- xyplot( response ~ time | factor,
         	data = subset(tmp, station.id==i),
@@ -95,7 +120,10 @@ trellis.device(postscript, file = paste(outputdir, "scatterplot_of_", dataset, "
             grib = TRUE,
             xlim = c(0, 143),
 #           scales = list(y = list(relation = 'free', cex=1.5), x=list(relation= 'free',format = "%b %Y", tick.number=10), cex=1.2),
-            scales = list(y = list(relation = 'same', tick.number=4, alternating=TRUE), x=list(at=seq(0, 143, by=12), relation='same')),
+            scales = list(
+                y = list(relation = 'same', tick.number=4, alternating=TRUE), 
+                x = list(at=seq(0, 143, by=12), relation='same')
+            ),
             panel = function(x,y,subscripts,...) {
                  panel.abline(v=seq(0,145, by=12), color="lightgrey", lty=3, lwd=0.5)
                  panel.xyplot(x, y, type="p", col=col[1], pch=16, cex=0.5, ...)
@@ -107,7 +135,19 @@ trellis.device(postscript, file = paste(outputdir, "scatterplot_of_", dataset, "
    }
 dev.off()
 
-trellis.device(postscript, file = paste(outputdir, "scatterplot_of_", dataset, "_with_stl2_seasonal+fc_for_100_stations",".ps", sep = ""), color=TRUE, paper="legal")
+trellis.device(
+    device = postscript, 
+    file = paste(
+        outputdir, 
+        "scatterplot_of_", 
+        dataset, 
+        "_with_stl2_seasonal+fc_for_100_stations",
+        ".ps", 
+        sep = ""
+    ), 
+    color=TRUE, 
+    paper="legal"
+)
     for(i in stations){
         b <- xyplot( response ~ time | factor,
             data = subset(tmp, station.id==i),
@@ -118,8 +158,10 @@ trellis.device(postscript, file = paste(outputdir, "scatterplot_of_", dataset, "
             strip = FALSE,
             grib = TRUE,
             xlim = c(0, 143),
-#           scales = list(y = list(relation = 'free', cex=1.5), x=list(relation= 'free',format = "%b %Y", tick.number=10), cex=1.2),
-            scales = list(y = list(relation = 'same', tick.number=4, alternating=TRUE), x=list(at=seq(0, 143, by=12), relation='same')),
+            scales = list(
+                y = list(relation = 'same', tick.number=4, alternating=TRUE), 
+                x=list(at=seq(0, 143, by=12), relation='same')
+            ),
             panel = function(x,y,subscripts,...) {
                  panel.abline(v=seq(0,145, by=12), color="lightgrey", lty=3, lwd=0.5)
                  panel.xyplot(x, y, type="p", col=col[1], pch=16, cex=0.5, ...)
@@ -212,9 +254,10 @@ dev.off()
 #################################################
 ##Auto correlation ACF for the remainder
 #################################################
-ACF <- ddply(.data=tmp.remainder,
-	.variables="station.id",
-	.fun= summarise,
+ACF <- ddply(
+    .data = tmp.remainder,
+	.variables = "station.id",
+	.fun = summarise,
 	 correlation = c(acf(fc.remainder, plot=FALSE)$acf),
 	 lag = c(acf(fc.remainder, plot=FALSE)$lag) 
 )
@@ -242,18 +285,20 @@ rm(tmp.remainder)
 ##########################################################################
 tmp.trend <- tmp[, c(!(names(tmp) %in% c("data.seasonal", "data.remainder", "data.trend", "data.weights", "factor")))]
 
-dr <- ddply(.data = tmp.trend,
-		.variables = c("station.id","year"),
-		.fun = summarise,
-		 mean = mean(response)
+dr <- ddply(
+    .data = tmp.trend,
+	.variables = c("station.id","year"),
+	.fun = summarise,
+	mean = mean(response)
 )
 mm <- dr[rep(row.names(dr), each=12),]
 tmp.trend <- cbind(tmp.trend, mean= mm$mean)
 
-order <- ddply(.data = tmp.trend,
-                .variables = "station.id",
-                .fun = summarise,
-                 mean = mean(response)
+order <- ddply(
+    .data = tmp.trend,
+    .variables = "station.id",
+    .fun = summarise,
+    mean = mean(response)
 )
 order.st <- as.character(order[order(order$mean, decreasing=TRUE), ]$station.id)
 tmp.trend$station.id <- factor(tmp.trend$station.id, levels=order.st)
@@ -270,10 +315,17 @@ trellis.device(postscript, file = paste(outputdir, "scatterplot_of_", dataset, "
              pch = 16,
 			 layout = c(10,1),
 	     	 aspect="xy",
-             key=list(text=list(label=c("low frequency component","yearly mean")), lines=list(pch=c("","."), cex=4, lwd=1.5, type=c("l","p"), col=col[1:2]), columns=2),
+             key=list(
+                text = list(label=c("low frequency component","yearly mean")), 
+                lines = list(pch=c("","."), cex=4, lwd=1.5, type=c("l","p"), col=col[1:2]),
+                columns=2
+             ),
              cex = 0.3,
 #            scales = list(y = list(relation = 'free', cex=1.5), x=list(relation= 'same',format = "%b %Y", tick.number=8), cex=1.2),
-             scales = list(y = list(relation = 'free'), x=list(at=seq(0, 1236, by=600), relation = 'same')),
+             scales = list(
+                y = list(relation = 'free'), 
+                x=list(at=seq(0, 1236, by=600), relation = 'same')
+             ),
 			 prepanel = function(x,y,subscripts,...){
 					v <- tmp.trend[subscripts,]
 					ylim <- range(v$mean)
@@ -300,9 +352,15 @@ trellis.device(postscript, file = paste(outputdir, "scatterplot_of_", dataset, "
              xlim = c(0, 1235),
              layout = c(1,2),
              aspect="xy",
-             key=list(text=list(label=c("middle frequency component","yearly mean-low frequency component")), lines=list(pch=c("","."), cex=4, lwd=1.5, type=c("l","p"), col=col[1:2]), columns=2),
-#            scales = list(y = list(relation = 'free', cex=1.5), x=list(relation= 'same',format = "%b %Y", tick.number=8), cex=1.2),
-             scales = list(y = list(relation = 'free'), x=list(at=seq(0, 1236, by=60), relation = 'same')),
+             key=list(
+                text = list(label=c("middle frequency component","yearly mean-low frequency component")),
+                lines = list(pch=c("","."), cex=4, lwd=1.5, type=c("l","p"), col=col[1:2]), 
+                columns = 2
+             ),
+             scales = list(
+                y = list(relation = 'free'), 
+                x = list(at=seq(0, 1236, by=60), relation = 'same')
+             ),
              prepanel = function(x,y,subscripts,...){
                     v <- tmp.trend[subscripts,]
                     ylim <- range(v$mean-v$fc.trend)
@@ -391,7 +449,19 @@ order <- ddply(.data = tmp,
 order.st <- as.character(order[order(order$mean, decreasing=TRUE), ]$station.id)
 dr$station.id <- factor(dr$station.id, levels=order.st)
 
-trellis.device(postscript, file = paste(outputdir, "scatterplot_of_", dataset, "_range_vs_mean_for_100_stations",".ps", sep = ""), color=TRUE, paper="legal")
+trellis.device(
+    device = postscript, 
+    file = paste(
+        outputdir, 
+        "scatterplot_of_", 
+        dataset, 
+        "_range_vs_mean_for_100_stations",
+        ".ps", 
+        sep = ""
+    ), 
+    color=TRUE, 
+    paper="legal"
+)
 	a <- xyplot(mean ~ range | station.id, 
 		data = dr,
 		pch = 16,

@@ -14,11 +14,33 @@ dataset <- "tmax"
 fc <- FALSE
 
 if(fc){
-parameter <- list(run1=list(sw="periodic", tw=1141, td=1, sd=1, inner=10, outer=0, flag=FALSE),
-                  run2=list(sw="periodic", tw=1141, sd=1, td=1, fcw=1141, fcd=1, ssw=825, ssd=2, inner=10, outer=0, flag=TRUE)
-)}else{
-parameter <- expand.grid(sw="periodic", tw=c(241,1141), td=1, sd=1, inner=10, outer=0)
-parameter$sw <- as.character(parameter$sw)
+    parameter <- list(
+        run1=list(
+            sw="periodic", 
+            tw=1141, 
+            td=1, 
+            sd=1, 
+            inner=10, 
+            outer=0, 
+            flag=FALSE
+        ),
+        run2=list(
+            sw="periodic", 
+            tw=1141, 
+            sd=1, 
+            td=1, 
+            fcw=1141, 
+            fcd=1, 
+            ssw=825, 
+            ssd=2, 
+            inner=10, 
+            outer=0, 
+            flag=TRUE
+        )
+    )
+}else{
+    parameter <- expand.grid(sw="periodic", tw=c(241,1141), td=1, sd=1, inner=10, outer=0)
+    parameter$sw <- as.character(parameter$sw)
 }
 if(dataset == "tmax"){
 ylab <- "Maximum Temperature (degrees centigrade)"
@@ -154,18 +176,20 @@ trellis.device(postscript, file = paste(outputdir, "QQ_plot_of_tmax_models_compa
    }
 dev.off()
 
-ACF1 <- ddply(.data=remainders,
+ACF1 <- ddply(
+    .data=remainders,
     .variables="station.id",
     .fun= summarise,
-     correlation = c(acf(model1, plot=FALSE)$acf),
-     lag = c(acf(model1, plot=FALSE)$lag)
+    correlation = c(acf(model1, plot=FALSE)$acf),
+    lag = c(acf(model1, plot=FALSE)$lag)
 )
 ACF1 <- subset(ACF1, lag!=0)
-ACF2 <- ddply(.data=remainders,
+ACF2 <- ddply(
+    .data=remainders,
     .variables="station.id",
     .fun= summarise,
-     correlation = c(acf(model2, plot=FALSE)$acf),
-     lag = c(acf(model2, plot=FALSE)$lag)
+    correlation = c(acf(model2, plot=FALSE)$acf),
+    lag = c(acf(model2, plot=FALSE)$lag)
 )
 ACF2 <- subset(ACF2, lag!=0)
 ACF2$lag <- ACF2$lag + 0.1
@@ -190,23 +214,28 @@ trellis.device(postscript, file = paste(outputdir, "acf_of_", dataset, "_with_st
 dev.off()
 
 
-summary <- ddply(.data=remainders, 
-		.variables = "station.id",
-		.fun = summarise,
-		 mean = c(mean(model1), mean(model2)),
-		 std = c(sd(model1), sd(model2)),
-		 group = c("model1", "model2")
+summary <- ddply(
+    .data=remainders, 
+	.variables = "station.id",
+	.fun = summarise,
+	mean = c(mean(model1), mean(model2)),
+	std = c(sd(model1), sd(model2)),
+	group = c("model1", "model2")
 )
-m <- ddply(.data=summary,
+m <- ddply(
+    .data=summary,
 	.variables="group",
 	.fun=function(r){
 		arrange(r, mean)
-})
-s <- ddply(.data=summary,
+    }
+)
+s <- ddply(
+    .data=summary,
     .variables="group",
     .fun=function(r){
         arrange(r, std)
-})
+    }
+)
 trellis.device(postscript, file = paste(outputdir, "dotplot_of_tmax_models_comparison",".ps", sep = ""), color=TRUE, paper="legal")
 		od.mean <- tail(m$station.id, 100)
 		summary$station.id <- factor(summary$station.id, levels=od.mean)
