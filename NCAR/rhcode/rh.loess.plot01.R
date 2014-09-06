@@ -11,7 +11,10 @@ source("~/Projects/Spatial/NCAR/rhcode/rh.setup.R")
 
 rst <- rhread(file.path(rh.datadir, par$dataset, "spatial", par$loess))
 result <- do.call("rbind", lapply(rst, "[[", 2))
-result$factor <- factor(rep(rep(paste("Period", 1:9), c(rep(144,8),84)), times=66), levels=paste("Period", c(9:1)))
+result$factor <- factor(
+	rep(rep(paste("Period", 1:9), c(rep(144,8),84)), times=66), 
+	levels = paste("Period", c(9:1))
+)
 if(par$dataset == "precip") {
 	ylab <- "Precipitation (millimeters)"
 }else if(par$dataset == "tmax") {
@@ -75,6 +78,8 @@ dev.off()
 
 library(maps)
 us.map <- map('state', plot = FALSE, fill = TRUE)
+vertices <- result[seq(1, nrow(result), by=1236), c("lon", "lat", "fac")]
+vertices <- vertices[with(vertices, order(fac)),]
 trellis.device(
 	device = postscript, 
 	file = paste(local.output, "/map_vertices_", par$dataset, ".ps", sep = ""), 
@@ -82,16 +87,24 @@ trellis.device(
 	paper="legal"
 )
 a <- xyplot( lat ~ lon,
-	data  = result,
+	data  = vertices,
 	xlab  = list(label = "Longitude"),
 	ylab  = list(label = "Latitude"),
 	main  = list(label = "Vertices of K-D Tree"),
 	type  = "p",
-	cex   = 0.5,
+	cex   = 0.8,
 	col   = "red",
 	pch   = 16,
 	panel = function(x, y, ...) {
 		panel.xyplot(x, y, ...)
+		for(i in seq(1, nrow(vertices), by = 2)){
+			panel.segments(x[i], y[i], x[i+1], y[i+1], col = "red")
+		}
+		panel.segments(
+			c(x[1], x[2]), c(y[1], y[2]), 
+			c(x[3], x[4]), c(y[3], y[4]), 
+			col="red"
+		)
 	    panel.polygon(us.map$x,us.map$y)	
 	}
 )

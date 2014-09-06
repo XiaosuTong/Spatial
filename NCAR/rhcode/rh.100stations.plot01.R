@@ -120,8 +120,6 @@ trellis.device(
 )
   for(i in levels(result$station.id)){
     a <- qqmath(~ (get(par$dataset)-fitted) | month,
-    	#response changed to be fitted only, then the ps file named as QQ_plot_conditional_month
-		#save space here
         data = subset(result, station.id == i),
         distribution = qnorm,
         aspect = "xy",
@@ -144,52 +142,27 @@ dev.off()
 
 trellis.device(
 	device = postscript, 
-	file = paste(local.output, "/quantile_plot_diff_conditional_month_", par$dataset, ".ps", sep = ""), 
+	file = paste(local.output, "/QQ_plot_diff_", par$dataset, ".ps", sep = ""), 
 	color = TRUE, 
 	paper = "legal"
 )
-  for(i in levels(result$station.id)){
-    a <- qqmath(~ (get(par$dataset)-fitted) | month,
-        data = subset(result, station.id == i),
-        distribution = qunif,
+    a <- qqmath(~ (get(par$dataset)-fitted) | station.id,
+        data = result,
+        distribution = qnorm,
         aspect = "xy",
-        layout = c(12,1),
+        layout = c(10,1),
         pch  = 16,
         cex  = 0.5,
-		main = list(label = paste("Station", i, sep=" ")),
-		xlab = list(label = "f-value"),
+		xlab = list(label = "Unit normal quantile"),
 		ylab = list(label = ylab, cex=1.2),
-#        prepanel = prepanel.qqmathline,
+        prepanel = prepanel.qqmathline,
         panel = function(x, y,...) {
-                panel.grid()
-#               panel.qqmathline(x, y=x)
-                panel.qqmath(x, y, ...)
+        	panel.grid()
+        	panel.qqmathline(x, y=x)
+        	panel.qqmath(x, y, ...)
         }
     )
     print(a)
-  }
-dev.off()
-
-trellis.device(
-	device = postscript, 
-	file = paste(local.output, "/quantile_plot_diff_", par$dataset, ".ps", sep = ""), 
-	color = TRUE, 
-	paper = "legal"
-)
-a <- qqmath(~ (get(par$dataset)-fitted) | station.id,
-	data = result,
-	distribution = qunif,
-	layout = c(10,1),
-	pch  = 16,
-	cex  = 0.5,
-	xlab = list(label = "f-value"),
-	ylab = list(label = ylab, cex=1.2),
-	panel = function(x, y,...) {
-		panel.grid()
-		panel.qqmath(x, y, ...)
-	}
-)
-print(a)
 dev.off()
 
 dd <- ddply(

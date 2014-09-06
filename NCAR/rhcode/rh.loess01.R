@@ -11,7 +11,7 @@ par <- list()
 par$dataset <- "tmax"
 par$machine <- "gacrux"
 par$N <- 1236
-par$span <- 0.2
+par$span <- 0.025
 par$degree <- 2
 source("~/Projects/Spatial/NCAR/rhcode/rh.setup.R")
 source("~/Projects/Spatial/NCAR/myloess/my.loess02.R")
