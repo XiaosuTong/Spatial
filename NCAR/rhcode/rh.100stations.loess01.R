@@ -6,6 +6,7 @@ par$N <- 1236
 par$span <- 0.2
 par$degree <- 2
 source("~/Projects/Spatial/NCAR/rhcode/rh.setup.R")
+source("~/Projects/Spatial/NCAR/myloess/my.loess02.R")
 #load stations.RData, have to check this part
 load(file.path(local.datadir, "stations.RData"))
 stations.100 <- get(grep(par$dataset, ls(), value=T))
@@ -23,21 +24,28 @@ job$map <- expression({
 	m <- month[j]
 	y <- i + 1894
 	v <- subset(
-		get(paste(par$dataset, "100stations", sep=".")), 
+		get(par$dataset), 
 		year == y & month == m
 	)[, c("station.id", "elev", "lon", "lat", par$dataset)]
-	lo.fit <- loess( get(par$dataset) ~ lon + lat, 
+	lo.fit <- my.loess2( get(par$dataset) ~ lon + lat, 
 		data    = v, 
 		degree  = par$degree, 
-		span    = par$span,
-		control = loess.control(surface = "direct")
+		span    = par$span
 	)
-	v$fitted <- lo.fit$fitted
-	v$year <- rep(y, nrow(v))
-	v$month <- rep(m, nrow(v))
-	lapply(1:nrow(v), function(k) {
+	new <- subset(v, station.id %in% par$stations.100)
+	fit <- predict(
+		object = lo.fit, 
+       	newdata = data.frame(
+      		lon = new$lon, 
+        	lat = new$lat
+        )
+	)
+	new$fitted <- fit
+	new$year <- rep(y, nrow(new))
+	new$month <- rep(m, nrow(new))
+	lapply(1:nrow(new), function(k) {
 		key <- as.character(v$station.id[k])
-		rhcollect(key, v[k, ])
+		rhcollect(key, new[k, ])
 	})
   })
 })
@@ -63,20 +71,17 @@ job$reduce <- expression(
 )
 job$setup <- expression(
 	map = {
-	    load(paste(par$dataset, "100stations", "RData", sep="."))
+		dyn.load("/home/shaula/u16/tongx/Projects/Spatial/NCAR/myloess/shareLib/myloess2.so")
+	    load(paste(par$dataset, "RData", sep="."))
 	}
 )
 job$shared <- c(
-	file.path(
-		rh.datadir, 
-		par$dataset, 
-		"100stations", 
-		"Rdata", 
-		paste(par$dataset, "100stations", "RData", sep=".")
-	)
+	file.path(rh.datadir, par$dataset, "Rdata", paste(par$dataset, "RData", sep="."))
 )
 job$parameters <- list(
-	par = par
+	par = par,
+	my.loess2 = my.loess2,
+	my.simple2 = my.simple2
 )
 job$input <- c(par$N, 100) 
 job$output <- rhfmt(
@@ -84,7 +89,7 @@ job$output <- rhfmt(
 	type = "sequence"
 )
 job$mapred <- list(
-	mapred.reduce.tasks = 66, 
+	mapred.reduce.tasks = 100, 
 	rhipe_reduce_buff_size = 10000
 )
 job$mon.sec <- 5
