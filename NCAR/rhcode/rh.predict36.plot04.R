@@ -17,16 +17,43 @@
 #The dataset for Tmax on HDFS is already Ordered the stations by the observation counts
 
 dataset <- "tmax"
-index <- "Emultiple"
+index <- "E5"
 
 #Load the station.id for the 100 stations for Tmax
 load(file.path(local.datadir, paste(dataset,"div.stations.RData", sep="")))
 load(file.path(local.datadir, "stations.RData"))
-if(index == "Emultiple1"){
-    parameter <- list(list(sw="periodic", tw=1855, sd=1, td=1, fcw=1855, fcd=1, ssw=121, ssd=2, multiple=TRUE))
-}else{
-    parameter <- list(run1=list(sw="periodic", tw=1855, sd=1, td=1, fcw=1855, fcd=1, ssw=241, ssd=1, multiple=TRUE),
-                      run2=list(sw="periodic", tw=241, sd=1, td=1, multiple=FALSE))
+if(index == "E5"){
+    parameter <- list(
+        run1=list(
+            sw="periodic", 
+            tw=1855, 
+            sd=1, 
+            td=1, 
+            fcw=1855, 
+            fcd=1, 
+            ssw=241, 
+            ssd=1, 
+            multiple=TRUE
+        ),
+        run2=list(
+            sw="periodic", 
+            tw=241, 
+            sd=1, 
+            td=1, 
+            multiple=FALSE
+        ),
+        run3=list(
+            sw="periodic", 
+            tw=1855, 
+            sd=1,
+            td=1, 
+            fcw=1855, 
+            fcd=1, 
+            ssw=121, 
+            ssd=2, 
+            multiple=TRUE
+        )
+    )
 }
 lattice.theme <- trellis.par.get()
 col <- lattice.theme$superpose.symbol$col

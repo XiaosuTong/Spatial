@@ -14,10 +14,8 @@
 #In data01 this script, only s.window and t.window are varied.
 dataset <- "tmax"
 index <- "E3"
-
-#Load the station.id for the 100 stations
-load(file.path(local.datadir, paste(dataset,"div.stations.RData", sep="")))
-load(file.path(local.datadir, "stations.RData"))
+par <- list()
+par$machine <- "gacrux"
 if(index == "E1"){
   parameter <- expand.grid(
     sw = c(51, 73, 93), 

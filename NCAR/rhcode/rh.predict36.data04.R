@@ -9,30 +9,15 @@
 ## stations information is in USinfo.RData which is also on HDFS.
 ##
 ####################################################################################
-#Emultiple1 is the experiment5
-#final else, which is Emultiple is the experiment6.
 #In data04 this script, fc.degree and fc.window are varied.
+source("~/Rhipe/rhinitial.R")
 dataset <- "tmax"
-index <- "Emultiple"
+index <- "E5"
+par <- list()
+par$machine <- "gacrux"
+source("~/Projects/Spatial/NCAR/rhcode/rh.setup.R")
 
-#Load the station.id for the 100 stations for Tmax
-load(file.path(local.datadir, paste(dataset,"div.stations.RData", sep="")))
-load(file.path(local.datadir, "stations.RData"))
-if(index == "Emultiple1"){
-	parameter <- list(
-    list(
-      sw = "periodic", 
-      tw = 1855, 
-      sd = 1, 
-      td = 1, 
-      fcw = 1855, 
-      fcd = 1, 
-      ssw = 121, 
-      ssd = 2, 
-      multiple = TRUE
-    )
-  )
-}else if(index == "Emultiple") {
+if(index == "E5"){
 	parameter <- list(
     run1 = list(
       sw = "periodic", 
@@ -45,12 +30,23 @@ if(index == "Emultiple1"){
       ssd = 1, 
       multiple = TRUE
     ),
-		run2 = list(
+    run2 = list(
       sw = "periodic", 
       tw = 241, 
       sd = 1, 
       td = 1, 
       multiple = FALSE
+    ),
+    run3 = list(
+      sw = "periodic", 
+      tw = 1855, 
+      sd = 1, 
+      td = 1, 
+      fcw = 1855, 
+      fcd = 1, 
+      ssw = 121, 
+      ssd = 2, 
+      multiple = TRUE
     )
   )
 }
