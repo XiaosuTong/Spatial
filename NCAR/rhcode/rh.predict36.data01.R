@@ -12,10 +12,12 @@
 #E1 is the experiment1, E2 is the experiment2, E3 is the experiment3
 #final else is not on web page.
 #In data01 this script, only s.window and t.window are varied.
+source("~/Rhipe/rhinitial.R")
 dataset <- "tmax"
-index <- "E3"
+index <- "E1"
 par <- list()
 par$machine <- "gacrux"
+source("~/Projects/Spatial/NCAR/rhcode/rh.setup.R")
 if(index == "E1"){
   parameter <- expand.grid(
     sw = c(51, 73, 93), 

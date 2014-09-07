@@ -6,11 +6,14 @@
 #######################################################################
 datadir <- "~/Projects/Spatial/NCAR/RData/"
 dataset <- "tmax"
-load(paste(datadir, dataset, "div.stations.RData", sep = ""))
-for(index in c("Emultiple")){
+par <- list()
+par$machine <- "gacrux"
+source("~/Projects/Spatial/NCAR/rhcode/rh.setup.R")
+
+#load(paste(datadir, dataset, "div.stations.RData", sep = ""))
+for(index in c("E5")){
   job <- list()
   job$map <- expression({
-    library(plyr)
     lapply(seq_along(map.values), function(r){
       v <- map.values[[r]]
       v$group <- map.keys[[r]][1]
@@ -46,7 +49,11 @@ for(index in c("Emultiple")){
       library(plyr)
     }
   )
-  job$parameters <- list()
+  job$setup <- expression(
+    map = {
+      library(plyr)
+    }
+  )
   job$input <- rhfmt(
     file.path(rh.datadir, dataset,"100stations","sharepredict",index,"36.lap.station"), 
     type = "sequence"
@@ -82,7 +89,6 @@ for(index in c("Emultiple")){
       rhcollect(reduce.key, combined)
     }
   )
-  job$parameters <- list()
   job$input <- rhfmt(
     file.path(rh.datadir, dataset,"100stations","sharepredict",index,"orderstations"), 
     type = "sequence"
@@ -98,13 +104,6 @@ for(index in c("Emultiple")){
   job$readback <- FALSE
   job$mon.sec <- 10
   job.mr <- do.call("rhwatch", job)
-  rst <- rhread(
-    file.path(rh.datadir, dataset, "100stations","sharepredict",index,"group.orderstations")
-  )
-  assign(paste(index, "div.stations", sep="."), rst)
 }
-save(
-  list = grep("div.stations", ls(), value = TRUE), 
-  file = paste(datadir, dataset, "div.stations.RData", sep="")
-)
+
 

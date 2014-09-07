@@ -241,7 +241,6 @@ job$reduce <- expression(
     rhcollect(reduce.key, combined)
   }
 )	
-
 files <- unlist(lapply(1:length(parameter), function(r) {
 	file.path(rh.datadir, dataset, "100stations", "sharepredict", index, paste("run", r, sep="")) 
 }))
