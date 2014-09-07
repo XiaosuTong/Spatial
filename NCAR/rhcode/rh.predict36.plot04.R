@@ -439,12 +439,22 @@ job$reduce <- expression(
 job$setup <- expression(
     reduce = {
         library(lattice)
+        div.stations <- rhread("group.orderstations")
     }
+)
+job$shared <- c(
+    file.path(
+        rh.datadir, 
+        dataset, 
+        "100stations",
+        "sharepredict",
+        index, 
+        "group.orderstations"
+    )
 )
 job$parameters <- list(
     parameter = parameter, 
     ylab = ylab, 
-    div.stations= get(paste(index, "div.stations", sep="."))
 )
 job$input <- rhfmt(
     file.path(rh.datadir, dataset,"100stations","sharepredict",index,"36.lap.station"), 
