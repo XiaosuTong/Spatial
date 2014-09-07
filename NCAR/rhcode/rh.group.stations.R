@@ -9,6 +9,7 @@ dataset <- "tmax"
 par <- list()
 par$machine <- "gacrux"
 source("~/Projects/Spatial/NCAR/rhcode/rh.setup.R")
+source("~/Rhipe/rhinitial.R")
 
 #load(paste(datadir, dataset, "div.stations.RData", sep = ""))
 for(index in c("E5")){
