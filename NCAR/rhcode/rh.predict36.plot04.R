@@ -465,7 +465,7 @@ job$output <- rhfmt(
     type = "sequence"
 )
 job$mapred <- list(
-    mapred.reduce.tasks = 72
+    mapred.reduce.tasks = 10
 )
 job$jobname <- paste(dataset, "abs error quantile")
 job$readback <- FALSE

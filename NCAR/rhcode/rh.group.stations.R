@@ -99,7 +99,7 @@ for(index in c("E5")){
     type = "sequence"
   )
   job$mapred <- list(
-    mapred.reduce.tasks = 3
+    mapred.reduce.tasks = 10
   )
   job$jobname <- paste(dataset, "order stations")
   job$readback <- FALSE
