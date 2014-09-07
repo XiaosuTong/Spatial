@@ -384,6 +384,16 @@ dev.off()
 ##saved in this step. The station is ordered by the amount of divation from normal,
 ##and the order is called from div.station.
 #################################################################################
+div.stations <- rhread(
+    file.path(
+        rh.datadir, 
+        dataset, 
+        "100stations",
+        "sharepredict",
+        index, 
+        "group.orderstations"
+    )
+)
 job <- list()
 job$map <- expression({
     lapply(seq_along(map.keys), function(r){
@@ -439,22 +449,12 @@ job$reduce <- expression(
 job$setup <- expression(
     reduce = {
         library(lattice)
-        div.stations <- rhread("group.orderstations")
     }
-)
-job$shared <- c(
-    file.path(
-        rh.datadir, 
-        dataset, 
-        "100stations",
-        "sharepredict",
-        index, 
-        "group.orderstations"
-    )
 )
 job$parameters <- list(
     parameter = parameter, 
-    ylab = ylab
+    ylab = ylab,
+    div.stations = div.stations
 )
 job$input <- rhfmt(
     file.path(rh.datadir, dataset,"100stations","sharepredict",index,"36.lap.station"), 
