@@ -471,4 +471,8 @@ job$jobname <- paste(dataset, "abs error quantile")
 job$readback <- FALSE
 job$mon.sec <- 10
 job$copyFiles <- TRUE
-job.mr <- do.call("rhwatch", job)
+#job.mr <- do.call("rhwatch", job)
+#rhget(
+#    paste("/ln/tongx/Spatial/output/", dataset,"/*.ps", sep=""), 
+#    "~/Projects/Spatial/NCAR/output/"
+#)

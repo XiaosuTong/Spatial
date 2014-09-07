@@ -23,10 +23,18 @@ index <- "E4"
 load(file.path(local.datadir, paste(dataset,"div.stations.RData", sep="")))
 load(file.path(local.datadir, "stations.RData"))
 if(index == "E4"){
-        parameter <- expand.grid(sw=c("periodic"), tw=c(121, 241, 361, 751, 1141), td=c(1,2), sd=1)
+        parameter <- expand.grid(
+            sw=c("periodic"), 
+            tw=c(121, 241, 361, 751, 1141),
+            td=c(1,2), 
+            sd=1
+        )
         parameter$sw <- as.character(parameter$sw)
 }else{
-        parameter <- expand.grid(sw=c(25, 125, "periodic"), tw=c(361, 617, 1141))
+        parameter <- expand.grid(
+            sw=c(25, 125, "periodic"), 
+            tw=c(361, 617, 1141)
+        )
         parameter$sw <- as.character(parameter$sw)
 }
 

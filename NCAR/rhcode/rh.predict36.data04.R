@@ -11,13 +11,13 @@
 ####################################################################################
 #In data04 this script, fc.degree and fc.window are varied.
 source("~/Rhipe/rhinitial.R")
-dataset <- "tmax"
-index <- "E5"
 par <- list()
 par$machine <- "gacrux"
+par$dataset <- "tmax"
+par$index <- "E5"
 source("~/Projects/Spatial/NCAR/rhcode/rh.setup.R")
 
-if(index == "E5"){
+if(par$index == "E5"){
 	parameter <- list(
     run1 = list(
       sw = "periodic", 
