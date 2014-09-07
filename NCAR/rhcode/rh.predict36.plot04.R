@@ -454,7 +454,7 @@ job$shared <- c(
 )
 job$parameters <- list(
     parameter = parameter, 
-    ylab = ylab, 
+    ylab = ylab
 )
 job$input <- rhfmt(
     file.path(rh.datadir, dataset,"100stations","sharepredict",index,"36.lap.station"), 
