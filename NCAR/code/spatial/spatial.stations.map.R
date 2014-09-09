@@ -85,7 +85,11 @@ b <- dotplot(
     ylab = list(label="Level", cex=1.5),
     groups = type,
 	grib = TRUE,
-	key = list(columns=2, points= list(pch=16, col = col[1:2]), text= list(label=c("Max","Min"), cex=1.2)),
+	key = list(
+        columns=2, 
+        points= list(pch=16, col = col[1:2]), 
+        text= list(label=c("Max","Min"), cex=1.2)
+    ),
 	scales = list(x = list(cex=1.5), y = list(cex=1.5)),          
 	pch = 16,
     panel = function(...) {

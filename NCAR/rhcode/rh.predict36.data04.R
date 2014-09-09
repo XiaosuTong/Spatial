@@ -160,7 +160,13 @@ for (k in 1:length(parameter)) {
     }
   )
   job$shared <- c(
-    file.path(rh.datadir,dataset,"100stations","Rdata", paste(dataset, ".100stations.RData", sep=""))
+    file.path(
+      rh.datadir, 
+      par$dataset,
+      "100stations",
+      "Rdata", 
+      paste(par$dataset, ".100stations.RData", sep="")
+    )
   )
   if (parameter[[k]]$multiple){
     job$parameters <- list(
@@ -174,7 +180,7 @@ for (k in 1:length(parameter)) {
       ssd = parameter[[k]]$ssd, 
       inner = 10, 
       outer = 0, 
-      dataset = dataset, 
+      dataset = par$dataset, 
       flag = parameter[[k]]$multiple
     )
   }else{
@@ -185,20 +191,27 @@ for (k in 1:length(parameter)) {
       td = parameter[[k]]$td, 
       inner = 10, 
       outer = 0, 
-      dataset = dataset, 
+      dataset = par$dataset, 
       flag = parameter[[k]]$multiple
     )
   }
   job$input <- c(60100, 220)
   job$output <- rhfmt(
-    file.path(rh.datadir, dataset, "100stations","sharepredict", index, paste("run", k, sep="")), 
+    file.path(
+      rh.datadir, 
+      par$dataset, 
+      "100stations",
+      "sharepredict", 
+      par$index, 
+      paste("run", k, sep="")
+    ), 
     type = "sequence"
   )
   job$mapred <- list(
     mapred.reduce.tasks = 72, 
     rhipe_reduce_full_size = 10000
   )
-  job$jobname <- paste(dataset, "predict", k)
+  job$jobname <- paste(par$dataset, "predict", k)
   job$mon.sec <- 10
   job$readback <- FALSE
   job.mr <- do.call("rhwatch", job)
@@ -241,21 +254,37 @@ job$reduce <- expression(
     rhcollect(reduce.key, combined)
   }
 )	
-files <- unlist(lapply(1:length(parameter), function(r) {
-	file.path(rh.datadir, dataset, "100stations", "sharepredict", index, paste("run", r, sep="")) 
-}))
+files <- unlist(
+  lapply(1:length(parameter), function(r) {
+    file.path(
+      rh.datadir, 
+      par$dataset, 
+      "100stations", 
+      "sharepredict", 
+      par$index, 
+      paste("run", r, sep="")
+    ) 
+  })
+)
 job$parameters <- list(
-  dataset = dataset
+  dataset = par$dataset
 )
 job$input <- rhfmt(files, type="sequence")
 job$output <- rhfmt(
-  file.path(rh.datadir, dataset,"100stations","sharepredict",index,"36.lap.station"), 
+  file.path(
+    rh.datadir, 
+    par$dataset,
+    "100stations",
+    "sharepredict",
+    par$index,
+    "36.lap.station"
+  ), 
   type = "sequence"
 )
 job$mapred <- list(
   mapred.reduce.tasks = 72
 )
-job$jobname <- paste(dataset, "36 each lap")
+job$jobname <- paste(par$dataset, "36 each lap")
 job$readback <- FALSE
 job$mon.sec <- 10
 job.mr <- do.call("rhwatch", job)
@@ -287,12 +316,6 @@ job$map <- expression({
     lapply(1:dim(tmp)[1], function(i){
       key <- tmp[i, 4]
       value <- tmp[i, -4]
-#	    for(j in 1:dim(parameter)[1]){
-#	      if(value$group == j){ 
-#         tmp$fcw <- parameter[j,5]
-#         tmp$ssw <- parameter[j,7]
-#	      }
-# 		}
       rhcollect(key, value)
     })
   })
@@ -317,17 +340,31 @@ job$parameters <- list(
   parameter = parameter
 )
 job$input <- rhfmt(
-  file.path(rh.datadir, dataset, "100stations", "sharepredict", index, "36.lap.station"), 
+  file.path(
+    rh.datadir, 
+    par$dataset, 
+    "100stations", 
+    "sharepredict", 
+    par$index, 
+    "36.lap.station"
+  ), 
   type = "sequence"
 )
 job$output <- rhfmt(
-  file.path(rh.datadir, dataset,"100stations","sharepredict",index,"36.lap.quantile"), 
+  file.path(
+    rh.datadir, 
+    par$dataset,
+    "100stations",
+    "sharepredict",
+    par$index,
+    "36.lap.quantile"
+  ), 
   type = "sequence"
 )
 job$mapred <- list(
   mapred.reduce.tasks = 72
 )
-job$jobname <- paste(dataset, "36 each lap")
+job$jobname <- paste(par$dataset, "36 each lap")
 job$readback <- FALSE
 job$mon.sec <- 10
 job.mr <- do.call("rhwatch", job)
@@ -354,14 +391,7 @@ job$map <- expression({
 			std = 1.96*sd(residual)
     )
     tmp$group <- map.keys[[r]][1]
-#   for(j in 1:dim(parameter)[1]){
-#     if(unique(tmp$group) == j){
-#       tmp$fcw <- parameter[j,5]
-#       tmp$ssw <- parameter[j,7]
-#     }
-#   }
     myfun <- function(data){
-#     rhcollect(c(data$station.id,data$fcw,data$ssw), c(data$means, data$std))
 			rhcollect(c(data$station.id,data$group), c(data$means, data$std))
     }
     d_ply(
@@ -395,17 +425,31 @@ job$parameters <- list(
   parameter = parameter
 )
 job$input <- rhfmt(
-  file.path(rh.datadir, dataset,"100stations","sharepredict",index,"36.lap.station"), 
+  file.path(
+    rh.datadir, 
+    par$dataset,
+    "100stations",
+    "sharepredict", 
+    par$index,
+    "36.lap.station"
+  ), 
   type = "sequence"
 )
 job$output <- rhfmt(
-  file.path(rh.datadir, dataset,"100stations","sharepredict",index,"over.absmeanstd.lap.station"), 
+  file.path(
+    rh.datadir, 
+    par$dataset,
+    "100stations",
+    "sharepredict", 
+    par$index,
+    "over.absmeanstd.lap.station"
+  ), 
   type = "sequence"
 )
 job$mapred <- list(
   mapred.reduce.tasks = 72
 )
-job$jobname <- paste(dataset, "mean over lag")
+job$jobname <- paste(par$dataset, "mean over lag")
 job$readback <- FALSE
 job$mon.sec <- 10
 job.mr <- do.call("rhwatch", job)
@@ -432,12 +476,6 @@ job$map <- expression({
 		 	std = 1.96*sd(residual)
     )
     tmp$group <- map.keys[[r]][1]
-#   for(j in 1:dim(parameter)[1]){
-#     if(unique(tmp$group) == j){
-#       tmp$fcw <- parameter[j,5]
-#       tmp$ssw <- parameter[j,7]
-#     }
-#   }
     rhcollect(1, tmp)
   })
 })
@@ -458,11 +496,25 @@ job$setup <- expression(
   }
 )
 job$input <- rhfmt(
-  file.path(rh.datadir,dataset,"100stations","sharepredict",index,"36.lap.station"), 
+  file.path(
+    rh.datadir, 
+    par$dataset,
+    "100stations",
+    "sharepredict",
+    par$index,
+    "36.lap.station"
+  ), 
   type = "sequence"
 )
 job$output <- rhfmt(
-  file.path(rh.datadir, dataset,"100stations","sharepredict",index,"absmeanstd.lap.station"), 
+  file.path(
+    rh.datadir, 
+    par$dataset,
+    "100stations",
+    "sharepredict", 
+    par$index,
+    "absmeanstd.lap.station"
+  ), 
   type = "sequence"
 )
 job$mapred <- list(

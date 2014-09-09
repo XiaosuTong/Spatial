@@ -16,15 +16,15 @@
 
 #The dataset for Tmax on HDFS is already Ordered the stations by the observation counts
 source("~/Rhipe/rhinitial.R")
-dataset <- "tmax"
-index <- "E5"
 par <- list()
+par$dataset <- "tmax"
+par$index <- "E5"
 par$machine <- "gacrux"
 source("~/Projects/Spatial/NCAR/rhcode/rh.setup.R")
 
 #Load the station.id for the 100 stations for Tmax
 #load(file.path(local.datadir, paste(dataset,"div.stations.RData", sep="")))
-if(index == "E5"){
+if(par$index == "E5"){
     parameter <- list(
         run1=list(
             sw="periodic", 
@@ -59,11 +59,13 @@ if(index == "E5"){
 }
 lattice.theme <- trellis.par.get()
 col <- lattice.theme$superpose.symbol$col
-if(dataset == "tmax") {
-ylab <- "Maximum Temperature"
-}else if(dataset == "tmin") {
-ylab <- "Minimum Temperature"
-}else {ylab <- "Precipitation"}
+if(par$dataset == "tmax") {
+    ylab <- "Maximum Temperature"
+}else if(par$dataset == "tmin") {
+    ylab <- "Minimum Temperature"
+}else {
+    ylab <- "Precipitation"
+}
 
 
 ####################################################################################
@@ -75,10 +77,10 @@ ylab <- "Minimum Temperature"
 ####################################################################################
 rst <- rhread(
     file.path(
-        rh.datadir,dataset,
+        rh.datadir, par$dataset,
         "100stations",
         "sharepredict",
-        index,
+        par$index,
         "absmeanstd.lap.station"
     )
 )
@@ -90,15 +92,22 @@ trellis.device(
     device = postscript, 
     file = file.path(
         local.output, 
-        paste("QQ_plot_of_mean_abserror_", dataset, ".ps", sep="")
+        paste("QQ_plot_of_mean_abserror_", par$dataset, ".ps", sep="")
     ), 
     color = TRUE, 
     paper = "legal"
 )
-	b <- qqmath( ~ absmeans,	
+	b <- qqmath( ~ absmeans | as.factor(group),	
 		data = combined,
 		distribution = qunif,
 		aspect = 1,
+        strip = strip.custom(
+            factor.levels = c(
+                "second freq-components window=241, degree=1",
+                "one freq-component",
+                "second freq-components window=121, degree=2"
+            )
+        ),
 		xlab = list(label = "f-value", cex = 1.2),
 		ylab = list(label = ylab, cex = 1.2),
 		pch = 1,
@@ -110,7 +119,7 @@ trellis.device(
     device = postscript, 
     file = file.path(
         local.output, 
-        paste("scatter_plot_of_mean_abserror_", dataset, "_vs_lag.ps", sep="")
+        paste("scatter_plot_of_mean_abserror_", par$dataset, "_vs_lag.ps", sep="")
     ), 
     color = TRUE, 
     paper = "legal"
@@ -123,7 +132,11 @@ trellis.device(
         key = list(
             type = "l", 
             text = list(
-                label = c("two frequency components","one frequency component")
+                label = c(
+                    "second freq-components window=241, degree=1",
+                    "one freq-component",
+                    "second freq-components window=121, degree=2"
+                )
             ),  
             lines = list(
                 lwd = 1.5, 
@@ -155,15 +168,22 @@ trellis.device(
     device = postscript, 
     file = file.path(
         local.output, 
-        paste("QQ_plot_of_mean_error_", dataset, ".ps", sep="")
+        paste("QQ_plot_of_mean_error_", par$dataset, ".ps", sep="")
     ), 
     color = TRUE, 
     paper = "legal"
 )
-	b <- qqmath( ~ means,
+	b <- qqmath( ~ means | as.factor(group),
         data = combined,
         distribution = qunif,
         aspect = 1,
+        strip = strip.custom(
+            factor.levels = c(
+                "second freq-components window=241, degree=1",
+                "one freq-component",
+                "second freq-components window=121, degree=2"
+            )
+        ),
         xlab = list(label = "f-value", cex = 1.2),
         ylab = list(label = ylab, cex = 1.2),
         pch = 1,
@@ -175,15 +195,22 @@ trellis.device(
     device = postscript, 
     file = file.path(
         local.output, 
-        paste("QQ_plot_of_std_error_", dataset, ".ps", sep="")
+        paste("QQ_plot_of_std_error_", par$dataset, ".ps", sep="")
     ), 
     color = TRUE, 
     paper = "legal"
 )
-    b <- qqmath( ~ std,
+    b <- qqmath( ~ std | as.factor(group),
         data = combined,
         distribution = qunif,
         aspect = 1,
+        strip = strip.custom(
+            factor.levels = c(
+                "second freq-components window=241, degree=1",
+                "one freq-component",
+                "second freq-components window=121, degree=2"
+            )
+        ),
         xlab = list(label = "f-value", cex = 1.2),
         ylab = list(label = ylab, cex = 1.2),
         pch = 1,
@@ -200,7 +227,7 @@ trellis.device(
     device = postscript, 
     file = file.path(
         local.output, 
-        paste("scatter_plot_of_mean_error_", dataset, "_vs_lag.ps", sep="")
+        paste("scatter_plot_of_mean_error_", par$dataset, "_vs_lag.ps", sep="")
     ), 
     color = TRUE, 
     paper = "legal"
@@ -213,7 +240,11 @@ trellis.device(
         key = list(
             type = "l", 
             text = list(
-                label = c("two frequency components","one frequency component")
+                label = c(
+                    "second freq-components window=241, degree=1",
+                    "one freq-component",
+                    "second freq-components window=121, degree=2"
+                )
             ),
             lines = list(
                 lwd = 1.5, 
@@ -246,7 +277,7 @@ trellis.device(
     device = postscript, 
     file = file.path(
         local.output, 
-        paste("scatter_plot_of_std_error_", dataset, "_vs_lag.ps", sep="")
+        paste("scatter_plot_of_std_error_", par$dataset, "_vs_lag.ps", sep="")
     ), 
     color = TRUE, 
     paper = "legal"
@@ -259,7 +290,11 @@ trellis.device(
         key = list(
             type="l", 
             text= list(
-                label=c("two frequency components","one frequency component")
+                label=c(
+                    "second freq-components window=241, degree=1",
+                    "one freq-component",
+                    "second freq-components window=121, degree=2"
+                )
             ),  
             lines = list(
                 lwd = 1.5, 
@@ -293,10 +328,10 @@ dev.off()
 rst <- rhread(
     file.path(
         rh.datadir, 
-        dataset, 
+        par$dataset, 
         "100stations",
         "sharepredict",
-        index,
+        par$index,
         "over.absmeanstd.lap.station"
     )
 )
@@ -311,7 +346,7 @@ trellis.device(
     device = postscript, 
     file = file.path(
         local.output, 
-        paste("dotplot_of_overmean_error_", dataset,".ps", sep="")
+        paste("dotplot_of_overmean_error_", par$dataset,".ps", sep="")
     ), 
     color = TRUE, 
     paper = "legal"
@@ -324,7 +359,11 @@ trellis.device(
         key=list(
             type = "p", 
             text = list(
-                label=c("two frequency components","one frequency component")
+                label=c(
+                    "second freq-components window=241, degree=1",
+                    "one freq-component",
+                    "second freq-components window=121, degree=2"
+                )
             ),  
             points = list(col=col[1:length(unique(result$group))]), 
             columns = length(unique(result$group)), 
@@ -346,7 +385,7 @@ trellis.device(
     device = postscript, 
     file = file.path(
         local.output, 
-        paste("dotplot_of_overstd_error", dataset,".ps", sep="")
+        paste("dotplot_of_overstd_error", par$dataset,".ps", sep="")
     ), 
     color = TRUE, 
     paper = "legal"
@@ -359,7 +398,11 @@ trellis.device(
 		key = list(
             type = "p", 
             text = list(
-                label=c("two frequency components","one frequency component")
+                label=c(
+                    "second freq-components window=241, degree=1",
+                    "one freq-component",
+                    "second freq-components window=121, degree=2"
+                )
             ),  
             points = list(
                 col = col[1:length(unique(result$group))]
@@ -387,10 +430,10 @@ dev.off()
 div.stations <- rhread(
     file.path(
         rh.datadir, 
-        dataset, 
+        par$dataset, 
         "100stations",
         "sharepredict",
-        index, 
+        par$index, 
         "group.orderstations"
     )
 )
@@ -415,7 +458,7 @@ job$reduce <- expression(
             device = postscript, 
             file = paste(
                 "./tmp", "/QQ_plot_of_error_", 
-                dataset, 
+                par$dataset, 
                 "_group", 
                 reduce.key, 
                 ".ps", 
@@ -457,17 +500,24 @@ job$parameters <- list(
     div.stations = div.stations
 )
 job$input <- rhfmt(
-    file.path(rh.datadir, dataset,"100stations","sharepredict",index,"36.lap.station"), 
+    file.path(
+        rh.datadir, 
+        par$dataset,
+        "100stations",
+        "sharepredict", 
+        par$index,
+        "36.lap.station"
+    ), 
     type = "sequence"
 )
 job$output <- rhfmt(
-    file.path(rh.output, dataset), 
+    file.path(rh.output, par$dataset), 
     type = "sequence"
 )
 job$mapred <- list(
     mapred.reduce.tasks = 10
 )
-job$jobname <- paste(dataset, "abs error quantile")
+job$jobname <- paste(par$dataset, "abs error quantile")
 job$readback <- FALSE
 job$mon.sec <- 10
 job$copyFiles <- TRUE
