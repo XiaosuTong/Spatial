@@ -4,15 +4,7 @@
 ##prediction error is compared with normal distribution. The sum of abs
 ##deviation over all lap for one station under given group is calculated.
 #######################################################################
-datadir <- "~/Projects/Spatial/NCAR/RData/"
-dataset <- "tmax"
-par <- list()
-par$machine <- "gacrux"
-source("~/Projects/Spatial/NCAR/rhcode/rh.setup.R")
-source("~/Rhipe/rhinitial.R")
-
 #load(paste(datadir, dataset, "div.stations.RData", sep = ""))
-for(index in c("E5")){
   job <- list()
   job$map <- expression({
     lapply(seq_along(map.values), function(r){
@@ -105,6 +97,5 @@ for(index in c("E5")){
   job$readback <- FALSE
   job$mon.sec <- 10
   job.mr <- do.call("rhwatch", job)
-}
 
 
