@@ -116,7 +116,7 @@ for (k in 1:dim(parameter)[1]) {
   job$shared <- c(
     file.path(
       rh.datadir, 
-      dataset, 
+      par$dataset, 
       "100stations",
       "Rdata", 
       paste(par$dataset, ".100stations.RData", sep="")
