@@ -463,6 +463,7 @@ c     smooth
     7       continue
     6    continue
       end if
+c     psi is all 0 with length n, pi has been sorted in ehg124
       call ehg139(v,nvmax,nv,n,d,nf,f,x,pi,psi,y,rw,trl,kernel,k,dist,
      +     dist,eta,b,d,w,diagl,vval2,nc,vc,a,xi,lo,hi,c,vhit,rcond,
      +     sing,dd,tdeg,cdeg,lq,lf,setlf,vval)
