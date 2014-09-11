@@ -263,13 +263,18 @@ c     sort by distance
          dist(i3)=0
     3 continue
       do 4 j=1,dd
+c i4 is the target vertex
          i4=q(j)
          do 5 i3=1,n
             dist(i3)=dist(i3)+(x(i3,j)-i4)**2
     5    continue
     4 continue
+c after the do4 and do5 distance from
+c every point of original data to target vertex is calculated
       call ehg106(1,n,nf,1,dist,psi,n)
       rho=dist(psi(nf))*max(1.d0,f)
+c reason that times max(1, f) is to garantee that can have span 
+c larger than 1
       if(rho .le. 0)then
          call ehg182(120)
       end if
@@ -288,6 +293,7 @@ c     compute neighborhood weights
             w(i3)=dsqrt(dist(psi(i3))/rho)
     7    continue
          do 8 i3=1,nf
+c           weights update
             w(i3)=dsqrt(rw(psi(i3))*(1-w(i3)**3)**3)
     8    continue
       end if
