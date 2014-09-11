@@ -14,7 +14,7 @@ lowesb -> ehg131 -> ehg126(built kd-tree)
   1. `vval` is vector with length nvmax = max(200, N) in v. It starts at v(iv(13)) in Fortran, which is 
 v[iv[12]-1] in C. Length of vval is (d+1)\*nvmax, but useful length is (d+1)\*nv.
   2. `vert` is vector only has max and min of kd-tree vertices for every dimension of predictors. All kd-tree
-vertices can be found starting from v(iv(11)) in Fortran, which is v[iv[10]-1] in C, and from 
+vertices can be found starting from v(iv(11)) in Fortran, which is v[iv[10]-1] in C, and to 
 v(iv(11)+nvmax) in Fortran, which is v[iv[10]-1+nvmax]. Length of vertices is nv which is iv[5].
   3. `xi` is vector of all node points from original predictors. Length of xi is nc which is iv[4]. xi
 can be found in v from v(iv(12)) in Fortran, v[iv[11]-1] in C.
