@@ -3,13 +3,14 @@
 v is a long vector with length lv which contains the whole information about kd-tree and some other
 things. Memory is assigned by using Calloc() function in C, `loess_workspace()`.
 ```
-lowesb -> ehg131 -> ehg126(built kd-tree)
-                |-> ehg124(not sure what this function is for)
-                |-> ehg139(fit at vertices, vval passed into as s(0:od, nv))
-                       |-> ehg127(calculates the fitting, called for each vertex(nv), s(0:od) is passed into)
-							|-> ehg106(select q-th smallest by partial sorting)
-                       |-> ehg137(try to compare the cutting points xi with vertex)
-                       |-> ehg128(interpolation function is called here based on vval2)
+lowesb -> ehg131 
+		   |-> ehg126(built kd-tree)
+           |-> ehg124(not sure what this function is for)
+           |-> ehg139(fit at vertices, vval passed into as s(0:od, nv))
+                |-> ehg127(calculates the fitting, called for each vertex(nv), s(0:od) is passed into)
+				|	 |-> ehg106(select q-th smallest by partial sorting)
+                |-> ehg137(try to compare the cutting points xi with vertex)
+                |-> ehg128(interpolation function is called here based on vval2)
 ```	
   1. `vval` is vector with length nvmax = max(200, N) in v. It starts at v(iv(13)) in Fortran, which is 
 v[iv[12]-1] in C. Length of vval is (d+1)\*nvmax, but useful length is (d+1)\*nv.
