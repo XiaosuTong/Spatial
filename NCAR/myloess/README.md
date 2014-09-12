@@ -6,7 +6,7 @@ things. Memory is assigned by using Calloc() function in C, `loess_workspace()`.
 lowesb -> ehg131 -> ehg126(built kd-tree)
                 |-> ehg124(not sure what this function is for)
                 |-> ehg139(fit at vertices, vval passed into as s(0:od, nv))
-                       |-> ehg127(called for each vertex(nv), s(0:od) is passed into)
+                       |-> ehg127(calculates the fitting, called for each vertex(nv), s(0:od) is passed into)
 							|-> ehg106(select q-th smallest by partial sorting)
                        |-> ehg137(try to compare the cutting points xi with vertex)
                        |-> ehg128(interpolation function is called here based on vval2)
