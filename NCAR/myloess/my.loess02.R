@@ -4,7 +4,7 @@ dyn.load("~/Github/Spatial/NCAR/myloess/shareLib/myloess2.so")
 
 my.loess2 <- function (formula, data, weights, subset, na.action, model = FALSE, 
     span = 0.75, enp.target, degree = 2L, parametric = FALSE, 
-    drop.square = FALSE, normalize = TRUE, family = c("gaussian", 
+    drop.square = FALSE, normalize = FALSE, family = c("gaussian", 
         "symmetric"), method = c("loess", "model.frame"), control = loess.control(...), 
     ...) 
 {
@@ -27,6 +27,9 @@ my.loess2 <- function (formula, data, weights, subset, na.action, model = FALSE,
         stop("predictors must all be numeric")
     x <- as.matrix(x)
     D <- ncol(x) 
+    if(D != 2) {
+        stop("dimension must be 2 in spatial loess")
+    }
     nmx <- colnames(x)
     names(nmx) <- nmx
     drop.square <- match(nmx, nmx[drop.square], 0L) > 0L 

@@ -235,7 +235,7 @@ c     bottom of while loop
      +     n,nf,od,sing,tdeg
       integer cdeg(8),psi(n)
       double precision machep,f,i1,i10,i2,i4,i5,i6,i7,i8,rcond,rho,scal,
-     +     tol
+     +     tol, R, tong, fang1, fang2
       double precision g(15),sigma(15),u(15,15),e(15,15),b(nf,k),
      +     colnor(15),dist(n),eta(nf),dgamma(15),q(d),qraux(15),rw(n),
      +     s(0:od),w(nf),work(15),x(n,d),y(n)
@@ -253,6 +253,8 @@ c     E -> g
 c     MachEps -> machep
 c     V -> e
 c     X -> b
+c R is the radius of the earth
+      R = 3963.34000000
       execnt=execnt+1
       if(execnt.eq.1)then
 c     initialize  d1mach(4) === 1 / DBL_EPSILON === 2^52  :
@@ -262,13 +264,30 @@ c     sort by distance
       do 3 i3=1,n
          dist(i3)=0
     3 continue
-      do 4 j=1,dd
+c############################################
+c      do 4 j=1,dd
 c i4 is the target vertex
-         i4=q(j)
-         do 5 i3=1,n
-            dist(i3)=dist(i3)+(x(i3,j)-i4)**2
-    5    continue
+c         i4=q(j)
+c         do 5 i3=1,n
+c            dist(i3)=dist(i3)+(x(i3,j)-i4)**2
+c    5    continue
+c    4 continue
+c#############################################
+      do 4 i3=1,n
+         fang1 = q(1)
+         fang2 = q(2)
+         tong = SIN(x(i3,2))*SIN(fang2)
+         tong = tong+COS(x(i3,2))*COS(fang2)*abs(fang1-x(i3,1))
+         PRINT *, tong 
+         if(abs(tong).gt.1)then
+            tong=sign(1.d0, tong)
+         end if
+         dist(i3)=R*ACOS(tong)
+         PRINT *, dist(i3)
+         PRINT *, tong
+         PRINT *, "#######################"
     4 continue
+c##############################################
 c after the do4 and do5 distance from
 c every point of original data to target vertex is calculated
       call ehg106(1,n,nf,1,dist,psi,n)
@@ -290,7 +309,11 @@ c     compute neighborhood weights
     6    continue
       else
          do 7 i3=1,nf
-            w(i3)=dsqrt(dist(psi(i3))/rho)
+c#################################################
+c           original weights, need a sqare root
+c           w(i3)=dsqrt(dist(psi(i3))/rho)
+            w(i3)=dist(psi(i3))/rho
+c#################################################
     7    continue
          do 8 i3=1,nf
 c           weights update
