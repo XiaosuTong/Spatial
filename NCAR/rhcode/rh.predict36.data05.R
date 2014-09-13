@@ -149,7 +149,7 @@ for (k in 1:dim(parameter)[1]) {
   )
   job$mapred <- list(
     mapred.reduce.tasks = 72, 
-    rhipe_reduce_bull_size = 10000
+    rhipe_reduce_buff_size = 10000
   )
   job$jobname <- paste(par$dataset, "predict", k)
   job$mon.sec <- 10
