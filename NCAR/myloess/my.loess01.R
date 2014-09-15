@@ -4,6 +4,7 @@
 # the fitting step which fit the loess at data point. Only save useful list
 # object which will be necessary for predict.loess function.
 #
+dyn.load("~/Github/Spatial/NCAR/myloess/shareLib/myloess1.so")
 my.loess1 <- function (formula, data, weights, subset, na.action, model = FALSE, 
     span = 0.75, enp.target, degree = 2L, parametric = FALSE, 
     drop.square = FALSE, normalize = TRUE, family = c("gaussian", 

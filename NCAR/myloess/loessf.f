@@ -284,8 +284,8 @@ c#############################################
           tong=sign(1.d0, tong)
         end if
         dist(i3)=R*ACOS(tong)
-        PRINT *, dist(i3)
-        PRINT *, "#######################"
+c        PRINT *, dist(i3)
+c        PRINT *, "#######################"
     4 continue
 c##############################################
 c after the do4 and do5 distance from
