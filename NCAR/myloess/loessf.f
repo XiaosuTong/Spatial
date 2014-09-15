@@ -235,7 +235,7 @@ c     bottom of while loop
      +     n,nf,od,sing,tdeg
       integer cdeg(8),psi(n)
       double precision machep,f,i1,i10,i2,i4,i5,i6,i7,i8,rcond,rho,scal,
-     +     tol, R, tong, fang1, fang2
+     +     tol, R, tong, tong2, fang1, fang2, pi
       double precision g(15),sigma(15),u(15,15),e(15,15),b(nf,k),
      +     colnor(15),dist(n),eta(nf),dgamma(15),q(d),qraux(15),rw(n),
      +     s(0:od),w(nf),work(15),x(n,d),y(n)
@@ -255,6 +255,7 @@ c     V -> e
 c     X -> b
 c R is the radius of the earth
       R = 3963.34000000
+      pi = 4*atan(1.D0)
       execnt=execnt+1
       if(execnt.eq.1)then
 c     initialize  d1mach(4) === 1 / DBL_EPSILON === 2^52  :
@@ -266,26 +267,25 @@ c     sort by distance
     3 continue
 c############################################
 c      do 4 j=1,dd
-c i4 is the target vertex
+cc i4 is the target vertex
 c         i4=q(j)
 c         do 5 i3=1,n
 c            dist(i3)=dist(i3)+(x(i3,j)-i4)**2
 c    5    continue
 c    4 continue
 c#############################################
+      fang1 = (q(1)*pi)/180.D0
+      fang2 = (q(2)*pi)/180.D0
       do 4 i3=1,n
-         fang1 = q(1)
-         fang2 = q(2)
-         tong = SIN(x(i3,2))*SIN(fang2)
-         tong = tong+COS(x(i3,2))*COS(fang2)*abs(fang1-x(i3,1))
-         PRINT *, tong 
-         if(abs(tong).gt.1)then
-            tong=sign(1.d0, tong)
-         end if
-         dist(i3)=R*ACOS(tong)
-         PRINT *, dist(i3)
-         PRINT *, tong
-         PRINT *, "#######################"
+        tong = SIN((x(i3,2)*pi)/180)*SIN(fang2)
+        tong2 = abs(fang1-(x(i3,1)*pi)/180.D0)
+        tong = tong+COS((x(i3,2)*pi)/180.D0)*COS(fang2)*COS(tong2)
+        if(abs(tong).gt.1)then
+          tong=sign(1.d0, tong)
+        end if
+        dist(i3)=R*ACOS(tong)
+        PRINT *, dist(i3)
+        PRINT *, "#######################"
     4 continue
 c##############################################
 c after the do4 and do5 distance from
