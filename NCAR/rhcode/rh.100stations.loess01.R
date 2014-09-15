@@ -3,10 +3,12 @@ par <- list()
 par$machine <- "gacrux"
 par$dataset <- "tmax"
 par$N <- 1236
-par$span <- 0.2
+par$span <- 0.125
 par$degree <- 2
 source("~/Projects/Spatial/NCAR/rhcode/rh.setup.R")
 source("~/Projects/Spatial/NCAR/myloess/my.loess02.R")
+source("~/Projects/Spatial/NCAR/myloess/my.predloess.R")
+
 #load stations.RData, have to check this part
 load(file.path(local.datadir, "stations.RData"))
 stations.100 <- get(grep(par$dataset, ls(), value=T))
@@ -33,12 +35,12 @@ job$map <- expression({
 		span    = par$span
 	)
 	new <- subset(v, station.id %in% par$stations.100)
-	fit <- predict(
+	fit <- my.predict.loess(
 		object = lo.fit, 
-       	newdata = data.frame(
-      		lon = new$lon, 
-        	lat = new$lat
-        )
+    newdata = data.frame(
+    	lon = new$lon, 
+    	lat = new$lat
+    )
 	)
 	new$fitted <- fit
 	new$year <- rep(y, nrow(new))
@@ -72,16 +74,18 @@ job$reduce <- expression(
 job$setup <- expression(
 	map = {
 		dyn.load("/home/shaula/u16/tongx/Projects/Spatial/NCAR/myloess/shareLib/myloess2.so")
-	    load(paste(par$dataset, "RData", sep="."))
+	  load(paste(par$dataset, "RData", sep="."))
 	}
 )
 job$shared <- c(
-	file.path(rh.datadir, par$dataset, "Rdata", paste(par$dataset, "RData", sep="."))
+	file.path(rh.datadir, par$dataset, "Rdata", paste(par$dataset, "RData", sep=".")).
 )
 job$parameters <- list(
 	par = par,
 	my.loess2 = my.loess2,
-	my.simple2 = my.simple2
+	my.simple2 = my.simple2,
+	my.predict.loess = my.predict.loess,
+	my.predLoess = my.predLoess
 )
 job$input <- c(par$N, 100) 
 job$output <- rhfmt(

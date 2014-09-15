@@ -4,7 +4,12 @@ par$machine <- "gacrux"
 par$dataset <- "tmax"
 par$loess <- "loess01"
 source("~/Projects/Spatial/NCAR/rhcode/rh.setup.R")
-
+load(paste(
+	"~/Projects/Spatial/NCAR/RData/", 
+	par$dataset,
+	".100stations.stl.RData", 
+	sep="")
+)
 rst <- rhread(file.path(rh.datadir, par$dataset, "spatial", "100stations", par$loess))
 result <- do.call("rbind", lapply(rst, "[[", 2))
 result$factor <- factor(
@@ -36,6 +41,33 @@ result$station.id <- factor(
 	result$station.id, 
 	levels = order.st
 )
+result <- result[with(result, order(station.id, time)),]
+stations100.stl <- stations100.stl[with(stations100.stl, order(station.id, date)),]
+result$remainder <- stations100.stl$fc.remainder
+trellis.device(
+	postscript, 
+	file = paste(local.output, "/scatterplot_of_resid.vs.remainder_", par$dataset, ".ps", sep = ""), 
+	color = TRUE,
+	paper = "legal"
+)
+	b <- xyplot( 
+		get(par$dataset) - fitted ~ remainder | station.id,
+    data = result,
+    xlab = list(label = "Residual of Spatial Loess Fit"),
+    ylab = list(label = "Remainder of STL+ Fit"),
+		type = "p",
+		aspect = 1,
+		pch = 16,
+		cex = 0.2,
+		layout = c(5,2),
+		panel = function(x, y,...) {
+      panel.abline(a=0, b=1, color="black", lty=1)
+			panel.xyplot(x, y, col = "red",...)
+		}
+	)
+	print(b)
+dev.off()
+
 trellis.device(
 	postscript, 
 	file = paste(local.output, "/scatterplot_of_loess.fit_", par$dataset, ".ps", sep = ""), 
@@ -43,7 +75,7 @@ trellis.device(
 	paper = "legal"
 )
   for(i in levels(result$station.id)) {
-	b <- xyplot( fitted ~ time2 | factor,
+	b <- xyplot( get(par$dataset) ~ time2 | factor,
     	data = subset(result, station.id == i),
         xlab = list(label = "Month"),
         ylab = list(label = ylab),
@@ -54,6 +86,16 @@ trellis.device(
 		layout = c(1,9),
 		strip = FALSE,
 		xlim = c(0, 143),
+		ylim = c(
+			min(
+				min(subset(result, station.id == i)$fitted), 
+				min(with(subset(result, station.id == i), get(par$dataset)))
+			), 
+			max(
+				max(subset(result, station.id == i)$fitted), 
+				max(with(subset(result, station.id == i), get(par$dataset)))
+			)
+		),
 		scales = list(
 			y = list(relation = 'same', alternating=TRUE), 
 			x = list(at=seq(0,143,by=12), relation='same')
@@ -73,8 +115,8 @@ trellis.device(
 		panel = function(x, y, subscripts,...) {
 			tmp <- subset(result, station.id == i)[subscripts, ]
 			panel.abline(v=seq(0,145,by=12), color="lightgrey", lty=3, lwd=0.5)
-			panel.xyplot(x, y, col = col[2],...)
-			panel.xyplot(x, tmp[, par$dataset], col = col[1], ...)
+			panel.xyplot(x, y, col = col[1],...)
+			panel.xyplot(x, tmp[, "fitted"], col = col[2], ...)
 		}
 	)
 	print(b)
@@ -114,7 +156,13 @@ dev.off()
 
 trellis.device(
 	device = postscript, 
-	file = paste(local.output, "/QQ_plot_diff_conditional_month_", par$dataset, ".ps", sep = ""), 
+	file = paste(
+		local.output, 
+		"/QQ_plot_diff_conditional_month_", 
+		par$dataset,
+		".ps", 
+		sep = ""
+	), 
 	color = TRUE, 
 	paper = "legal"
 )
@@ -140,30 +188,52 @@ trellis.device(
   }
 dev.off()
 
+div.norm <- function(data){
+	resid <- with(data, get(par$dataset)) - data$fitted
+	yy <- quantile(resid, c(0.25, 0.75))
+	xx <- qnorm(c(0.25, 0.75))
+	r <- diff(yy)/diff(xx)
+	x <- qnorm(ppoints(length(resid)))
+	y <- r*x + yy[1] - xx[1]*r
+	div <- sum(abs(sort(resid) - y))
+}
+order.norm <- ddply(
+	.data = result,
+	.variables = c("station.id"),
+	.fun = div.norm
+)
+order.norm <- as.character(order.norm[order(order.norm$V1), ]$station.id)
 trellis.device(
 	device = postscript, 
-	file = paste(local.output, "/QQ_plot_diff_", par$dataset, ".ps", sep = ""), 
+	file = paste(
+		local.output, 
+		"/QQ_plot_diff_", 
+		par$dataset, 
+		".ps", 
+		sep = ""
+	), 
 	color = TRUE, 
 	paper = "legal"
 )
-    a <- qqmath(~ (get(par$dataset)-fitted) | station.id,
-        data = result,
-        distribution = qnorm,
-        aspect = "xy",
-        layout = c(10,1),
-        pch  = 16,
-        cex  = 0.5,
+  a <- qqmath(~ (get(par$dataset)-fitted) | factor(station.id, levels = order.norm),
+    data = result,
+    distribution = qnorm,
+    aspect = "xy",
+    layout = c(10,1),
+    pch  = 16,
+    cex  = 0.5,
 		xlab = list(label = "Unit normal quantile"),
 		ylab = list(label = ylab, cex=1.2),
-        prepanel = prepanel.qqmathline,
-        panel = function(x, y,...) {
-        	panel.grid()
-        	panel.qqmathline(x, y=x)
-        	panel.qqmath(x, y, ...)
-        }
-    )
-    print(a)
+    prepanel = prepanel.qqmathline,
+    panel = function(x, y,...) {
+      panel.grid()
+      panel.qqmathline(x, y=x)
+      panel.qqmath(x, y, ...)
+    }
+  )
+  print(a)
 dev.off()
+
 
 dd <- ddply(
 	.data = result,

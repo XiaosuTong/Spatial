@@ -11,11 +11,12 @@ par <- list()
 par$dataset <- "tmax"
 par$machine <- "gacrux"
 par$N <- 1236
-par$span <- 0.025
+par$span <- 0.125
 par$degree <- 2
 source("~/Projects/Spatial/NCAR/rhcode/rh.setup.R")
 source("~/Projects/Spatial/NCAR/myloess/my.loess02.R")
 source("~/Projects/Spatial/NCAR/myloess/my.loess01.R")
+source("~/Projects/Spatial/NCAR/myloess/my.predloess.R")
 
 load(file.path(local.datadir, "info.RData"))
 if(par$dataset == "precip"){
@@ -56,9 +57,9 @@ job$map <- expression({
 		control = loess.control(surface = "direct")
 	)
 	pred <- data.frame(
-		fitted = predict(
+		fitted = my.predict.loess(
 			lo.fit, 
-        	data.frame(lon = par$kdwhole$lon, lat = par$kdwhole$lat)
+      data.frame(lon = par$kdwhole$lon, lat = par$kdwhole$lat)
 		)
 	)
 	value <- cbind(par$kdwhole, pred)
@@ -102,7 +103,9 @@ job$shared <- c(
 job$parameters <- list(
 	par = par, 
 	my.loess1 = my.loess1, 
-	my.simple1 = my.simple1
+	my.simple1 = my.simple1,
+	my.predict.loess = my.predict.loess,
+	my.predLoess = my.predLoess
 )
 job$input <- c(par$N, 100) 
 job$output <- rhfmt(
@@ -122,8 +125,18 @@ job.mr <- do.call("rhwatch", job)
 ########################################
 ## STL fitting for each vertex
 ##
-a <- list(sw="periodic", sd=1, tw=241, td=1, inner=10, outer=0, flag=FALSE)
-#a <- list(sw="periodic", sd=1, tw=1855, td=1, fcw=c(1855,241), fcd=c(1,1), inner=10, outer=0, flag=TRUE) 
+#a <- list(sw="periodic", sd=1, tw=241, td=1, inner=10, outer=0, flag=FALSE)
+a <- list(
+	sw="periodic", 
+	sd=1, 
+	tw=1855, 
+	td=1, 
+	fcw=c(1855,241), 
+	fcd=c(1,1), 
+	inner=10, 
+	outer=0, 
+	flag=TRUE
+) 
 par <- c(par, a)
 job <- list()
 job$map <- expression({

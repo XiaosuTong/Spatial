@@ -105,15 +105,15 @@ trellis.device(
         key=list(
             type = "l", 
             text = list(label=levels(as.factor(combined$ssd))),  
-            lines = list(lwd=1.5, col=col[1:3]), 
-            columns=3
+            lines = list(lwd=1.5, col=col[1:length(unique(combined$ssd))]), 
+            columns = length(unique(combined$ssd))
         ),
         type = "b",
         scales = list(
             x=list(at=seq(from=0, to=36, by=6)), 
             y=list(relation="sliced")
         ),
-        layout = c(3,1),
+        layout = c(length(unique(combined$ssw)),1),
         pch = 1,
         panel = function(x,y,...) {
             panel.xyplot(x,y,...)
@@ -139,15 +139,15 @@ trellis.device(
         key=list(
             type = "l", 
             text = list(label=levels(as.factor(combined$ssw))),  
-            lines = list(lwd=1.5, col=col[1:3]), 
-            columns = 3
+            lines = list(lwd=1.5, col=col[1:length(unique(combined$ssw))]), 
+            columns = length(unique(combined$ssw))
         ),
         type = "b",
         scales = list(
             x = list(at = seq(from = 0, to = 36, by = 6)), 
             y = list(relation = "sliced")
         ),
-        layout = c(3,1),
+        layout = c(length(unique(combined$ssd)),1),
         pch = 1,
         panel = function(x,y,...) {
             panel.xyplot(x,y,...)
@@ -226,8 +226,8 @@ trellis.device(
         key=list(
             type = "l", 
             text = list(label=levels(as.factor(combined$ssd))),  
-            lines = list(lwd=1.5, col=col[1:3]), 
-            columns = 3
+            lines = list(lwd=1.5, col=col[1:length(unique(combined$ssd))]), 
+            columns = length(unique(combined$ssd))
         ),
         type = "b",
         ylim = c(min(combined$means), max(combined$means)),
@@ -235,7 +235,7 @@ trellis.device(
             x = list(at = seq(from = 0, to = 36, by = 6)), 
             y = list(relation = "same")
         ),
-        layout = c(3,1),
+        layout = c(length(unique(combined$ssw)),1),
         pch = 1,
         panel = function(x,y,...) {
             panel.xyplot(x,y,...)
@@ -261,8 +261,8 @@ trellis.device(
         key=list(
             type = "l", 
             text = list(label=levels(as.factor(combined$ssw))),  
-            lines = list(lwd=1.5, col=col[1:3]), 
-            columns = 3
+            lines = list(lwd=1.5, col=col[1:length(unique(combined$ssw))]), 
+            columns = length(unique(combined$ssw))
         ),
         type = "b",
         ylim = c(min(combined$means), max(combined$means)),
@@ -270,7 +270,7 @@ trellis.device(
             x = list(at = seq(from = 0, to = 36, by = 6)),
             y = list(relation = "same")
         ),
-        layout = c(3,1),
+        layout = c(length(unique(combined$ssd)),1),
         pch = 1,
         panel = function(x,y,...) {
             panel.xyplot(x,y,...)
@@ -302,15 +302,15 @@ trellis.device(
         key=list(
             type = "l", 
             text = list(label = levels(as.factor(combined$ssd))),  
-            lines = list(lwd = 1.5, col = col[1:3]), 
-            columns = 3
+            lines = list(lwd = 1.5, col = col[1:length(unique(combined$ssd))]), 
+            columns = length(unique(combined$ssd))
         ),
         type = "b",
         scales = list(
             x = list(at = seq(from = 0, to = 36, by = 6)), 
             y = list(relation = "sliced")
         ),
-        layout = c(3,1),
+        layout = c(length(unique(combined$ssw)),1),
         pch=1,
         panel = function(x,y,...) {
             panel.xyplot(x,y,...)
@@ -337,15 +337,15 @@ trellis.device(
         key=list(
             type = "l", 
             text = list(label = levels(as.factor(combined$ssw))),  
-            lines = list(lwd = 1.5, col = col[1:3]), 
-            columns = 3
+            lines = list(lwd = 1.5, col = col[1:length(unique(combined$ssw))]), 
+            columns = length(unique(combined$ssw))
         ),
         type = "b",
         scales = list(
             x = list(at = seq(from = 0, to = 36, by = 6)), 
             y = list(relation = "sliced")
         ),
-        layout = c(3,1),
+        layout = c(length(unique(combined$ssd)),1),
         pch = 1,
         panel = function(x,y,...) {
             panel.xyplot(x,y,...)
@@ -403,8 +403,8 @@ trellis.device(
         key = list(
             type = "p", 
             text = list(label=levels(as.factor(result$ssw))),  
-            points = list(col=col[1:3]), 
-            columns = 3, 
+            points = list(col=col[1:length(unique(combined$ssw))]), 
+            columns = length(unique(combined$ssw)), 
             pch = 1
         ),
         type = "p",
@@ -434,8 +434,8 @@ trellis.device(
         key = list(
             type = "l", 
             text = list(label=levels(as.factor(result$ssd))),  
-            points = list(pch=1, col=col[1:3]), 
-            columns = 3
+            points = list(pch=1, col=col[1:length(unique(combined$ssd))]), 
+            columns = length(unique(combined$ssd))
         ),
         type = "p",
         layout = c(1,1),
@@ -466,8 +466,8 @@ trellis.device(
         key=list(
             type = "p", 
             text = list(label=levels(as.factor(result$ssw))),  
-            points = list(col=col[1:3]), 
-            columns = 3, 
+            points = list(col=col[1:length(unique(combined$ssw))]), 
+            columns = length(unique(combined$ssw)), 
             pch = 1
         ),
         type = "p",
@@ -497,8 +497,8 @@ trellis.device(
         key = list(
             type = "l", 
             text = list(label = levels(as.factor(result$ssd))),  
-            points = list(pch = 1, col = col[1:3]), 
-            columns = 3 
+            points = list(pch = 1, col = col[1:length(unique(combined$ssd))]), 
+            columns = length(unique(combined$ssd))
         ),
         type = "p",
         layout = c(1,1),
@@ -519,7 +519,7 @@ dev.off()
 ##saved in this step. The station is ordered by the amount of divation from normal,
 ##and the order is called from div.station.
 #################################################################################
-source("./rh.group.stations.R")
+source("~/Projects/Spatial/NCAR/rhcode/rh.group.stations.R")
 div.stations <- rhread(
     file.path(
         rh.datadir, 
@@ -597,7 +597,7 @@ job$setup <- expression(
 job$parameters <- list(
     parameter = parameter, 
     ylab = ylab,
-    div.stations= get(paste(index, "div.stations", sep="."))
+    div.stations = div.stations
 )
 job$input <- rhfmt(
     file.path(
