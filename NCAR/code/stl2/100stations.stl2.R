@@ -350,7 +350,7 @@ trellis.device(postscript, file = paste(outputdir, "scatterplot_of_", dataset, "
 #            strip = strip.custom(par.strip.text= list(cex = 1.5)),
 #            par.settings = list(layout.heights = list(strip = 1.5)),
              xlim = c(0, 1235),
-             layout = c(1,2),
+             layout = c(2,1),
              aspect="xy",
              key=list(
                 text = list(label=c("middle frequency component","yearly mean-low frequency component")),
@@ -359,7 +359,7 @@ trellis.device(postscript, file = paste(outputdir, "scatterplot_of_", dataset, "
              ),
              scales = list(
                 y = list(relation = 'free'), 
-                x = list(at=seq(0, 1236, by=60), relation = 'same')
+                x = list(at=seq(0, 1236, by=120), relation = 'same')
              ),
              prepanel = function(x,y,subscripts,...){
                     v <- tmp.trend[subscripts,]
