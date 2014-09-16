@@ -12,7 +12,7 @@ source("~/Projects/Spatial/NCAR/rhcode/rh.setup.R")
 rst <- rhread(file.path(rh.datadir, par$dataset, "spatial", par$loess))
 result <- do.call("rbind", lapply(rst, "[[", 2))
 result$factor <- factor(
-	rep(rep(paste("Period", 1:9), c(rep(144,8),84)), times=66), 
+	rep(rep(paste("Period", 1:9), c(rep(144,8),84)), times=length(unique(result$fac))), 
 	levels = paste("Period", c(9:1))
 )
 if(par$dataset == "precip") {
@@ -31,10 +31,11 @@ order <- ddply(
 	.data = result,
     .variables = "fac",
     .fun = summarise,
-    mean = mean(fitted)
+    lon = lon[1],
+    lat = lat[1]
 )
 order.st <- as.character(
-	order[order(order$mean, decreasing=TRUE), ]$fac
+	order[order(order$lon, order$lat, decreasing=TRUE), ]$fac
 )
 result$fac <- factor(
 	result$fac, 
@@ -79,6 +80,10 @@ dev.off()
 library(maps)
 us.map <- map('state', plot = FALSE, fill = TRUE)
 vertices <- result[seq(1, nrow(result), by=1236), c("lon", "lat", "fac")]
+vertices$fac <- factor(
+	vertices$fac, 
+	levels = 1:length(unique(vertices$fac))
+)
 vertices <- vertices[with(vertices, order(fac)),]
 trellis.device(
 	device = postscript, 
@@ -92,7 +97,7 @@ a <- xyplot( lat ~ lon,
 	ylab  = list(label = "Latitude"),
 	main  = list(label = "Vertices of K-D Tree"),
 	type  = "p",
-	cex   = 0.8,
+	cex   = 0.5,
 	col   = "red",
 	pch   = 16,
 	panel = function(x, y, ...) {
@@ -111,6 +116,10 @@ a <- xyplot( lat ~ lon,
 print(a)
 dev.off()
 
+result$fac <- factor(
+	result$fac, 
+	levels = order.st
+)
 trellis.device(
 	device = postscript, 
 	file = paste(local.output, "/QQ_plot_of_month_", par$dataset, ".ps", sep = ""), 
@@ -119,25 +128,25 @@ trellis.device(
 )
   for(i in levels(result$fac)){
     a <- qqmath(~ fitted | month,
-        data = subset(result, fac == i),
-        distribution = qnorm,
-        aspect = "xy",
-        layout = c(12,1),
-        pch  = 16,
-        cex  = 0.5,
-        main = list(label = paste("Vertex of ", "(",
-            unique(subset(result, fac == i)$lat), ", ",
-            unique(subset(result, fac == i)$lon), ")", sep="")
-        ),
-		xlab = list(label = "Unit normal quantile"),
-		ylab = list(label = ylab, cex=1.2),
-#       scales = list(x = list(cex=1.5), y = list(cex=1.5)),
-        prepanel = prepanel.qqmathline,
-        panel = function(x, y,...) {
-                panel.grid()
-                panel.qqmathline(x, y=x)
-                panel.qqmath(x, y, ...)
-        }
+			data = subset(result, fac == i),
+			distribution = qnorm,
+			aspect = "xy",
+			layout = c(12,1),
+			pch  = 16,
+			cex  = 0.5,
+			main = list(label = paste("Vertex of ", "(",
+				unique(subset(result, fac == i)$lat), ", ",
+				unique(subset(result, fac == i)$lon), ")", sep="")
+			),
+			xlab = list(label = "Unit normal quantile"),
+			ylab = list(label = ylab, cex=1.2),
+#     scales = list(x = list(cex=1.5), y = list(cex=1.5)),
+			prepanel = prepanel.qqmathline,
+			panel = function(x, y,...) {
+				panel.grid()
+				panel.qqmathline(x, y=x)
+				panel.qqmath(x, y, ...)
+			}
     )
     print(a)
   }
@@ -153,7 +162,17 @@ dd <- ddply(
 mm <- dd[rep(row.names(dd), each=103),]
 result <- result[with(result, order(fac, month, year)), ]
 result$central <- result$fitted - mm$mean
-trellis.device(postscript, file = paste(local.output, "/", par$dataset, "_vertices_conditional_month.ps", sep = ""), color=TRUE, paper="legal")
+trellis.device(
+	device = postscript, 
+	file = paste(
+		local.output, 
+		"/", par$dataset, 
+		"_vertices_conditional_month.ps", 
+		sep = ""
+	), 
+	color = TRUE, 
+	paper = "legal"
+)
   for(i in levels(result$fac)) {
     b <- xyplot( central ~ year | month,
 		data = subset(result, fac == i),

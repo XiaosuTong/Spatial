@@ -94,7 +94,8 @@ job$reduce <- expression(
 )
 job$setup <- expression(
 	map = {
-	    load(paste(par$dataset, "RData", sep="."))
+	  load(paste(par$dataset, "RData", sep="."))
+	  dyn.load("/home/shaula/u16/tongx/Projects/Spatial/NCAR/myloess/shareLib/myloess1.so")
 	}
 )
 job$shared <- c(
@@ -113,7 +114,7 @@ job$output <- rhfmt(
 	type = "sequence"
 )
 job$mapred <- list(
-	mapred.reduce.tasks = 66, 
+	mapred.reduce.tasks = 72, 
 	rhipe_reduce_buff_size = 10000
 )
 job$mon.sec <- 5
@@ -179,7 +180,7 @@ job$map <- expression({
 job$setup <- expression(
     map = {
 		library(lattice)
-   		library(yaImpute, lib.loc = lib.loc)
+   	library(yaImpute, lib.loc = lib.loc)
 		library(stl2, lib.loc = lib.loc)
     },
 )
@@ -195,9 +196,9 @@ job$output <- rhfmt(
 	type = "sequence"
 )
 job$mapred <- list(
-	mapred.reduce.tasks = 66, 
+	mapred.reduce.tasks = 72, 
 	rhipe_reduce_buff_size = 10000, 
-	mapred.max.split.size = 200000 # the size of the data frame for one vertex is about this size
+	mapred.max.split.size = 200000
 )
 job$mon.sec <- 5
 job$jobname <- file.path(rh.datadir, par$dataset, "spatial", "loess01.stl")

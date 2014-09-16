@@ -168,23 +168,23 @@ trellis.device(
 )
   for(i in levels(result$station.id)){
     a <- qqmath(~ (get(par$dataset)-fitted) | month,
-        data = subset(result, station.id == i),
-        distribution = qnorm,
-        aspect = "xy",
-        layout = c(12,1),
-        pch  = 16,
-        cex  = 0.5,
-		main = list(label = paste("Station", i, sep=" ")),
-		xlab = list(label = "Unit normal quantile"),
-		ylab = list(label = ylab, cex=1.2),
-        prepanel = prepanel.qqmathline,
-        panel = function(x, y,...) {
-                panel.grid()
-               panel.qqmathline(x, y=x)
-                panel.qqmath(x, y, ...)
-        }
-    )
-    print(a)
+			data = subset(result, station.id == i),
+			distribution = qnorm,
+			aspect = "xy",
+			layout = c(12,1),
+			pch  = 16,
+			cex  = 0.5,
+			main = list(label = paste("Station", i, sep=" ")),
+			xlab = list(label = "Unit normal quantile"),
+			ylab = list(label = ylab, cex=1.2),
+			prepanel = prepanel.qqmathline,
+			panel = function(x, y,...) {
+				panel.grid()
+				panel.qqmathline(x, y=x)
+				panel.qqmath(x, y, ...)
+			}
+		)
+		print(a)
   }
 dev.off()
 
@@ -266,7 +266,7 @@ trellis.device(
 		strip = TRUE,
 		key = list(
 			text = list(
-				label = c("fitted","loess smoothing")
+				label = c("centralized fitted","loess smoothing")
 			), 
 			lines = list(
 				pch = c(".", ""), 
@@ -309,7 +309,7 @@ trellis.device(
 		strip = TRUE,
 		key = list(
 			text = list(
-				label = c("raw - fitted","loess smoothing")
+				label = c("residual","loess smoothing")
 			), 
 			lines = list(
 				pch = c(".", ""), 
@@ -342,6 +342,32 @@ trellis.device(
     b <- xyplot( mean ~ log2(elev) | month,
 		data = dd,
 		xlab = list(label = "Log of Elevation(log base 2 meters)"),
+		ylab = list(label = ylab),
+		type = "p",
+		pch = 16,
+		cex = 0.5,
+		layout = c(4, 3),
+		strip = TRUE,
+		scales = list(
+			y = list(relation = 'same', alternating = TRUE), 
+			x = list(tick.number = 10, relation = 'same')
+		),
+		panel = function(x, y, ...) {
+			panel.xyplot(x, y, ...)
+		}
+	)
+	print(b)
+dev.off()
+
+trellis.device(
+	device = postscript, 
+	file = paste(local.output, "/", par$dataset, "loess.fit_month.mean_vs_lon.ps", sep = ""), 
+	color = TRUE, 
+	paper = "legal"
+)
+    b <- xyplot( mean ~ lon | month,
+		data = dd,
+		xlab = list(label = "Longitude(degree)"),
 		ylab = list(label = ylab),
 		type = "p",
 		pch = 16,
