@@ -265,14 +265,14 @@ trellis.device(
 	a <- qqmath(~ fc.remainder | fac,
 		data = result,
 		distribution = qnorm,
-		aspect = 1,
 		strip = strip.custom(
 			par.strip.text = list(cex = 1),
 			factor.levels = paste(spatial$lat, spatial$lon, sep = ", ")
 		),
+		aspect = "xy",
 		pch = 16,
 		cex = 0.3,
-		layout = c(5,3),
+		layout = c(5,1),
 		xlab = list(label = "Unit normal quantile", cex = 1.2),
 		ylab = list(label = ylab, cex=1.2),
 		prepanel = prepanel.qqmathline,

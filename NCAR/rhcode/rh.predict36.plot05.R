@@ -534,7 +534,7 @@ job <- list()
 job$map <- expression({
   lapply(seq_along(map.keys), function(r){
 	value <- map.values[[r]]
-	names(value)[8] <- "lag"
+    names(value)[grep("lap", names(value))] <- "lag"
 	value$group <- map.keys[[r]][1]
         for(j in 1:dim(parameter)[1]){
             if(unique(value$group) == j){
@@ -545,7 +545,6 @@ job$map <- expression({
 	rhcollect(map.keys[[r]][1], value)
   })
 })
-
 job$reduce <- expression(
     pre={
         combined <- data.frame()
@@ -554,40 +553,39 @@ job$reduce <- expression(
         combined <- rbind(combined, do.call(rbind, reduce.values))
     },
     post={
-#        trellis.device(
-#            device = postscript, 
-#            file = paste(
-#                "./tmp", "/QQ_plot_of_error_", 
-#                dataset, 
-#                "_group", 
-#                reduce.key, 
-#                ".ps", 
-#                sep = ""
-#            ), 
-#            color = TRUE, 
-#            paper = "legal"
-#        )
-#        for(i in as.character(div.stations[[as.numeric(reduce.key)]][[2]]$station.id)){
-#          b <- qqmath( ~ residual | lag,
-#            data = subset(combined, station.id==i),
-#            xlab = list(label = "Unit normal quantile", cex = 1.2),
-#            ylab = list(label = paste("Station",i, ylab), cex = 1.2),
-#            type = "p",
-#            aspect = 1,
-#            col = "red",
-#            layout = c(9,4),
-#            pch=16,
-#            cex=0.3,
-#            prepanel = prepanel.qqmathline,
-#            panel = function(x,...) {
-#                panel.qqmathline(x, distribution = qnorm)
-#                panel.qqmath(x,...)
-#            }
-#          )
-#          print(b)
-#        }
-#        dev.off()
-        rhcollect(reduce.key, combined)
+        trellis.device(
+            device = postscript, 
+            file = paste(
+                "./tmp", "/QQ_plot_of_error_", 
+                dataset, 
+                "_group", 
+                reduce.key, 
+                ".ps", 
+                sep = ""
+            ), 
+            color = TRUE, 
+            paper = "legal"
+        )
+        for(i in as.character(div.stations[[as.numeric(reduce.key)]][[2]]$station.id)){
+          b <- qqmath( ~ residual | lag,
+            data = subset(combined, station.id==i),
+            xlab = list(label = "Unit normal quantile", cex = 1.2),
+            ylab = list(label = paste("Station",i, ylab), cex = 1.2),
+            type = "p",
+            aspect = 1,
+            col = "red",
+            layout = c(9,4),
+            pch=16,
+            cex=0.3,
+            prepanel = prepanel.qqmathline,
+            panel = function(x,...) {
+                panel.qqmathline(x, distribution = qnorm)
+                panel.qqmath(x,...)
+            }
+          )
+          print(b)
+        }
+        dev.off()
     }
 )
 job$setup <- expression(
@@ -623,4 +621,3 @@ job$readback <- FALSE
 job$mon.sec <- 10
 job$copyFiles <- TRUE
 job.mr <- do.call("rhwatch", job)
-
