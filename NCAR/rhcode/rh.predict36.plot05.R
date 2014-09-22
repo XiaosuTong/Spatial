@@ -554,39 +554,40 @@ job$reduce <- expression(
         combined <- rbind(combined, do.call(rbind, reduce.values))
     },
     post={
-        trellis.device(
-            device = postscript, 
-            file = paste(
-                "./tmp", "/QQ_plot_of_error_", 
-                dataset, 
-                "_group", 
-                reduce.key, 
-                ".ps", 
-                sep = ""
-            ), 
-            color = TRUE, 
-            paper = "legal"
-        )
-        for(i in as.character(div.stations[[as.numeric(reduce.key)]][[2]]$station.id)){
-          b <- qqmath( ~ residual | lag,
-            data = subset(combined, station.id==i),
-            xlab = list(label = "Unit normal quantile", cex = 1.2),
-            ylab = list(label = paste("Station",i, ylab), cex = 1.2),
-            type = "p",
-            aspect = 1,
-            col = "red",
-            layout = c(9,4),
-            pch=16,
-            cex=0.3,
-            prepanel = prepanel.qqmathline,
-            panel = function(x,...) {
-                panel.qqmathline(x, distribution = qnorm)
-                panel.qqmath(x,...)
-            }
-          )
-          print(b)
-        }
-        dev.off()
+#        trellis.device(
+#            device = postscript, 
+#            file = paste(
+#                "./tmp", "/QQ_plot_of_error_", 
+#                dataset, 
+#                "_group", 
+#                reduce.key, 
+#                ".ps", 
+#                sep = ""
+#            ), 
+#            color = TRUE, 
+#            paper = "legal"
+#        )
+#        for(i in as.character(div.stations[[as.numeric(reduce.key)]][[2]]$station.id)){
+#          b <- qqmath( ~ residual | lag,
+#            data = subset(combined, station.id==i),
+#            xlab = list(label = "Unit normal quantile", cex = 1.2),
+#            ylab = list(label = paste("Station",i, ylab), cex = 1.2),
+#            type = "p",
+#            aspect = 1,
+#            col = "red",
+#            layout = c(9,4),
+#            pch=16,
+#            cex=0.3,
+#            prepanel = prepanel.qqmathline,
+#            panel = function(x,...) {
+#                panel.qqmathline(x, distribution = qnorm)
+#                panel.qqmath(x,...)
+#            }
+#          )
+#          print(b)
+#        }
+#        dev.off()
+        rhcollect(reduce.key, combined)
     }
 )
 job$setup <- expression(
@@ -615,7 +616,7 @@ job$output <- rhfmt(
     type="sequence"
 )
 job$mapred <- list(
-    mapred.reduce.tasks = 10
+    mapred.reduce.tasks = 6
 )
 job$jobname <- paste(dataset, "abs error quantile")
 job$readback <- FALSE

@@ -94,8 +94,8 @@ for (k in 1:dim(parameter)[1]) {
       value <- subset(
         value, 
         select = -c(
-          data.weights, data.remainder, data.raw, 
-          data.sub.labels, lon, lat, station.name, elev
+          data.weights, data.remainder, data.raw, fc.remainder,
+          data.sub.labels, lon, lat, station.name, elev, data.trend
         )
       )
       attributes(value)$elev  <- elev
