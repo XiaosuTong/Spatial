@@ -30,9 +30,9 @@ col <- lattice.theme$superpose.symbol$col
 
 order <- ddply(
 	.data = result,
-    .variables = "station.id",
-    .fun = summarise,
-    mean = mean(fitted)
+  .variables = "station.id",
+  .fun = summarise,
+  mean = mean(fitted)
 )
 order.st <- as.character(
 	order[order(order$mean, decreasing = TRUE), ]$station.id
@@ -383,4 +383,47 @@ trellis.device(
 		}
 	)
 	print(b)
+dev.off()
+
+
+
+xyplot(
+	data = result,
+	)
+
+#################################################
+##Auto correlation ACF for the remainder
+#################################################
+ACF <- ddply(
+	.data = result,
+	.variables = "station.id",
+	.fun = summarise,
+	correlation = c(acf(remainder, plot=FALSE)$acf),
+	lag = c(acf(remainder, plot=FALSE)$lag) 
+)
+
+trellis.device(
+	device = postscript, 
+	file = paste(
+		local.output, "/acf_of_", par$dataset, 
+		"_loess.fit_remainder_for_100_stations",
+		".ps", sep = ""
+	), 
+	color = TRUE, 
+	paper = "legal"
+)
+for(i in levels(result$station.id)){
+	b <- xyplot( correlation ~ lag,
+		data = subset(ACF, station.id == i & lag != 0),
+		xlab = list(label = "Lag", cex = 1.2),
+    ylab = list(label = paste("Station", i, "ACF"), cex = 1.2),
+#   main = list(label = paste("Station ", i, sep=""), cex=1.5),
+    type = "h",
+    panel = function(x,y,...) {
+      panel.abline(h=0)
+      panel.xyplot(x,y,...)
+    }
+  )
+  print(b)
+}
 dev.off()
