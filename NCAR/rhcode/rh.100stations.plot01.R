@@ -1,8 +1,13 @@
+#########################################################
+##ploting code for spatial loess fit at the 100 stations
+#########################################################
+##loess01 is set to be span=0.125, degree=2
+##loess02 is set to be span=0.06, degree=2
 source("~/Rhipe/rhinitial.R")
 par <- list()
 par$machine <- "gacrux"
 par$dataset <- "tmax"
-par$loess <- "loess01"
+par$loess <- "loess02"
 source("~/Projects/Spatial/NCAR/rhcode/rh.setup.R")
 load(paste(
 	"~/Projects/Spatial/NCAR/RData/", 
@@ -333,75 +338,130 @@ trellis.device(
   }
 dev.off()
 
+
+##########################################################
+##monthly mean and std for the residual from spatial loess
+##########################################################
+resid.mean <- ddply(
+	.data = result,
+	.variables = c("station.id", "month"),
+	.fun = summarise,
+	mean = mean(get(par$dataset) - fitted),
+	std = sd(get(par$dataset) - fitted)
+)
+resid.std <- ddply(
+	.data = result,
+	.variables = "station.id",
+	.fun = summarise,
+	std = sd(get(par$dataset) - fitted)
+)
+od <- ddply(
+	.data = resid.mean,
+	.variables = "station.id",
+	.fun = summarise,
+	overall = mean(mean)
+)
+resid.mean$station.id <- factor(
+	resid.mean$station.id, 
+	levels = od[with(od, order(overall)), ]$station.id
+)
 trellis.device(
 	device = postscript, 
-	file = paste(local.output, "/", par$dataset, "loess.fit_month.mean_vs_elev.ps", sep = ""), 
+	file = paste(
+		local.output, "/", par$dataset, 
+		"_loess.resid_month.std_vs_month.ps", sep = ""
+	), 
 	color = TRUE, 
 	paper = "legal"
 )
-    b <- xyplot( mean ~ log2(elev) | month,
-		data = dd,
-		xlab = list(label = "Log of Elevation(log base 2 meters)"),
-		ylab = list(label = ylab),
-		type = "p",
-		pch = 16,
-		cex = 0.5,
-		layout = c(4, 3),
-		strip = TRUE,
-		scales = list(
-			y = list(relation = 'same', alternating = TRUE), 
-			x = list(tick.number = 10, relation = 'same')
-		),
-		panel = function(x, y, ...) {
-			panel.xyplot(x, y, ...)
-		}
-	)
-	print(b)
+xyplot( std ~ month | station.id,
+	data = resid.mean,
+	layout = c(10,1),
+	aspect = "xy",
+	xlab = list(label = "Month", cex = 1.2),
+  ylab = list(label = "Standard Diviation of Residual", cex = 1.2),	
+  scales = list(
+		y = list(relation = 'same', alternating = TRUE), 
+		x = list(at=c(1, 7, 12), relation = 'same')
+  ),
+  panel = function(x, y, subscripts, ...){
+		panel.xyplot(x,y,col=col[1],type="b",...)
+	}
+)
 dev.off()
 
 trellis.device(
 	device = postscript, 
-	file = paste(local.output, "/", par$dataset, "loess.fit_month.mean_vs_lon.ps", sep = ""), 
+	file = paste(
+		local.output, "/", par$dataset, 
+		"_loess.resid_month.mean_vs_month.ps", sep = ""
+	), 
 	color = TRUE, 
 	paper = "legal"
 )
-    b <- xyplot( mean ~ lon | month,
-		data = dd,
-		xlab = list(label = "Longitude(degree)"),
-		ylab = list(label = ylab),
-		type = "p",
-		pch = 16,
-		cex = 0.5,
-		layout = c(4, 3),
-		strip = TRUE,
-		scales = list(
-			y = list(relation = 'same', alternating = TRUE), 
-			x = list(tick.number = 10, relation = 'same')
-		),
-		panel = function(x, y, ...) {
-			panel.xyplot(x, y, ...)
-		}
-	)
-	print(b)
+xyplot( mean ~ month | station.id,
+	data = resid.mean,
+	layout = c(5,1),
+	col = col[1],
+	type = "b",
+	cex = 0.8,
+	xlab = list(label = "Month", cex = 1.2),
+  ylab = list(label = "Mean of Residual", cex = 1.2),	
+  scales = list(
+		y = list(relation = 'same', alternating = TRUE), 
+		x = list(at=c(1, 7, 12), relation = 'same')
+  )
+)
 dev.off()
 
+trellis.device(
+	device = postscript, 
+	file = paste(
+		local.output, "/", par$dataset, 
+		"_dotplot_overall_mean_of_loess.resid.ps", sep = ""
+	), 
+	color = TRUE, 
+	paper = "legal"
+)
+qqmath( ~ overall,
+	data = od,
+	distribution = qunif,
+	xlab = "f-value",
+	ylab = "Mean of Residuals"
+)
+dev.off()
 
+trellis.device(
+	device = postscript, 
+	file = paste(
+		local.output, "/", par$dataset, 
+		"_dotplot_overall_std_of_loess.resid.ps", sep = ""
+	), 
+	color = TRUE, 
+	paper = "legal"
+)
+qqmath( ~ std,
+	data = resid.std,
+	distribution = qunif,
+	xlab = "f-value",
+	ylab = "SD of Residuals"
+)
+dev.off()
 
-xyplot(
-	data = result,
-	)
-
-#################################################
-##Auto correlation ACF for the remainder
-#################################################
+##########################################################
+##Auto correlation ACF for the residual from spatial loess
+##########################################################
 ACF <- ddply(
 	.data = result,
 	.variables = "station.id",
 	.fun = summarise,
-	correlation = c(acf(remainder, plot=FALSE)$acf),
-	lag = c(acf(remainder, plot=FALSE)$lag) 
+	correlation = c(acf(get(par$dataset)-fitted, plot=FALSE)$acf),
+	lag = c(acf(get(par$dataset)-fitted, plot=FALSE)$lag) 
 )
-
+ACF$station.id <- factor(
+	ACF$station.id, 
+	levels = od[with(od, order(overall)), ]$station.id
+)
 trellis.device(
 	device = postscript, 
 	file = paste(
@@ -412,12 +472,11 @@ trellis.device(
 	color = TRUE, 
 	paper = "legal"
 )
-for(i in levels(result$station.id)){
+for(i in levels(ACF$station.id)){
 	b <- xyplot( correlation ~ lag,
 		data = subset(ACF, station.id == i & lag != 0),
 		xlab = list(label = "Lag", cex = 1.2),
     ylab = list(label = paste("Station", i, "ACF"), cex = 1.2),
-#   main = list(label = paste("Station ", i, sep=""), cex=1.5),
     type = "h",
     panel = function(x,y,...) {
       panel.abline(h=0)

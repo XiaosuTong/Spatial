@@ -3,7 +3,7 @@ par <- list()
 par$machine <- "gacrux"
 par$dataset <- "tmax"
 par$N <- 1236
-par$span <- 0.125
+par$span <- 0.06
 par$degree <- 2
 source("~/Projects/Spatial/NCAR/rhcode/rh.setup.R")
 source("~/Projects/Spatial/NCAR/myloess/my.loess02.R")
@@ -78,7 +78,7 @@ job$setup <- expression(
 	}
 )
 job$shared <- c(
-	file.path(rh.datadir, par$dataset, "Rdata", paste(par$dataset, "RData", sep=".")).
+	file.path(rh.datadir, par$dataset, "Rdata", paste(par$dataset, "RData", sep="."))
 )
 job$parameters <- list(
 	par = par,
@@ -89,14 +89,14 @@ job$parameters <- list(
 )
 job$input <- c(par$N, 100) 
 job$output <- rhfmt(
-	file.path(rh.datadir, par$dataset, "spatial", "100stations", "loess01"), 
+	file.path(rh.datadir, par$dataset, "spatial", "100stations", "loess02"), 
 	type = "sequence"
 )
 job$mapred <- list(
-	mapred.reduce.tasks = 100, 
+	mapred.reduce.tasks = 72, 
 	rhipe_reduce_buff_size = 10000
 )
 job$mon.sec <- 5
-job$jobname <- file.path(rh.datadir, par$dataset, "spatial", "100stations", "loess01")
+job$jobname <- file.path(rh.datadir, par$dataset, "spatial", "100stations", "loess02")
 job$readback <- FALSE
 job.mr <- do.call("rhwatch", job)
