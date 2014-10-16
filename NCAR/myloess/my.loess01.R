@@ -1,7 +1,7 @@
 ########################
-# My own loess function. There is no differece between loess and my.loess
+# My own loess function. There is no differece between loess and my.loess01
 # except using different simpleLoess function. In my.simple function, remove
-# the fitting step which fit the loess at data point. Only save useful list
+# the interpolation step which fit the loess at data point. Only save useful list
 # object which will be necessary for predict.loess function.
 #
 dyn.load("~/Github/Spatial/NCAR/myloess/shareLib/myloess1.so")

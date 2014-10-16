@@ -52,7 +52,7 @@ levels(month) <- c(1:12)
 month <- as.numeric(factor(month, levels=c(1:12)))
 date <- paste(tmp$year, month, "01", sep="-")
 tmp$date <- as.POSIXct(strptime(date, format = "%Y-%m-%d"), format='%Y%m%d', tz="")
-column <- c("station.id", "year","month","date", dataset)
+column <- c("station.id", "lon",  "lat", "elev", "year","month","date", dataset)
 tmp <- tmp[with(tmp, order(station.id, date)), column]
 names(tmp)[dim(tmp)[2]] <- "response"
 tmp$factor <- factor(
@@ -568,13 +568,34 @@ trellis.device(
         xlab = list(label = "Yearly Range", cex = 1.2),
         ylab = list(label = "Yearly Mean", cex = 1.2),
 		cex = 0.5,
-		layout =c (10,1),
+		layout =c(10,1),
 		scales = list(
             y = list(relation = 'same'), 
             x = list(relation = 'same')
         )
 	)
 	print(a)
+dev.off()
+
+
+#temporal residual against spatial covariates conditional on month
+trellis.device(
+    device = postscript, 
+    file = paste(
+        "temporal remainder vs. lat",
+        ".ps", 
+        sep = ""
+    ), 
+    color=TRUE, 
+    paper="legal"
+)
+    a <- xyplot(fc.remainder ~ lat | date,
+        data = tmp,
+        pch = 16,
+        cex = 0.6,
+        layout = c(4,3)
+    )
+    print(a)
 dev.off()
 
 
