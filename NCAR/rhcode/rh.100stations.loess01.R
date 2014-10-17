@@ -1,3 +1,15 @@
+##########################################################
+##spatial loess fit at the 100 stations with interpolation
+##########################################################
+
+\# my.loess02 is the loess function that calculate kd-tree 
+# nodes, and all necessary information for interpolation
+
+#"/ln/tongx/Spatial/tmp/tmax/spatial/100stations/loess02"
+#is the span=0.06, degree=2
+#"/ln/tongx/Spatial/tmp/tmax/spatial/100stations/loess01"
+#is the span=0.125, degree=2
+
 source("~/Rhipe/rhinitial.R")
 par <- list()
 par$machine <- "gacrux"

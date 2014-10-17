@@ -1,13 +1,17 @@
 #########################################################
 ##ploting code for spatial loess fit at the 100 stations
 #########################################################
-##loess01 is set to be span=0.125, degree=2
-##loess02 is set to be span=0.06, degree=2
+#loess01 is set to be span=0.125, degree=2
+#loess02 is set to be span=0.06, degree=2
+#100stations.stl.RData is the data.frame for stl+ with
+#t.window=1855, t.degree=1, s.window="periodic", 
+#fc.window=241, fc.degree=1, inner=10, outer=0 
+
 source("~/Rhipe/rhinitial.R")
 par <- list()
 par$machine <- "gacrux"
 par$dataset <- "tmax"
-par$loess <- "loess02"
+par$loess <- "loess01"
 source("~/Projects/Spatial/NCAR/rhcode/rh.setup.R")
 load(paste(
 	"~/Projects/Spatial/NCAR/RData/", 
@@ -250,7 +254,8 @@ dd <- ddply(
 	elev = elev[1]
 )
 mm <- dd[rep(row.names(dd), each = 103), ]
-result <- result[with(result, order(station.id, month, year)), ]
+result 
+<- result[with(result, order(station.id, month, year)), ]
 result$central <- result$fitted - mm$mean
 trellis.device(
 	device = postscript, 
@@ -451,6 +456,7 @@ dev.off()
 ##########################################################
 ##Auto correlation ACF for the residual from spatial loess
 ##########################################################
+result <- result[order(result$station.id, result$time),]
 ACF <- ddply(
 	.data = result,
 	.variables = "station.id",
@@ -466,7 +472,7 @@ trellis.device(
 	device = postscript, 
 	file = paste(
 		local.output, "/acf_of_", par$dataset, 
-		"_loess.fit_remainder_for_100_stations",
+		"_loess.fit_remainder_for_100_stations2",
 		".ps", sep = ""
 	), 
 	color = TRUE, 
@@ -485,4 +491,126 @@ for(i in levels(ACF$station.id)){
   )
   print(b)
 }
+dev.off()
+
+##########################################################
+##Model with different smoothing parameters comparsion
+# rst2 is the spatial loess with span=0.06, degree=2
+# rst1 is the spatial loess with span=0.125, degree=2
+rst2 <- rhread(file.path(rh.datadir, par$dataset, "spatial", "100stations", "loess02"))
+rst1 <- rhread(file.path(rh.datadir, par$dataset, "spatial", "100stations", "loess01"))
+result1 <- do.call("rbind", lapply(rst1, "[[", 2))
+result2 <- do.call("rbind", lapply(rst2, "[[", 2))
+
+result1 <- result1[order(result1$station.id),]
+result2 <- result2[order(result2$station.id),]
+
+result <- result1
+result$fitted2 <- result2$fitted
+result$resid1 <- result$tmax - result$fitted
+result$resid2 <- result$tmax - result$fitted2
+
+trellis.device(
+	device = postscript, 
+	file = paste(
+		local.output, "/", par$dataset, 
+		"spatial.loess.compar.ps", sep = ""
+	), 
+	color = TRUE, 
+	paper = "legal"
+)
+xyplot(resid2 ~ resid1 | station.id,
+	data = result,
+	col = "red",
+	pch = 16,
+  xlab = list(label = "model 1.1.1 remainder", cex = 1.2),
+  ylab = list(label = "model 1.1.2 remainder", cex = 1.2),	
+	cex = 0.3,
+	aspect = 1,
+	layout = c(1,1),
+  panel = function(...) {
+    panel.abline(a=0, b=1, color="black", lty=1)
+    panel.xyplot(...)
+  }	
+)
+dev.off()
+
+result1$group <- rep("model1", 123600)
+result2$group <- rep("model2", 123600)
+result <- rbind(result1, result2)
+result$resid <- result$tmax - result$fitted
+trellis.device(
+	postscript, 
+	file = paste(
+		local.output, 
+		"/QQ_plot_of_tmax_models_comparison",".ps", sep = ""
+	), 
+	color=TRUE, 
+	paper="legal"
+)
+  b <- qq( group ~ resid | station.id,
+    data = result,
+    xlab = list(label = "model 1.1.1 remainder", cex = 1.2),
+    ylab = list(label = "model 1.1.2 remainder", cex = 1.2),
+    type = "p",
+    pch = 16,
+    col = "red",
+    cex = 0.3,
+    aspect = 1,
+    layout = c(1, 1),
+    panel = function(...) {
+      panel.abline(a=0, b=1, color="black", lty=1)
+      panel.xyplot(...)
+    }
+  )
+  print(b)
+dev.off()
+
+ACF1 <- ddply(
+    .data=result1,
+    .variables="station.id",
+    .fun= summarise,
+    correlation = c(acf(tmax - fitted, plot=FALSE)$acf),
+    lag = c(acf(tmax - fitted, plot=FALSE)$lag)
+)
+ACF1 <- subset(ACF1, lag!=0)
+ACF2 <- ddply(
+    .data=result2,
+    .variables="station.id",
+    .fun= summarise,
+    correlation = c(acf(tmax - fitted, plot=FALSE)$acf),
+    lag = c(acf(tmax - fitted, plot=FALSE)$lag)
+)
+ACF2 <- subset(ACF2, lag!=0)
+ACF2$lag <- ACF2$lag + 0.1
+ACF <- rbind(ACF1, ACF2)
+ACF$group <- rep(c("model1","model2"), each=3000)
+trellis.device(
+	postscript, 
+	file = paste(
+		local.output, 
+		"/acf_of_", par$dataset, "_spatial.loess_remainder_for_100_stations",".ps", sep = ""
+	),
+	color=TRUE, 
+	paper="legal"
+)
+  b <- xyplot( correlation ~ lag | station.id,
+    data = ACF,
+    xlab = list(label = "Lag", cex = 1.2),
+    ylab = list(label = "ACF", cex = 1.2),
+		key=list(
+			type="l", 
+			text=list(label=c("span=0.125", "span=0.06")),
+			lines=list(col=col[1:2], lwd=1.5), 
+			columns=2
+		),
+    type = "h",
+    layout = c(1,1),
+		groups = group,
+    panel = function(x,y,...) {
+      panel.abline(h=0)
+      panel.xyplot(x,y,...)
+    }
+  )
+  print(b)
 dev.off()
