@@ -1,5 +1,5 @@
 ## Land-based Station: ##
-*  Quality Controlled Local Climatological Data (QCLCD)
+* **Quality Controlled Local Climatological Data (QCLCD)**
 Experiencing a quality controlled, the QCLCD data technically is from Jan 2005 to present. But 
 since data from 2005 to 2007 is still under processing of quality controlled, the data is from
 QCLCD200705 to QCLCD201410, and is consist of hourly, daily, and monthly summaries for 
@@ -8,7 +8,7 @@ approximately 1,600 U.S. locations. Totally 90 months. Each hourly data (for eac
 24 columns, such as DryBulb temperature, WetBulb temperature, DewPoints temperature, RelativeHumidity, 
 Windspeed, so forth.
 
-*  Unedited Local Climatological Data (ULCD)
+*  **Unedited Local Climatological Data (ULCD)**
 Unedited local data is from July 1996 to July 2007. For over 700 U.S. locations. Each hourly data
 (for each month) is about 45 Mb. If we would like to study this LCD data, hourly data is more
 reasonable with respect to the size, it is large. And unedited LCD can be merged to QCLCD, which
@@ -23,7 +23,7 @@ is very small.
 ## Satellite Data: ##
 
 *  Geostationary IR Channel Brightness Temperature - GridSat B1 
-
+There are three variables in this satellite data, infrared window observation for temperature, 
 ## Reanalysis Data: ##
 
 Reanalysis datasets are created by assimilating ("inputting") climate observations using the same 
