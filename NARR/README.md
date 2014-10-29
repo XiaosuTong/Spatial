@@ -39,7 +39,9 @@ be nearly impossible for an individual to collect and analyze separately, enabli
 climate processes to be studied
 *  Reanalysis data sets are relatively straightforward to handle from a processing standpoint 
 (although file sizes can be very large)
+
 ### Key Limitations: ###
+
 *  Reanalysis data sets should not be equated with "observations" or "reality"
 *  The changing mix of observations, and biases in observations and models, can introduce spurious 
 variability and trends into reanalysis output
