@@ -23,6 +23,8 @@ data$group <- factor(data$group, levels=unique(data$group))
 rm(temp)
 rm(precip)
 
+lattice.theme <- trellis.par.get()
+col <- lattice.theme$superpose.symbol$col
 #index <- c(seq(-100,3700,by=100),3810)
 #data$group <- cut(data$elev, index)
 
@@ -39,18 +41,29 @@ levels(data$group) <- label$label
 ##############################
 ##Stations location on US map
 ##############################
-trellis.device(postscript, file = paste(outputdir, "spatial", ".ps", sep = ""), color=TRUE, paper="legal")
+data <- USpinfo
+uniqstation <- unique(as.character(USppt[!is.na(USppt$precip) & USppt$year>= 1955,]$station.id))
+trellis.device(
+    postscript, 
+    file = paste(
+        outputdir, 
+        "spatial.precip", ".ps", sep = ""), 
+    color = TRUE, 
+    paper = "legal"
+)
 b <- xyplot(
-    lat ~ lon | group,
-	data = data,
-	xlab = list(label="Longitude", cex=1.5),
-	ylab = list(label="Latitude", cex=1.5),
+    lat ~ lon,
+#    lat ~ lon | group,
+	data = subset(data, station.id %in% uniqstation),
+	xlab = list(label="Longitude"),
+	ylab = list(label="Latitude"),
+    main = "Spatial Location of Precipitation Stations",
 	layout = c(1,1),
     pch = 16,
     cex = 0.25,
     col = "red",
-	strip = strip.custom(par.strip.text= list(cex = 1.5)),
-	par.settings = list(layout.heights = list(strip = 1.5)),
+#	strip = strip.custom(par.strip.text= list(cex = 1.5)),
+#	par.settings = list(layout.heights = list(strip = 1.5)),
     panel = function(...) {
         panel.polygon(us.map$x,us.map$y)   
         panel.xyplot(...)
@@ -59,6 +72,52 @@ b <- xyplot(
 print(b)
 dev.off()
 
+###############
+##stations 
+################
+data1 <- subset(USppt, year=="1981"&month=="Dec")
+data1 <- data1[!is.na(data1$precip),c("station.id","lat","lon")]
+data2 <- subset(USppt, year=="1982"&month=="Jan")
+data2 <- data2[!is.na(data2$precip),c("station.id", "lat", "lon")]
+data3 <- subset(USppt, year=="1982"&month=="Feb")
+data3 <- data3[!is.na(data3$precip),c("station.id", "lat", "lon")]
+miss <- data1[!(data1$station.id %in% data2$station.id),]
+miss$group <- "miss"
+addback <- data3[!(data3$station.id %in% data2$station.id),]
+addback$group <- "addback"
+data <- rbind(addback, miss)
+trellis.device(
+    postscript, 
+    file = paste(
+        outputdir, 
+        "spatial.precip.around1982", ".ps", sep = ""), 
+    color = TRUE, 
+    paper = "legal"
+)
+a <- xyplot(
+    lat ~ lon,
+#    lat ~ lon | group,
+    data = data,
+    xlab = list(label="Longitude"),
+    ylab = list(label="Latitude"),
+    main = "Spatial Location of Precipitation Stations",
+    layout = c(1,1),
+    key = list(
+        columns = 2, 
+        points = list(pch=c(1,16), col = col[1:2]), 
+        text = list(label=c("Dec 1981","Feb 1982"))
+    ),
+    groups = group,
+    col = col[2:1],
+    pch = c(16,1),
+    cex = 0.7,
+    panel = function(...) {
+        panel.polygon(us.map$x,us.map$y)   
+        panel.xyplot(...)
+    }
+)
+print(a)
+dev.off()
 #############################################################
 ##dot plot of max/min elevation for each level in spatial.ps
 #############################################################
@@ -73,9 +132,6 @@ dr.spatial <- ddply(
 )
 
 dr.spatial$label <- factor(dr.spatial$label, levels=unique(dr.spatial$label))
-
-lattice.theme <- trellis.par.get()
-col <- lattice.theme$superpose.symbol$col
 
 trellis.device(postscript, file = paste(outputdir,"elevation_range", ".ps", sep = ""), color=TRUE, paper="legal")
 b <- dotplot(

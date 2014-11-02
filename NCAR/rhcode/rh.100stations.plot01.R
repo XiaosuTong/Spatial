@@ -614,3 +614,28 @@ trellis.device(
   )
   print(b)
 dev.off()
+
+#####################################
+##contour plot of spatial loess fit
+#####################################
+library(maps)
+us.map <- map('state', plot = FALSE, fill = TRUE)
+
+trellis.device(
+	postscript, 
+	file = paste(
+		local.output, 
+		"/", par$dataset, "_spatial.loess_contour",".ps", sep = ""
+	),
+	color=TRUE, 
+	paper="legal"
+)
+for(i in unique(result$station.id)){
+	a <- contourplot(fitted ~ lon*lat | time,
+ 		data=a,
+ 		at = seq(-1, 1, 0.2),
+ 		layout = c(4,3),
+	)
+	print(a)
+}
+dev.off()
