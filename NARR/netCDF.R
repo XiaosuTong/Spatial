@@ -34,8 +34,8 @@ getdata <- function(myfolder, mydate, myparameter) {
 #myfun returns a long vector for all observation at one pressure level
 
 myfun <- function(index, air.all){
-  tmp <- lapply(1:248, function(r) {
-    as.vector(air.all[1:349, 1:277, index, r]) #by column
+  tmp <- lapply(1:248, function(rr) {
+    as.vector(air.all[1:349, 1:277, index, rr]) #by column
   })
   do.call("c", tmp)
 }
@@ -92,12 +92,14 @@ job$map <- expression({
     rhstatus(sprintf("Downloaded %s", key))
     rhcounter("FILES", key, 1)
     value.all <- getair(par$myfolder, key, par$myparameter)
+    system("rm ./tmp/*.nc")
+    rhcounter("getair", key, 1)
     d_ply(
       .data = value.all,
       .variable = "time",
-      .fun = function(r){
-        key <- paste(key, sprintf("%02d", unique(r$time)), sep = "")
-        rhcollect(key, r[, !(names(r) %in% "time")])
+      .fun = function(k){
+        key <- paste(key, sprintf("%03d", unique(k$time)), sep = "")
+        rhcollect(key, k[, !(names(k) %in% "time")])
       }
     )
   })
@@ -114,7 +116,7 @@ job$parameters <- list(
   getair = getair,
   lib.loc = file.path(path.expand("~"), "R_LIBS")
 )
-job$input <- c(24, 12) 
+job$input <- c(2, 1) 
 job$output <- rhfmt(
   file.path(rh.datadir, par$myfolder, "bytime"), 
   type = "sequence"
