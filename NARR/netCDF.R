@@ -45,10 +45,11 @@ getair <- function(myfolder, mydate, myparameter) {
   air.all <- get.var.ncdf(mync, mync$var[[myparameter]])
   lon <- get.var.ncdf(mync, mync$var[["lon"]])
   lat <- get.var.ncdf(mync, mync$var[["lat"]])
+  time.len <- dim(air.all)[4]
   data <- data.frame(
-    lon = rep(as.vector(lon), times = 248),
-    lat = rep(as.vector(lat), times = 248),
-    time = rep(1:248, each = 349*277)
+    lon = rep(as.vector(lon), times = time.len),
+    lat = rep(as.vector(lat), times = time.len),
+    time = rep(1:time.len, each = 349*277)
   )
   all.levels<- mlply(
     .data = data.frame(
