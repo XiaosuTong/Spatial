@@ -33,7 +33,7 @@ getdata <- function(myfolder, mydate, myparameter) {
 
 #myfun returns a long vector for all observation at one pressure level
 
-myfun <- function(index){
+myfun <- function(index, air.all){
   tmp <- lapply(1:248, function(r) {
     as.vector(air.all[1:349, 1:277, index, r]) #by column
   })
@@ -41,10 +41,10 @@ myfun <- function(index){
 }
 
 getair <- function(myfolder, mydate, myparameter) {
-  mync <- open.ncdf( paste("./tmp/", myfolder, mydate, "nc", sep=".") )
+  mync <- open.ncdf( file.path("./tmp", paste(myfolder, mydate, "nc", sep=".")) )
   air.all <- get.var.ncdf(mync, mync$var[[myparameter]])
-  lon <- getdata(myfolder, mydate, "lon")
-  lat <- getdata(myfolder, mydate, "lat")
+  lon <- get.var.ncdf(mync, mync$var[["lon"]])
+  lat <- get.var.ncdf(mync, mync$var[["lat"]])
   data <- data.frame(
     lon = rep(as.vector(lon), times = 248),
     lat = rep(as.vector(lat), times = 248),
@@ -54,7 +54,8 @@ getair <- function(myfolder, mydate, myparameter) {
     .data = data.frame(
       index = 1:29
     ),
-    .fun  = myfun
+    .fun  = myfun,
+    air.all = air.all
   )
   close.ncdf(mync)
   data <- cbind(data, do.call("cbind", all.levels))
@@ -90,31 +91,30 @@ job$map <- expression({
     msys(on)
     rhstatus(sprintf("Downloaded %s", key))
     rhcounter("FILES", key, 1)
-    rhcounter("FILES", "_ALL_", 1)
-    value <- getair(par$myfolder, key, par$myparameter)
-    rhcollect(key, value)
+    value.all <- getair(par$myfolder, key, par$myparameter)
+    d_ply(
+      .data = value.all,
+      .variable = "time",
+      .fun = function(r){
+        key <- paste(key, sprintf("%02d", unique(r$time)), sep = "")
+        rhcollect(key, r[, !(names(r) %in% "time")])
+      }
+    )
   })
 })
-#job$reduce <- expression(
-#  pre = {
-#  },
-#  reduce = {
-#  },
-#  post = {
-#  } 
-#)
 job$setup <- expression(
   map = {
-    library(ncdf)
+    suppressMessages(library(plyr,lib.loc = lib.loc))
+    suppressMessages(library(ncdf,lib.loc = lib.loc))
   }
 )
 job$parameters <- list(
   par = par,
   myfun = myfun,
-  getdata = getdata,
-  getair = getair
+  getair = getair,
+  lib.loc = file.path(path.expand("~"), "R_LIBS")
 )
-job$input <- c(10, 10) 
+job$input <- c(24, 12) 
 job$output <- rhfmt(
   file.path(rh.datadir, par$myfolder, "bytime"), 
   type = "sequence"
