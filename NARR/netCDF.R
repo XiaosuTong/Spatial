@@ -204,17 +204,18 @@ job.sfc.air$map <- expression({
           ##find the month for a given time
           time <- t - bound.leap[month, "day"] 
           ##find the time in month for a given time
-          key <- paste(year, month, sprintf("%03d", time), sep = "")
         }else {
           month <- min(bound[bound$day >= t, 1])  
           ##find the month for a given time
           time <- t - bound[month, "day"] 
           ##find the time in month for a given time
-          key <- paste(year, month, sprintf("%03d", time), sep = "")          
         }
+        key <- paste(year, sprintf("%02d", month), sprintf("%03d", time), sep = "")          
         rhcollect(key, k[, !(names(k) %in% "time")])
       }
     )
+  rm(list = ls())
+  gc()  
   })
 })
 job.sfc.air$setup <- expression(
@@ -233,13 +234,13 @@ job.sfc.air$parameters <- list(
   leap       = leap,
   lib.loc    = file.path(path.expand("~"), "R_LIBS")
 )
-job.sfc.air$input <- c(24, 24) 
+job.sfc.air$input <- c(24, 12) 
 job.sfc.air$output <- rhfmt(
   file.path(rh.datadir, par$myfolder, "bytime"), 
   type = "sequence"
 )
 job.sfc.air$mapred <- list(
-  mapred.reduce.tasks = 72,
+  mapred.reduce.tasks = 100,
   mapred.task.timeout = 0,
   rhipe_map_buff_size = 1
 )
