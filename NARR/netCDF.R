@@ -212,8 +212,7 @@ job.sfc.air$map <- expression({
           ##find the time in month for a given time
           key <- paste(year, month, sprintf("%03d", time), sep = "")          
         }
-        rhcollect(key, 1)
-#        rhcollect(key, k[, !(names(k) %in% "time")])
+        rhcollect(key, k[, !(names(k) %in% "time")])
       }
     )
   })
@@ -234,7 +233,7 @@ job.sfc.air$parameters <- list(
   leap       = leap,
   lib.loc    = file.path(path.expand("~"), "R_LIBS")
 )
-job.sfc.air$input <- c(24, 12) 
+job.sfc.air$input <- c(24, 24) 
 job.sfc.air$output <- rhfmt(
   file.path(rh.datadir, par$myfolder, "bytime"), 
   type = "sequence"
