@@ -133,15 +133,17 @@ job.air$map <- expression({
       .variable = "time",
       .fun = function(k){
         key <- paste(key, sprintf("%03d", unique(k$time)), sep = "")
-        rhcollect(key, k[, !(names(k) %in% "time")])
+        value <- k[, !(names(k) %in% "time")]
+        attr(value, "file") <- par$myfolder
+        rhcollect(key, value)
       }
     )
   })
 })
 job.air$setup <- expression(
   map = {
-    suppressMessages(library(plyr,lib.loc = lib.loc))
-    suppressMessages(library(ncdf,lib.loc = lib.loc))
+    suppressMessages(library(plyr, lib.loc = lib.loc))
+    suppressMessages(library(ncdf, lib.loc = lib.loc))
   }
 )
 job.air$parameters <- list(
@@ -210,8 +212,10 @@ job.sfc.air$map <- expression({
           time <- t - bound[month, "day"] 
           ##find the time in month for a given time
         }
-        key <- paste(year, sprintf("%02d", month), sprintf("%03d", time), sep = "")          
-        rhcollect(key, k[, !(names(k) %in% "time")])
+        key <- paste(year, sprintf("%02d", month), sprintf("%03d", time), sep = "") 
+        value <- k[, !(names(k) %in% "time")]
+        attr(value, "file") <- par$myfolder         
+        rhcollect(key, value)
       }
     )
   rm(list = ls())
