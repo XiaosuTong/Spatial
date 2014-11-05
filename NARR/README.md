@@ -37,6 +37,15 @@ climate model throughout the entire reanalysis period in order to reduce the aff
 changes on climate statistics. Observations are from many different sources including ships, 
 satellites, ground stations, RAOBS, and radar.
 
+Reanalysis of past weather data presents a clear picture of past weather, independent of the many 
+varieties of instruments used to take measurements over the years. Through a variety of methods, 
+observations from various instruments are added together onto a regularly spaced grid of data. 
+Placing all instrument observations onto a regularly spaced grid makes comparing the actual 
+observations with other gridded datasets easier. In addition to putting observations onto a grid, 
+reanalysis also holds the gridding model constant—it doesn't change the programming—keeping the 
+historical record uninfluenced by artificial factors. Reanalysis helps ensure a level playing field 
+for all instruments throughout the historical record.
+
 ### Key Strengths: ###
 *  Global data sets, consistent spatial and temporal resolution over 3 or more decades, hundreds of 
 variables available; model resolution and biases have steadily improved
