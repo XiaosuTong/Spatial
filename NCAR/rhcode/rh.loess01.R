@@ -26,6 +26,7 @@ if(par$dataset == "precip"){
 }
 info$fack <- rep(1, nrow(info))
 dyn.load("~/Projects/Spatial/NCAR/myloess/shareLib/myloess2.so")
+##using loess2 here is to get the ke-tree info for the data
 par$kdwhole <- my.loess2(
 	fack ~ lon + lat, 
 	data    = info, 
@@ -50,6 +51,7 @@ job$map <- expression({
 		get(par$dataset), 
 		year == y & month == m
 	)[, c("station.id", "elev", "lon", "lat", par$dataset)]
+	##using loess1 here is to do exactly fit at those vertices based on given data
 	lo.fit <- my.loess1( get(par$dataset) ~ lon + lat, 
 		data    = v, 
 		degree  = par$degree, 

@@ -3,7 +3,9 @@
 # except using different simpleLoess function. In my.simple function, remove
 # the interpolation step which fit the loess at data point. Only save useful list
 # object which will be necessary for predict.loess function.
-#
+# loess1 is only used for exactly fitting using predict.loess.
+# We have to specify control = loess.control(surface = "direct") in predict.loess
+
 dyn.load("~/Github/Spatial/NCAR/myloess/shareLib/myloess1.so")
 my.loess1 <- function (formula, data, weights, subset, na.action, model = FALSE, 
     span = 0.75, enp.target, degree = 2L, parametric = FALSE, 

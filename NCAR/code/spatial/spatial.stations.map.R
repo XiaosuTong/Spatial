@@ -82,10 +82,15 @@ data2 <- data2[!is.na(data2$precip),c("station.id", "lat", "lon")]
 data3 <- subset(USppt, year=="1982"&month=="Feb")
 data3 <- data3[!is.na(data3$precip),c("station.id", "lat", "lon")]
 miss <- data1[!(data1$station.id %in% data2$station.id),]
-miss$group <- "miss"
+miss$group <- "miss" #miss is the stations that active in Dec 1981 but not in Jan 1982
+add <- data2[!(data2$station.id %in% data1$station.id),]
+add$group <- "add" #add is the stations that active in Jan 1982 but not in Dec 1981
 addback <- data3[!(data3$station.id %in% data2$station.id),]
-addback$group <- "addback"
-data <- rbind(addback, miss)
+miss2 <- data2[!(data2$station.id %in% data3$station.id),]
+miss2$group <- "miss2" #miss2 is the stations that active in Jan 1982 but not in Feb 1982
+addback$group <- "addback"#addback is the stations that active in Feb 1982 but not in Jan1982
+data <- rbind(addback, miss, add, miss2)
+data$group <- factor(data$group)
 trellis.device(
     postscript, 
     file = paste(
@@ -103,13 +108,15 @@ a <- xyplot(
     main = "Spatial Location of Precipitation Stations",
     layout = c(1,1),
     key = list(
-        columns = 2, 
-        points = list(pch=c(1,16), col = col[1:2]), 
-        text = list(label=c("Dec 1981","Feb 1982"))
+        columns = 4, 
+        points = list(pch=c(1,16,1,16), col = col[c(1,3,4,2)]), 
+        text = list(label=c("Jan 1982 Missed","Jan 1982 Added", "Feb 1982 Missed", 
+            "Feb 1982 Added")#miss add miss2 addback
+        )
     ),
     groups = group,
-    col = col[2:1],
-    pch = c(16,1),
+    col = col[c(3,2,1,4)], ##add addback miss miss2
+    pch = c(16,16,1,1),
     cex = 0.7,
     panel = function(...) {
         panel.polygon(us.map$x,us.map$y)   

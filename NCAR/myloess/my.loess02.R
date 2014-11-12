@@ -1,5 +1,7 @@
-##my.loess02 is used to get the vertices of kd-tree
-##dynamic load a shared library file .so
+## my.loess02 is used to get the vertices of kd-tree
+## and then do interpolation based on the kd-tree 
+## dynamic load a shared library file .so
+
 dyn.load("~/Github/Spatial/NCAR/myloess/shareLib/myloess2.so")
 #source("my.loess01.R")
 
