@@ -87,7 +87,7 @@ rhsave(
 tmin.100stations <- subset(tmin, station.id %in% stations.tmin)
 rhsave(
     list = ("tmin.100stations"), 
-    file = file.path(rh.datadir, "tmin","100stations","Rdata","tmin.100stations.RData", sep="")
+    file = file.path(rh.datadir, "tmin","100stations","Rdata","tmin.100stations.RData")
 )
 rm("tmin", "tmp", "tmin.100stations")
 
@@ -132,7 +132,17 @@ rhsave(
 precip.100stations <- subset(precip, station.id %in% stations.precip)
 rhsave(
     list = ("precip.100stations"), 
-    file = file.path(rh.datadir, "precip","100stations","Rdata","precip.100stations.RData", sep="")
+    file = file.path(rh.datadir, "precip","100stations","Rdata","precip.100stations.RData")
 )
-rm("tmin", "tmp", "tmin.100stations")
+rm("precip", "tmp", "precip.100stations")
 
+#################################
+##Create the RData for after1950
+#################################
+load(file.path(local.datadir,"USmonthlyMet.RData"))
+load(file.path(local.datadir, "stations.a1950.RData"))
+tmax.a1950 <- subset(UStemp, station.id %in% stations.a1950.tmax & year >= 1950)[, -8]
+rhsave(
+  list = ("tmax.a1950"),
+  file = file.path(rh.datadir, "tmax", "a1950", "Rdata", "tmax.a1950.RData")
+)
