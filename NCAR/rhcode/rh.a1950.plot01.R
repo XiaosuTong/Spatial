@@ -24,10 +24,6 @@ time <- data.frame(
 t <- time[c(rep(1:nrow(time), each=nrow(rst[[1]][[2]]))), ]
 names(t) <- c("year", "month")
 result <- cbind(t, do.call("rbind", lapply(rst, "[[", 2)))
-## 24lat + 10lon = -400 is the line to cut off the left lower corner
-## 13lat - 20lon = 1925 is the line to cut off the right lower corner
-instate <- !is.na(map.where("state", result$lon, result$lat))
-result <- result[instate, ]
 result$month <- factor(
 	result$month, 
 	levels = c(
@@ -36,7 +32,7 @@ result$month <- factor(
 	)
 )
 result <- result[order(result$lon, result$lat),]
-result$location <- factor(rep(1:812, each = 576))
+result$location <- factor(rep(1:nrow(rst[[1]][[2]]), each = 576))
 
 ## contour plot of smoothing residuals from spatial loess
 trellis.device(
@@ -91,7 +87,7 @@ qqmath(~ resid.fit | location,
 	aspect = 1,
 	cex  = 0.5,
 	xlab = list(label = "Unit normal quantile"),
-	ylab = list(label = "Smoothing Loess Residuals", cex=1.2),
+	ylab = list(label = "Smoothing Loess Residuals"),
 	prepanel = prepanel.qqmathline,
 	panel = function(x, y,...) {
 			panel.grid()

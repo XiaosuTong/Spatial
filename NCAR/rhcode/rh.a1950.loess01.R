@@ -54,8 +54,8 @@ job$map <- expression({
 		span    = par$span
 	)
 	new.grid <- expand.grid(
-		lon = seq(-124, -67, by = 1),
-		lat = seq(25, 49, by = 1)
+		lon = seq(-124, -67, by = 0.5),
+		lat = seq(25, 49, by = 0.5)
 	)
 	grid.fit <- my.predict.loess(
 		object = resid.fit,
@@ -65,13 +65,16 @@ job$map <- expression({
 		)
 	)
 	new.grid$resid.fit <- grid.fit
-	rhcollect(c(y, m), new.grid)
+	instate <- !is.na(map.where("state", new.grid$lon, new.grid$lat))
+	value <- new.grid[instate, ]
+	rhcollect(c(y, m), value)
   })
 })
 job$setup <- expression(
 	map = {
 		dyn.load("/home/shaula/u16/tongx/Projects/Spatial/NCAR/myloess/shareLib/myloess2.so")
 	  load(paste(par$dataset, "a1950", "RData", sep="."))
+	  library(maps, lib.loc = lib.loc)
 	}
 )
 job$shared <- c(
