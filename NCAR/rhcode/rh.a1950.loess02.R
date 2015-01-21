@@ -6,8 +6,8 @@
 # my.loess02 is the loess function that calculate kd-tree 
 # nodes, and all necessary information for interpolation
 
-#"/ln/tongx/Spatial/tmp/tmax/spatial/a1950/loess01"
-#is the span=0.05, degree=2 of residuals for grid points
+#"/ln/tongx/Spatial/tmp/tmax/spatial/a1950/loess02"
+#is the span=0.05, degree=2 with residuals only for stations
 
 source("~/Rhipe/rhinitial.R")
 par <- list()
@@ -49,36 +49,21 @@ job$map <- expression({
 	)
 	v$fitted <- fit
 	v <- v[!is.na(v[[par$dataset]]), ] ## remove all NA for residual calculation
-	resid.fit <- my.loess2( (get(par$dataset)-fitted) ~ lon + lat,
-		data = v,
-		degree  = par$degree, 
-		span    = par$span
-	)
-	new.grid <- expand.grid(
-		lon = seq(-124, -67, by = 0.5),
-		lat = seq(25, 49, by = 0.5)
-	)
-	grid.fit <- my.predict.loess(
-		object = resid.fit,
-		newdata = data.frame(
-			lon = new.grid$lon,
-			lat = new.grid$lat
-		)
-	)
-	new.grid$resid.fit <- grid.fit
-	instate <- !is.na(map.where("state", new.grid$lon, new.grid$lat))
-	value <- new.grid[instate, ]
-	rhcollect(c(y, m), value)
+	rhcollect(c(y, m), v)
   })
 })
 job$setup <- expression(
 	map = {
-		dyn.load("/home/shaula/u16/tongx/Projects/Spatial/NCAR/myloess/shareLib/myloess2.so")
+		system("chmod 777 myloess2.so")
+		dyn.load("myloess2.so")
 	  load(paste(par$dataset, "a1950", "RData", sep="."))
 	  library(maps, lib.loc = lib.loc)
 	}
 )
 job$shared <- c(
+	file.path(
+		rh.datadir, par$dataset, "shareRLib", "myloess2.so"
+	),
 	file.path(
 		rh.datadir, par$dataset, "a1950", "Rdata", 
 		paste(par$dataset, "a1950", "RData", sep=".")
@@ -93,7 +78,7 @@ job$parameters <- list(
 )
 job$input <- c(par$N, 100) 
 job$output <- rhfmt(
-	file.path(rh.datadir, par$dataset, "spatial", "a1950", "loess01"), 
+	file.path(rh.datadir, par$dataset, "spatial", "a1950", "loess02"), 
 	type = "sequence"
 )
 job$mapred <- list(
@@ -101,6 +86,6 @@ job$mapred <- list(
 	rhipe_reduce_buff_size = 10000
 )
 job$mon.sec <- 5
-job$jobname <- file.path(rh.datadir, par$dataset, "spatial", "a1950", "loess01")
+job$jobname <- file.path(rh.datadir, par$dataset, "spatial", "a1950", "loess02")
 job$readback <- FALSE
 job.mr <- do.call("rhwatch", job)

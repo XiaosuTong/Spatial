@@ -49,7 +49,7 @@ job$map <- expression({
 job$setup <- expression(
 	map = {
 		dyn.load("myloess2.so")
-	    load(paste(par$dataset, "RData", sep="."))
+	  load(paste(par$dataset, "RData", sep="."))
 	}
 )
 job$shared <- c(
