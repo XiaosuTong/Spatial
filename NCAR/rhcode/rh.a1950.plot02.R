@@ -27,6 +27,38 @@ result$month <- factor(
 	)
 )
 ## QQ plot of residuals overall
+result <- result[order(result$residual), ]
+result <- result[!is.na(result$residual), ]
+resid <- result[round(seq(1, nrow(result), length.out = 1000)), ]
+resid$f.value <- (round(seq(1, nrow(result), length.out = 1000)) - 0.5) / nrow(result)
+resid$qnorm <- qnorm(resid$f.value)
+
+trellis.device(
+	postscript, 
+	file = paste(
+		local.output, "/a1950.loess.resid.qq.overall.", 
+		par$dataset, ".ps", sep = ""
+	), 
+	color = TRUE,
+	paper = "legal"
+)
+a <- xyplot( residual ~ qnorm ,
+	data = resid,
+	pch  = 16,
+	aspect = 1,
+	cex  = 0.5,
+	xlab = list(label = "Unit normal quantile"),
+	ylab = list(label = "Loess residuals"),
+	panel = function(x, y,...) {
+			panel.grid(h=-1,v=-1)
+			panel.xyplot(x,y,...)
+			panel.qqmathline(y, y=y,...)
+	}
+)
+print(a)
+dev.off()
+
+##quantile plot of residuals overall
 trellis.device(
 	postscript, 
 	file = paste(
@@ -36,24 +68,21 @@ trellis.device(
 	color = TRUE,
 	paper = "legal"
 )
-a <- qqmath(~ residual,
-	data = result,
-	distribution = qnorm,
-# par.settings = list(layout.heights = list(strip = 1.5)),
+a <- xyplot( residual ~ f.value ,
+	data = resid,
 	pch  = 16,
 	aspect = 1,
 	cex  = 0.5,
-	xlab = list(label = "Unit normal quantile"),
-	ylab = list(label = "Loess Residuals"),
-	prepanel = prepanel.qqmathline,
+	xlab = list(label = "f-value"),
+	ylab = list(label = "Loess residuals"),
 	panel = function(x, y,...) {
-			panel.grid()
-			panel.qqmathline(x, y=x)
-			panel.qqmath(x, y, ...)
+			panel.grid(h=-1,v=-1)
+			panel.xyplot(x,y,...)
 	}
 )
 print(a)
 dev.off()
+
 
 ## QQ plot of residuals for each location
 # order stations by the diviation from the normal distribution
@@ -296,7 +325,9 @@ for(i in sort(unique(result$year))) {
 dev.off()
 
 ## compare the stl fit with spatial loess fit 
-rst <- rhread(file.path(rh.datadir, par$dataset, "spatial", "a1950", "loess02.bystation.stl"))
+rst <- rhread(
+	file.path(rh.datadir, par$dataset, "spatial", "a1950", "loess02.bystation.stl")
+)
 result <- do.call("rbind", lapply(rst, "[[", 2))
 result$spatial.r <- result$tmax - result$fitted
 result$stl.r <- result$tmax - result$stlfit
