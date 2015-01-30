@@ -30,9 +30,6 @@ my.loess2 <- function (formula, data, weights, subset, na.action, model = FALSE,
         stop("predictors must all be numeric")
     x <- as.matrix(x)
     D <- ncol(x) 
-    if(D != 2) {
-        stop("dimension must be 2 in spatial loess")
-    }
     nmx <- colnames(x)
     names(nmx) <- nmx
     drop.square <- match(nmx, nmx[drop.square], 0L) > 0L 
@@ -110,6 +107,8 @@ my.simple2 <- function (y, x, weights, span = 0.75, degree = 2L, parametric = FA
         stop("specified the square of a predictor to be dropped with only one numeric predictor")
     if (sum.parametric == D) 
         stop("specified parametric for all predictors")
+    if((D - sum.parametric) != 2) 
+        stop("dimension for distance must be 2 in spatial loess")
     if (iterations) 
         for (j in seq_len(iterations)) {
             robust <- weights * robust

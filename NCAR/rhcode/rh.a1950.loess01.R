@@ -73,7 +73,8 @@ job$map <- expression({
 })
 job$setup <- expression(
 	map = {
-		dyn.load("/home/shaula/u16/tongx/Projects/Spatial/NCAR/myloess/shareLib/myloess2.so")
+		system("chmod 777 myloess2.so")
+		dyn.load("myloess2.so")
 	  load(paste(par$dataset, "a1950", "RData", sep="."))
 	  library(maps, lib.loc = lib.loc)
 	}

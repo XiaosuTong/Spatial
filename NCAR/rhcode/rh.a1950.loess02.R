@@ -1,6 +1,5 @@
 ########################################################
 ## spatial loess fit at all stations after 1950 
-## evaluate the residuals at grid points
 ########################################################
 
 # my.loess02 is the loess function that calculate kd-tree 
@@ -48,7 +47,6 @@ job$map <- expression({
     )
 	)
 	v$fitted <- fit
-	v <- v[!is.na(v[[par$dataset]]), ] ## remove all NA for residual calculation
 	rhcollect(c(y, m), v)
   })
 })
@@ -87,5 +85,174 @@ job$mapred <- list(
 )
 job$mon.sec <- 5
 job$jobname <- file.path(rh.datadir, par$dataset, "spatial", "a1950", "loess02")
+job$readback <- FALSE
+job.mr <- do.call("rhwatch", job)
+
+## change the key from c(year, month) to station.id
+job <- list()
+job$map <- expression({
+	lapply(seq_along(map.values), function(r) {
+		map.values[[r]]$time <- (as.numeric(map.keys[[r]][1]) - 1950)*12 
+			+ match(substr(map.keys[[r]][2],1,3), month.abb)
+		map.values[[r]]$year <- map.keys[[r]][1]
+		map.values[[r]]$month <- map.keys[[r]][2]
+		lapply(1:dim(map.values[[r]])[1], function(i){
+			value <- map.values[[r]][i, ]
+			rhcollect(as.character(value$station.id), value)
+		})
+	})
+})
+job$reduce <- expression(
+	pre = {
+		combined <- data.frame()
+	},
+	reduce = {
+		combined <- rbind(combined, do.call(rbind, reduce.values))
+	},
+	post = {
+		if(nrow(combined) >= 50){
+			rhcollect(reduce.key, combined)
+		}
+	}
+)
+job$input <- rhfmt(
+	file.path(rh.datadir, par$dataset, "spatial", "a1950", "loess02"), 
+	type = "sequence"
+) 
+job$output <- rhfmt(
+	file.path(rh.datadir, par$dataset, "spatial", "a1950", "loess02.bystation"), 
+	type = "sequence"
+)
+job$mapred <- list(
+	mapred.reduce.tasks = 72
+)
+job$mon.sec <- 5
+job$jobname <- file.path(rh.datadir, par$dataset, "spatial", "a1950", "loess02.bystation")
+job$readback <- FALSE
+job.mr <- do.call("rhwatch", job)
+
+## calculate the stl2 fitting for each station
+parameter <- list(
+	sw = "periodic",
+	tw = 865,
+	sd = 1,
+	td = 1,
+	fcw = 865,
+	fcd = 1,
+	ssw = 111,
+	ssd = 1
+) 
+job <- list()
+job$map <- expression({
+	lapply(seq_along(map.values), function(r) {
+		map.values[[r]] <- map.values[[r]][order(map.values[[r]]$time), ]
+		cycleSubIndices <- rep(c(1:12), ceiling(nrow(map.values[[r]])/12))[1:nrow(map.values[[r]])]
+
+		if(sum(!is.na(map.values[[r]][[dataset]])) > 50 &
+			all(by(map.values[[r]][[dataset]], list(cycleSubIndices), function(x) any(!is.na(x))))
+		) {
+			v.stl <- do.call("cbind", 
+      	stl2(
+          x = map.values[[r]][[dataset]], 
+          t = map.values[[r]]$time, 
+          n.p = 12, 
+          s.window = sw, 
+          s.degree = sd, 
+          t.window = tw, 
+          t.degree = td, 
+          fc.window = c(fcw, ssw), 
+          fc.degree = c(fcd, ssd), 
+          inner = inner, 
+          outer = outer
+      	)[c("data","fc")]
+    	)
+			names(v.stl)[grep("fc.fc", names(v.stl))] <- c("fc.trend", "fc.seasonal")
+			v.stl$fit <- v.stl$data.seasonal + v.stl$fc.trend + v.stl$fc.seasonal
+			value <- map.values[[r]]
+			value$stlfit<- v.stl$fit
+			value <- value[!is.na(value[[dataset]]), ]
+			rhcollect(sample(1:100, 1), value)
+		}
+	})
+})
+job$reduce <- expression(
+	pre = {
+		combined <- data.frame()
+	},
+	reduce = {
+		combined <- rbind(combined, do.call(rbind, reduce.values))
+	},
+	post = {
+		rhcollect(reduce.key, combined)
+	}
+)
+job$parameters <- list(
+  sw = parameter[["sw"]], 
+  tw = parameter[["tw"]], 
+  sd = parameter[["sd"]], 
+  td = parameter[["td"]],
+  fcw = parameter[["fcw"]], 
+  fcd = parameter[["fcd"]], 
+  ssw = parameter[["ssw"]], 
+  ssd = parameter[["ssd"]], 
+  inner = 10, 
+  outer = 0, 
+  dataset = par$dataset
+)
+job$setup <- expression(
+  map = {
+    library(lattice)
+    library(yaImpute, lib.loc = lib.loc)
+    library(stl2, lib.loc = lib.loc)
+  }
+)
+job$input <- rhfmt(
+	file.path(rh.datadir, par$dataset, "spatial", "a1950", "loess02.bystation"), 
+	type = "sequence"
+) 
+job$output <- rhfmt(
+	file.path(rh.datadir, par$dataset, "spatial", "a1950", "loess02.bystation.stl"), 
+	type = "sequence"
+)
+job$mapred <- list(
+	mapred.reduce.tasks = 72
+)
+job$mon.sec <- 5
+job$jobname <- file.path(rh.datadir, par$dataset, "spatial", "a1950", "loess02.bystation.stl")
+job$readback <- FALSE
+job.mr <- do.call("rhwatch", job)
+
+
+## group all stations to 10 groups
+job <- list()
+job$map <- expression({
+	lapply(seq_along(map.values), function(r){
+		rhcollect(sample(1:10,1), map.values[[r]])
+	})
+})
+job$reduce <- expression(
+	pre = {
+		combined <- data.frame()
+	},
+	reduce = {
+		combined <- rbind(combined, do.call(rbind, reduce.values))
+	},
+	post = {
+		rhcollect(reduce.key, combined)
+	}
+)
+job$input <- rhfmt(
+	file.path(rh.datadir, par$dataset, "spatial", "a1950", "loess02.bystation"), 
+	type = "sequence"
+) 
+job$output <- rhfmt(
+	file.path(rh.datadir, par$dataset, "spatial", "a1950", "loess02.bystation.10pc"), 
+	type = "sequence"
+)
+job$mapred <- list(
+	mapred.reduce.tasks = 10
+)
+job$mon.sec <- 5
+job$jobname <- file.path(rh.datadir, par$dataset, "spatial", "a1950", "loess02.bystation.10pc")
 job$readback <- FALSE
 job.mr <- do.call("rhwatch", job)
