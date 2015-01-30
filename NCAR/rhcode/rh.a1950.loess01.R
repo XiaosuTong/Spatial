@@ -81,6 +81,9 @@ job$setup <- expression(
 )
 job$shared <- c(
 	file.path(
+		rh.datadir, par$dataset, "shareRLib", "myloess2.so"
+	),
+	file.path(
 		rh.datadir, par$dataset, "a1950", "Rdata", 
 		paste(par$dataset, "a1950", "RData", sep=".")
 	)
