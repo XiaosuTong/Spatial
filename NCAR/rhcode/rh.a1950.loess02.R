@@ -110,7 +110,7 @@ job$reduce <- expression(
 		combined <- rbind(combined, do.call(rbind, reduce.values))
 	},
 	post = {
-		if(nrow(combined) >= 50){
+		if(sum(!is.na(combined$tmax)) >= 50){
 			rhcollect(reduce.key, combined)
 		}
 	}

@@ -109,7 +109,7 @@ result$station.id <- factor(result$station.id, levels=od)
 trellis.device(
 	postscript, 
 	file = paste(
-		local.output, "/a1950.loess.resid.dist.bystation2.", #bystation is ordered by mean, bystation2 is ordered by lat and lon
+		local.output, "/a1950.loess.resid.dist.bystation.", #bystation is ordered by mean, bystation2 is ordered by lat and lon
 		par$dataset, ".ps", sep = ""
 	), 
 	color = TRUE,
@@ -178,16 +178,16 @@ trellis.device(
 	paper = "legal"
 )
 a <- xyplot(residual ~ fitted | month*year,
-	data = result,
-	layout = c(4,3),
+	data = result, 
+	layout = c(12,1),
 #  par.settings = list(layout.heights = list(strip = 1.5)),
 	pch  = 16,
-#  aspect = "xy",
 	cex  = 0.2,
+	scale = list(x=list(relation = "free", tick.number = 3)),
 	ylab = list(label = "Loess Residuals"),
-	xlab = list(label = "LOess Fitted Value"),
+	xlab = list(label = "Loess Fitted Value"),
 	panel = function(x, y,...) {
-			panel.xyplot(x, y, ...)
+		panel.xyplot(x, y, ...)
 	}
 )
 print(a)
@@ -209,13 +209,12 @@ trellis.device(
 	paper = "legal"
 )
 a <- xyplot( residual ~ fitted | station.id,
-	data = result, 
+	data = result,
 	layout = c(4,3),
 #  par.settings = list(layout.heights = list(strip = 1.5)),
 	pch  = 16,
-#  aspect = "xy",
-	cex  = 0.2,
-#	scale = list(y=list(relation="free")),
+	cex  = 0.3,
+	scale = list(y=list(relation="free")),
 	ylab = list(label = "Loess Residuals"),
 	xlab = list(label = "Loess Fitted Value"),
 	panel = function(x, y,...) {
