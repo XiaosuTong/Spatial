@@ -47,6 +47,7 @@ job$map <- expression({
     )
 	)
 	v$fitted <- fit
+	v$station.id <- as.character(v$station.id)
 	rhcollect(c(y, m), v)
   })
 })
@@ -92,8 +93,8 @@ job.mr <- do.call("rhwatch", job)
 job <- list()
 job$map <- expression({
 	lapply(seq_along(map.values), function(r) {
-		map.values[[r]]$time <- (as.numeric(map.keys[[r]][1]) - 1950)*12 
-			+ match(substr(map.keys[[r]][2],1,3), month.abb)
+		m <- match(substr(map.keys[[r]][2],1,3), month.abb)
+		map.values[[r]]$time <- (as.numeric(map.keys[[r]][1]) - 1950)*12 + m
 		map.values[[r]]$year <- map.keys[[r]][1]
 		map.values[[r]]$month <- map.keys[[r]][2]
 		lapply(1:dim(map.values[[r]])[1], function(i){
@@ -242,17 +243,23 @@ job$reduce <- expression(
 	}
 )
 job$input <- rhfmt(
-	file.path(rh.datadir, par$dataset, "spatial", "a1950", "loess02.bystation"), 
+	file.path(
+		rh.datadir, par$dataset, "spatial", "a1950", "loess02.bystation"
+	), 
 	type = "sequence"
 ) 
 job$output <- rhfmt(
-	file.path(rh.datadir, par$dataset, "spatial", "a1950", "loess02.bystation.10pc"), 
+	file.path(
+		rh.datadir, par$dataset, "spatial", "a1950", "loess02.bystation.10pc"
+	), 
 	type = "sequence"
 )
 job$mapred <- list(
 	mapred.reduce.tasks = 10
 )
 job$mon.sec <- 5
-job$jobname <- file.path(rh.datadir, par$dataset, "spatial", "a1950", "loess02.bystation.10pc")
+job$jobname <- file.path(
+	rh.datadir, par$dataset, "spatial", "a1950", "loess02.bystation.10pc"
+)
 job$readback <- FALSE
 job.mr <- do.call("rhwatch", job)

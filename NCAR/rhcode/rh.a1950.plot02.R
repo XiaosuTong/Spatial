@@ -13,7 +13,8 @@ source("~/Rhipe/rhinitial.R")
 par <- list()
 par$machine <- "gacrux"
 par$dataset <- "tmax"
-par$loess <- "loess02.bystation.10pc"
+#par$loess <- "loess02.bystation.10pc"
+par$loess <- "loess04.bystation.10pc"
 source("~/Projects/Spatial/NCAR/rhcode/rh.setup.R")
 
 rst <- rhread(file.path(rh.datadir, par$dataset, "spatial", "a1950", par$loess))
@@ -98,7 +99,7 @@ myfun <- function(data){
 result$station.id <- reorder(
 	result$station.id, 
 	result$residual, 
-	function(r){abs(mean(r))}
+	function(r){abs(mean(r, na.rm=TRUE))}
 )
 #or order stations by the lat and lon
 od <- as.character(
@@ -178,25 +179,40 @@ trellis.device(
 	paper = "legal"
 )
 a <- xyplot(residual ~ fitted | month*year,
-	data = result, 
-	layout = c(12,1),
-#  par.settings = list(layout.heights = list(strip = 1.5)),
+	data = result,
+	layout = c(1,1),
+  key=list(
+    text = list(label=c(
+      "residuals",
+      "loess smoothing: span=0.75, degree=2 "
+    )),
+    lines = list(
+      pch=c(".",""), 
+      cex=4, 
+      lwd=1.5, 
+      type=c("p","l"), 
+      col=col[1:2]
+    ), 
+    columns = 2
+  ),
 	pch  = 16,
-	cex  = 0.2,
-	scale = list(x=list(relation = "free", tick.number = 3)),
+	cex  = 0.5,
+	scale = list(x=list(relation = "free")),
 	ylab = list(label = "Loess Residuals"),
 	xlab = list(label = "Loess Fitted Value"),
 	panel = function(x, y,...) {
 		panel.xyplot(x, y, ...)
+		panel.abline(h=0, col="black", lwd = 0.5, lty=1)
+		panel.loess(x,y,span=0.75,degree=2,col=col[2],...)
 	}
 )
 print(a)
 dev.off()
 
 result$station.id <- reorder(
-	result$station.id, 
+	as.character(result$station.id), 
 	result$residual, 
-	function(r){abs(mean(r))}
+	function(r){abs(mean(r, na.rm = TRUE))}
 )
 ## scatter plot residual against fitted value for each station
 trellis.device(
@@ -224,19 +240,19 @@ a <- xyplot( residual ~ fitted | station.id,
 print(a)
 dev.off()
 
-## scatter plot of residual/fitted over time for each station
+## scatter plot of residual over time for each station
 trellis.device(
 	postscript, 
 	file = paste(
-		local.output, "/a1950.loess.fit.vs.time.bystation.", 
+		local.output, "/a1950.loess.resid.vs.time.bystation.", 
 		par$dataset, ".ps", sep = ""
 	), 
 	color = TRUE,
 	paper = "legal"
 )
-for(i in unique(result$station.id)) {
-  a <- xyplot(fitted ~ time | cut(time, seq(0, 600,by=120)),
-  	data = subset(result, station.id == i),
+for(i in levels(result$station.id)) {
+  a <- xyplot(residual ~ time | cut(time, seq(0, 600,by=120)),
+  	data = subset(result, station.id == i & !is.na(residual)),
 		layout = c(1,5),
 		strip = FALSE,
 		pch  = 16,
@@ -263,6 +279,64 @@ for(i in unique(result$station.id)) {
 		},
 		panel = function(x, y,...) {
 			panel.xyplot(x, y,...)
+			panel.abline(h=0, col="red", lty=2, lwd=0.8)
+		}
+	)
+  print(a)
+}
+dev.off()
+
+od <- as.character(
+	unique(result[order(result$lon, result$lat, decreasing = TRUE), ]$station.id)
+)
+result$station.id <- factor(result$station.id, levels=od)
+#scatter plot of fit over time for each station
+trellis.device(
+	postscript, 
+	file = paste(
+		local.output, "/a1950.loess.fit.vs.time.bystation.", 
+		par$dataset, ".ps", sep = ""
+	), 
+	color = TRUE,
+	paper = "legal"
+)
+for(i in levels(result$station.id)) {
+	data <- subset(result, station.id == i)
+  a <- xyplot(fitted ~ time | cut(time, seq(0, 600,by=120)),
+  	data = data,
+		layout = c(1,5),
+		strip = FALSE,
+  	aspect = "xy",
+		scale = list(
+			y = list(
+				relation = "same", 
+				alternating = TRUE
+			),
+			x = list(
+				at = seq(0, 576, by = 12),
+				relation = "free",
+				axs = "r"
+			)
+		),
+  	main = list(label = paste("Station", i)),
+		ylab = list(label = "Loess Fitted Value"),
+		xlab = list(label = "Month"),
+		prepanel = function(x ,y, subscripts, ...){
+			index <- findInterval(mean(x), c(0,121,241,361,481,600))
+			lim <- list(c(0, 120), c(121, 240), c(241, 360), c(361, 480), c(481, 600))
+			list(xlim = lim[[index]], ylim = range(y, data[subscripts,]$tmax))
+		},
+		panel = function(x, y, subscripts ,...) {
+      panel.xyplot(
+      	x = sort(x), 
+      	y = y[order(x)], 
+      	type="b", col=col[2], pch=16,cex =0.5,lwd=1, ...
+      )
+			panel.xyplot(
+				x = data[subscripts,]$time, 
+				y = data[subscripts,]$tmax,
+				type="p", col=col[1], cex=0.5, ...
+			)
 		}
 	)
   print(a)
@@ -273,7 +347,7 @@ dev.off()
 trellis.device(
 	postscript, 
 	file = paste(
-		local.output, "/a1950.loess.resid.vs.lat.bytime.", 
+		local.output, "/a1950.loess.resid.vs.lon.bytime.", 
 		par$dataset, ".ps", sep = ""
 	), 
 	color = TRUE,
@@ -281,10 +355,10 @@ trellis.device(
 )
 for(i in sort(unique(result$year))) {
 	for(j in levels(result$month)) {
-		a <- xyplot(residual ~ lat | equal.count(lon, 20, overlap=0),
+		a <- xyplot(residual ~ lon | equal.count(lat, 20, overlap=0),
 			data = subset(result, year == i & month == j),
 			layout = c(10,2), #for vs.lon layout is c(10,2)
-			strip=strip.custom(var.name = "Longitude", strip.levels=rep(FALSE, 2)),
+			strip=strip.custom(var.name = "Latitude", strip.levels=rep(FALSE, 2)),
 			pch  = 16,
 			cex  = 0.4,
 			scale = list(
@@ -309,7 +383,7 @@ for(i in sort(unique(result$year))) {
     	),
   		main = list(label = paste(i, j)),
 			ylab = list(label = "Loess Residuals"),
-			xlab = list(label = "Latitude"),
+			xlab = list(label = "Longitude"),
 			prepanel = function(x,y,...) {
 				prepanel.loess(x, y, span = 3/4, degree=2)
 			},

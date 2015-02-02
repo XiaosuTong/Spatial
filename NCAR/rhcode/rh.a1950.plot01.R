@@ -14,7 +14,7 @@ source("~/Rhipe/rhinitial.R")
 par <- list()
 par$machine <- "gacrux"
 par$dataset <- "tmax"
-par$loess <- "loess01"
+par$loess <- "loess03.elev"
 source("~/Projects/Spatial/NCAR/rhcode/rh.setup.R")
 
 rst <- rhread(file.path(rh.datadir, par$dataset, "spatial", "a1950", par$loess))
@@ -33,13 +33,12 @@ result$month <- factor(
 	)
 )
 result <- result[order(result$lon, result$lat),]
-result$location <- factor(rep(1:nrow(rst[[1]][[2]]), each = 576))
 
 ## contour plot of smoothing residuals from spatial loess
 trellis.device(
 	postscript, 
 	file = paste(
-		local.output, "/a1950.contour.loess.resid.", 
+		local.output, "/a1950.contour.loess.resid.elev2.", 
 		par$dataset, ".ps", sep = ""
 	), 
 	color = TRUE,
