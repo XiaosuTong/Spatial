@@ -183,6 +183,24 @@ trellis.device(postscript, file = paste(outputdir, "scatterplot_of_", dataset, "
         )
         print(b)
      }
+     for(i in stations){
+        b <- xyplot( fc.remainder ~ year | month,
+             data = subset(tmp.remainder,station.id==i),
+             xlab = list(label = "Year", cex = 1.2),
+             ylab = list(label = paste("Station", i, ylab, sep=" "), cex = 1.2),
+             pch=16,
+             cex=0.5,
+             type="b",
+             layout = c(2,6),
+             strip = TRUE,
+             scales = list(y = list(relation = 'same', alternating=TRUE), x=list(tick.number=10, relation='same')),
+             panel = function(x,y,...){
+                panel.abline(h=0, color="black", lty=1)
+                panel.xyplot(x,y,...)
+             }
+        )
+        print(b)
+     }
 dev.off()
 
 
