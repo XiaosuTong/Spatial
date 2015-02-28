@@ -60,22 +60,3 @@ save(
 	), 
 	file=paste(datadir, "stations.100.RData", sep="")
 )
-
-## find the stations at list have one obs after given year for given variable
-find.stations <- function(dataset, variable, y = 1950, na = TRUE) {
-	tmp <- subset(dataset, year >= y)
-	if(na){
-		tmp <- tmp[!is.na(tmp[[variable]]),]
-	}
-	tmp$station.id <- as.character(tmp$station.id)
-	stations <- unique(tmp$station.id)
-}
-
-stations.a1950.tmax <- find.stations(UStemp, "tmax")
-stations.a1950.tmin <- find.stations(UStemp, "tmin")
-save(
-	list = c(
-		"stations.a1950.tmax", "stations.a1950.tmin"
-	),
-	file = paste(datadir, "stations.a1950.RData", sep="")
-)
