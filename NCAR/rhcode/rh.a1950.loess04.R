@@ -1,21 +1,38 @@
 ########################################################
-## spatial loess fit at all stations after 1950 with 
+## spatial loess fit at all stations after 1950  with 
 ## elevation as conditional parameter 
-########################################################
-
-# my.loess02 is the loess function that calculate kd-tree 
-# nodes, and all necessary information for interpolation
-
-#"/ln/tongx/Spatial/tmp/tmax/spatial/a1950/loess04"
-#is the span=0.05, degree=2 with residuals only for stations
-#with elevation in the model as condtional parametric
-
+## includes all stations 7,738. All stations will be used
+## for plotting condtional on year*month
+##
+##  - my.loess02 is the loess function that calculate kd-tree 
+##    nodes, and all necessary information for interpolation
+##
+##  - loess04:
+##      "/ln/tongx/Spatial/tmp/tmax/spatial/a1950/family/span/loess04"
+##      is key-value pairs that key is c(year, month), value is loess 
+##      fit with family, degree, and span w/ elevation at that month.
+##
+##  - loess04.bystation:
+##      "/ln/tongx/Spatial/tmp/tmax/spatial/a1950/family/span/loess04.bystation"
+##      is key-value pairs that key is station.id, value is data.frame
+##      for the station. Only stations have over 300 obs got kept.
+##
+##  - loess04.bystation.10pc:
+##      "/ln/tongx/Spatial/tmp/tmax/spatial/a1950/family/span/loess04.bystation.10pc"
+##      merge loess02.bystation to 10 key-value pairs, key is meaningless
+##      faster to combine all 10 pieces for ploting.
+##
+###################################################
 source("~/Rhipe/rhinitial.R")
 par <- list()
 par$machine <- "gacrux"
 par$dataset <- "tmax"
 par$N <- 576
+par$loess <- "loess04"
+#par$family <- "gaussian"
 par$span <- 0.05
+#par$span <- 0.025
+par$family <- "symmetric"
 par$degree <- 2
 source("~/Projects/Spatial/NCAR/rhcode/rh.setup.R")
 source("~/Projects/Spatial/NCAR/myloess/my.loess02.R")
@@ -36,18 +53,21 @@ job$map <- expression({
 		get(paste(par$dataset, "a1950", sep=".")), 
 		year == y & month == m
 	)[, c("station.id", "elev", "lon", "lat", par$dataset)]
-	lo.fit <- my.loess2( get(par$dataset) ~ lon + lat + elev, 
+	v$elev2 <- log2(v$elev + 128)
+	lo.fit <- my.loess2( get(par$dataset) ~ lon + lat + elev2, 
 		data       = v, 
 		degree     = par$degree, 
 		span       = par$span,
-		parametric = "elev"
+		parametric = "elev2",
+		family     = par$family,
+		control = loess.control(iterations = 10)
 	)
 	fit <- my.predict.loess(
 		object = lo.fit, 
     newdata = data.frame(
     	lon = v$lon, 
     	lat = v$lat,
-    	elev = v$elev
+    	elev2 = v$elev2
     )
 	)
 	v$fitted <- fit
@@ -83,7 +103,10 @@ job$parameters <- list(
 )
 job$input <- c(par$N, 100) 
 job$output <- rhfmt(
-	file.path(rh.datadir, par$dataset, "spatial", "a1950", "loess04"), 
+	file.path(
+		rh.datadir, par$dataset, "spatial", "a1950", 
+		par$family, paste("sp", par$span, sep=""), par$loess
+	), 
 	type = "sequence"
 )
 job$mapred <- list(
@@ -91,7 +114,10 @@ job$mapred <- list(
 	rhipe_reduce_buff_size = 10000
 )
 job$mon.sec <- 5
-job$jobname <- file.path(rh.datadir, par$dataset, "spatial", "a1950", "loess04")
+job$jobname <- file.path(
+	rh.datadir, par$dataset, "spatial", "a1950",
+	par$family, paste("sp", par$span, sep=""), par$loess
+)
 job$readback <- FALSE
 job.mr <- do.call("rhwatch", job)
 
@@ -115,24 +141,33 @@ job$reduce <- expression(
 		combined <- rbind(combined, do.call(rbind, reduce.values))
 	},
 	post = {
-		if(sum(!is.na(combined$tmax)) >= 50){
+		if(sum(!is.na(combined$tmax)) >= 300){
 			rhcollect(reduce.key, combined)
 		}
 	}
 )
 job$input <- rhfmt(
-	file.path(rh.datadir, par$dataset, "spatial", "a1950", "loess04"), 
+	file.path(
+		rh.datadir, par$dataset, "spatial", "a1950", 
+		par$family, paste("sp", par$span, sep=""), par$loess
+	), 
 	type = "sequence"
-) 
+)
 job$output <- rhfmt(
-	file.path(rh.datadir, par$dataset, "spatial", "a1950", "loess04.bystation"), 
+	file.path(
+		rh.datadir, par$dataset, "spatial", "a1950", 
+		par$family, paste("sp", par$span, sep=""), paste(par$loess, "bystation", sep=".")
+	), 
 	type = "sequence"
 )
 job$mapred <- list(
 	mapred.reduce.tasks = 72
 )
 job$mon.sec <- 5
-job$jobname <- file.path(rh.datadir, par$dataset, "spatial", "a1950", "loess04.bystation")
+job$jobname <- file.path(
+	rh.datadir, par$dataset, "spatial", "a1950",
+	par$family, paste("sp", par$span, sep=""), paste(par$loess, "bystation", sep=".")
+)
 job$readback <- FALSE
 job.mr <- do.call("rhwatch", job)
 
@@ -156,13 +191,15 @@ job$reduce <- expression(
 )
 job$input <- rhfmt(
 	file.path(
-		rh.datadir, par$dataset, "spatial", "a1950", "loess04.bystation"
+		rh.datadir, par$dataset, "spatial", "a1950", 
+		par$family, paste("sp", par$span, sep=""), paste(par$loess, "bystation", sep=".")
 	), 
 	type = "sequence"
-) 
+)
 job$output <- rhfmt(
 	file.path(
-		rh.datadir, par$dataset, "spatial", "a1950", "loess04.bystation.10pc"
+		rh.datadir, par$dataset, "spatial", "a1950", 
+		par$family, paste("sp", par$span, sep=""), paste(par$loess, "bystation", "10pc", sep=".")
 	), 
 	type = "sequence"
 )
@@ -171,7 +208,10 @@ job$mapred <- list(
 )
 job$mon.sec <- 5
 job$jobname <- file.path(
-	rh.datadir, par$dataset, "spatial", "a1950", "loess04.bystation.10pc"
+	file.path(
+		rh.datadir, par$dataset, "spatial", "a1950", 
+		par$family, paste("sp", par$span, sep=""), paste(par$loess, "bystation", "10pc", sep=".")
+	)
 )
 job$readback <- FALSE
 job.mr <- do.call("rhwatch", job)

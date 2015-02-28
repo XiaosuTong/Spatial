@@ -2,23 +2,39 @@
 ## spatial loess fit at all stations after 1950 with 
 ## elevation as conditional parameter 
 ## evaluate the residuals at grid points lon*lat
+##
+##  - model:
+##      tmax ~ lat + lon + log2(elev+128) which elev is conditional parametric
+##
+##  - my.loess02: 
+##      is the loess function that calculate kd-tree 
+##      nodes, and all necessary information for interpolation
+##
+##  - loess03:
+##      "/ln/tongx/Spatial/tmp/tmax/spatial/a1950/family/span/loess03"
+##      is key-value pairs that key is c(year, month), value is loess 
+##      smoothing with family, degree, and span of the residuals at 
+##      grid points in that month.
+##
+##  - loess03.rob:
+##      "/ln/tongx/Spatial/tmp/tmax/spatial/a1950/family/span/loess03.rob"
+##      is key-value pairs that key is c(year, month), value is robust loess 
+##      smoothing with family, degree, and span of the residuals at 
+##      grid points in that month.
+##
 ########################################################
-
-# my.loess02 is the loess function that calculate kd-tree 
-# nodes, and all necessary information for interpolation
-
-#"/ln/tongx/Spatial/tmp/tmax/spatial/a1950/loess03"
-#is the span=0.05, degree=2 with residuals for grid points on lon*lat
-#model is tmax ~ lat + lon + elev which elev is conditional parametric
-
 source("~/Rhipe/rhinitial.R")
 par <- list()
 library(maps)
 par$machine <- "gacrux"
 par$dataset <- "tmax"
 par$N <- 576
-par$span <- 0.05
 par$degree <- 2
+par$loess <- "loess03.rob"
+#par$family <- "gaussian"
+#par$span <- 0.05
+par$span <- 0.05
+par$family <- "symmetric"
 source("~/Projects/Spatial/NCAR/rhcode/rh.setup.R")
 source("~/Projects/Spatial/NCAR/myloess/my.loess02.R")
 source("~/Projects/Spatial/NCAR/myloess/my.predloess.R")
@@ -45,18 +61,21 @@ job$map <- expression({
 			get(paste(par$dataset, "a1950", sep=".")), 
 			year == y & month == m
 		)[, c("station.id", "elev", "lon", "lat", par$dataset)]
-		lo.fit <- my.loess2( get(par$dataset) ~ lon + lat + elev, 
+		v$elev2 <- log2(v$elev + 128)
+		lo.fit <- my.loess2( get(par$dataset) ~ lon + lat + elev2, 
 			data       = v, 
 			degree     = par$degree, 
 			span       = par$span,
-			parametric = "elev"
+			parametric = "elev2",
+			family     = par$family,
+			control = loess.control(iterations = 10)
 		)
 		fit <- my.predict.loess(
 			object = lo.fit, 
     	newdata = data.frame(
     		lon = v$lon, 
     		lat = v$lat,
-    		elev = v$elev
+    		elev2 = v$elev2
     	)
 		)
 		v$fitted <- fit
@@ -64,7 +83,8 @@ job$map <- expression({
 		resid.fit <- my.loess2( (get(par$dataset)-fitted) ~ lon + lat,
 			data    = v,
 			degree  = par$degree, 
-			span    = par$span
+			span    = par$span,
+			control = loess.control(iterations = 10)
 		)
 		grid.fit <- my.predict.loess(
 			object  = resid.fit,
@@ -104,7 +124,10 @@ job$parameters <- list(
 )
 job$input <- c(par$N, 100) 
 job$output <- rhfmt(
-	file.path(rh.datadir, par$dataset, "spatial", "a1950", "loess03"), 
+	file.path(
+		rh.datadir, par$dataset, "spatial", "a1950", 
+		par$family, paste("sp", par$span, sep=""), par$loess
+	), 
 	type = "sequence"
 )
 job$mapred <- list(
@@ -113,7 +136,8 @@ job$mapred <- list(
 )
 job$mon.sec <- 5
 job$jobname <- file.path(
-	rh.datadir, par$dataset, "spatial", "a1950", "loess03"
+	rh.datadir, par$dataset, "spatial", "a1950",
+	par$family, paste("sp", par$span, sep=""), par$loess
 )
 job$readback <- FALSE
 job.mr <- do.call("rhwatch", job)

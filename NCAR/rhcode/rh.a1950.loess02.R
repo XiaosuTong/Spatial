@@ -1,18 +1,35 @@
 ########################################################
 ## spatial loess fit at all stations after 1950 
-########################################################
-
-# my.loess02 is the loess function that calculate kd-tree 
-# nodes, and all necessary information for interpolation
-
-#"/ln/tongx/Spatial/tmp/tmax/spatial/a1950/loess02"
-#is the span=0.05, degree=2 with residuals only for stations
-
+## includes only stations  4,978
+##  - my.loess02: 
+##      is the loess function that calculate kd-tree 
+##      nodes, and all necessary information for interpolation
+##
+##  - loess02:
+##      "/ln/tongx/Spatial/tmp/tmax/spatial/a1950/family/span/loess02"
+##      is key-value pairs that key is c(year, month), value is loess 
+##      fit with family, degree, and span w/o elevation at that month.
+##
+##  - loess02.bystation:
+##      "/ln/tongx/Spatial/tmp/tmax/spatial/a1950/family/span/loess02.bystation"
+##      is key-value pairs that key is station.id, value is data.frame
+##      for the station. Only stations have over 300 obs got kept.
+##
+##  - loess02.bystation.10pc:
+##      "/ln/tongx/Spatial/tmp/tmax/spatial/a1950/family/span/loess02.bystation.10pc"
+##      merge loess02.bystation to 10 key-value pairs, key is meaningless
+##      faster to combine all 10 pieces for ploting.
+##
+###################################################
 source("~/Rhipe/rhinitial.R")
 par <- list()
 par$machine <- "gacrux"
 par$dataset <- "tmax"
 par$N <- 576
+par$loess <- "loess02"
+#par$family <- "gaussian"
+#par$span <- 0.025
+par$family <- "symmetric"
 par$span <- 0.05
 par$degree <- 2
 source("~/Projects/Spatial/NCAR/rhcode/rh.setup.R")
@@ -37,7 +54,9 @@ job$map <- expression({
 	lo.fit <- my.loess2( get(par$dataset) ~ lon + lat, 
 		data    = v, 
 		degree  = par$degree, 
-		span    = par$span
+		span    = par$span,
+		family  = par$family,
+		control = loess.control(iterations = 10)
 	)
 	fit <- my.predict.loess(
 		object = lo.fit, 
@@ -77,7 +96,10 @@ job$parameters <- list(
 )
 job$input <- c(par$N, 100) 
 job$output <- rhfmt(
-	file.path(rh.datadir, par$dataset, "spatial", "a1950", "loess02"), 
+	file.path(
+		rh.datadir, par$dataset, "spatial", "a1950", 
+		par$family, paste("sp", par$span, sep=""), par$loess
+	), 
 	type = "sequence"
 )
 job$mapred <- list(
@@ -85,11 +107,15 @@ job$mapred <- list(
 	rhipe_reduce_buff_size = 10000
 )
 job$mon.sec <- 5
-job$jobname <- file.path(rh.datadir, par$dataset, "spatial", "a1950", "loess02")
+job$jobname <- file.path(
+	rh.datadir, par$dataset, "spatial", "a1950",
+	par$family, paste("sp", par$span, sep=""), par$loess
+)
 job$readback <- FALSE
 job.mr <- do.call("rhwatch", job)
 
-## change the key from c(year, month) to station.id
+## change the key from c(year, month) to station.id, 
+## only includes stations that have over 300 obs
 job <- list()
 job$map <- expression({
 	lapply(seq_along(map.values), function(r) {
@@ -111,26 +137,36 @@ job$reduce <- expression(
 		combined <- rbind(combined, do.call(rbind, reduce.values))
 	},
 	post = {
-		if(sum(!is.na(combined$tmax)) >= 50){
+		if(sum(!is.na(combined$tmax)) >= 300){
 			rhcollect(reduce.key, combined)
 		}
 	}
 )
 job$input <- rhfmt(
-	file.path(rh.datadir, par$dataset, "spatial", "a1950", "loess02"), 
+	file.path(
+		rh.datadir, par$dataset, "spatial", "a1950", 
+		par$family, paste("sp", par$span, sep=""), par$loess
+	), 
 	type = "sequence"
-) 
+)
 job$output <- rhfmt(
-	file.path(rh.datadir, par$dataset, "spatial", "a1950", "loess02.bystation"), 
+	file.path(
+		rh.datadir, par$dataset, "spatial", "a1950", 
+		par$family, paste("sp", par$span, sep=""), paste(par$loess, "bystation", sep=".")
+	), 
 	type = "sequence"
 )
 job$mapred <- list(
 	mapred.reduce.tasks = 72
 )
 job$mon.sec <- 5
-job$jobname <- file.path(rh.datadir, par$dataset, "spatial", "a1950", "loess02.bystation")
+job$jobname <- file.path(
+	rh.datadir, par$dataset, "spatial", "a1950",
+	par$family, paste("sp", par$span, sep=""), paste(par$loess, "bystation", sep=".")
+)
 job$readback <- FALSE
 job.mr <- do.call("rhwatch", job)
+
 
 ## calculate the stl2 fitting for each station
 parameter <- list(
@@ -244,13 +280,17 @@ job$reduce <- expression(
 )
 job$input <- rhfmt(
 	file.path(
-		rh.datadir, par$dataset, "spatial", "a1950", "loess02.bystation"
+		rh.datadir, par$dataset, "spatial", "a1950", 
+		par$family, paste("sp", par$span, sep=""), 
+		paste(par$loess, "bystation", sep=".")
 	), 
 	type = "sequence"
-) 
+)
 job$output <- rhfmt(
 	file.path(
-		rh.datadir, par$dataset, "spatial", "a1950", "loess02.bystation.10pc"
+		rh.datadir, par$dataset, "spatial", "a1950", 
+		par$family, paste("sp", par$span, sep=""), 
+		paste(par$loess, "bystation", "10pc", sep=".")
 	), 
 	type = "sequence"
 )
@@ -259,7 +299,11 @@ job$mapred <- list(
 )
 job$mon.sec <- 5
 job$jobname <- file.path(
-	rh.datadir, par$dataset, "spatial", "a1950", "loess02.bystation.10pc"
+	file.path(
+		rh.datadir, par$dataset, "spatial", "a1950", 
+		par$family, paste("sp", par$span, sep=""), 
+		paste(par$loess, "bystation", "10pc", sep=".")
+	)
 )
 job$readback <- FALSE
 job.mr <- do.call("rhwatch", job)
