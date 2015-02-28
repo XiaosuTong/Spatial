@@ -12,6 +12,7 @@ my.loess2 <- function (formula, data, weights, subset, na.action, model = FALSE,
     ...) 
 {
     family <- match.arg(family)
+    print(family)
     method <- match.arg(method)
     mf <- match.call(expand.dots = FALSE)
     mf$model <- mf$span <- mf$enp.target <- mf$degree <- mf$parametric <- mf$drop.square <- mf$normalize <- mf$family <- mf$method <- mf$control <- mf$... <- NULL
