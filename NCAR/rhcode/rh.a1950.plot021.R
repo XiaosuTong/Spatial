@@ -1,10 +1,10 @@
 #################################################
 ## Plotting at sampled stations after 1950
 ## 
-## - plot02:
+## - plot021:
 ##     dignostic plots conditional on year*month
 ##     all stations 7,738 are included
-## - plot021:
+## - plot02:
 ##     dignostic plots condtional on stations for both loess02/loess04
 ##     sampled stations from kd-tree built based on 4,978 stations
 ##     have over 300 obs

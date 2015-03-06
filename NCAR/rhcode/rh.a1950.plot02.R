@@ -302,7 +302,7 @@ for(i in levels(sub$station.id)) {
     	columns = 2
   	),
 		main = list(
-			label = paste("Residuals vs. Month", title)
+			label = paste("Fitted value vs. Month", title)
 		),
 		sub = paste(
 			"Station from cell",
