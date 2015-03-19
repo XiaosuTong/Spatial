@@ -361,3 +361,9 @@ for(i in 1:128){
   print(a)
 }
 dev.off()
+
+########################################################
+##  Check the spatial loess fitting based on Exp/E28  ##
+##  call the same functions as in stlplot02.R:        ##
+##  loess.resid.plot() and loess.comp.plot            ##
+########################################################

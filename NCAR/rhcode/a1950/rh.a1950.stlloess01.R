@@ -1,26 +1,38 @@
 ########################################################
 ## spatial loess fit of stl remainder at stations after 1950 
 ##
-## - a1950/Exp.fc/E1-E3
-##     different setting for stl with second fc, read in bystation subsets
+## - a1950/Exp/E1-E30
+##     different setting for stl, read in bystation subsets
 ##     only includes 4,978 stations that have 300+ obs after 1950
 ##     key is the station.id, value is the data.frame includes stl fit
 ##     lon, lat, and elev have been saved as attributes in data.frame
 ##
-## - a1950/fc.quantiles
+## - a1950/quantile
 ##     read in all E1-E30 files, for each station calculate the quantiles
 ##     key is the quantiles, value is a data.frame has station.id, idx which
 ##     identifies which E it is, and resp
 ##
 ## - plot remainders for each quantile
-##     best setting: sw="periodic", tw=865, td=1, fcw=c(865,109), fcd=c(1,2)
+##     best setting: sw="periodic", tw=109, td=2
 ##
-## - a1950/digno/fc.E1
-##     read in a1950/Exp.fc/E1, kept only 128 stations
+## - a1950/digno/E28
+##     read in a1950/Exp/E28, kept only 128 stations
 ##
 ## - stl+ dignostic plot
-##     source rh.a1950.stlplot02 file
+##     source rh.a1950.stlplot01 file
 ##  
+## - comp.smooth(), same as the one in stlloess02.R
+##     input file is a1950/Exp/E28 which is the best fitting from stl without fc component.
+##     output file are a1950/E28.loess/comp.E1-E2, which is the evalutation of component
+##     at grid points, then will be used for levelplot only.
+##     
+## - check.smooth(), same as the one in stlloess02.R
+##     input is a1950/E28.loess/comp.E1-E2, plot the levelplot for given component.
+##
+## - loess.fit(), same as the one in stlloess02.R
+##     The loess fitting for Remainder. input file is a1950/E28 and key is station.id
+##     output is a1950/E28.loess/comp.loess.fit/family/span and key is month
+## 
 ########################################################
 
 source("~/Rhipe/rhinitial.R")
@@ -29,42 +41,37 @@ par$machine <- "gacrux"
 par$dataset <- "tmax"
 par$N <- 576
 par$family <- "symmetric"
-par$arg <- list( 
-  list(
-    sw = "periodic", tw = 865, td = 1, sd = 1, 
-    ffcw = 865, ffcd = 1, sfcw = 109, sfcd = 2,
-    multiple = TRUE
+par$arg <- rbind(
+  expand.grid(
+    sw = c(25, 37), 
+    tw = c(109, 311, 531), 
+    td = c(1, 2), 
+    sd = c(1, 2)
   ),
-  list(
-    sw = "periodic", tw = 865, td = 1, sd = 1,
-    ffcw = 865, ffcd = 1, sfcw = 241, sfcd = 2,
-    multiple = TRUE
-  ),
-  list(
+  expand.grid(
     sw = "periodic",
-    tw = 109, 
-    td = 2, 
-    sd = 1,
-    multiple = FALSE
+    tw = c(109, 311, 531), 
+    td = c(1, 2), 
+    sd = 1
   )
 )
+
 source("~/Projects/Spatial/NCAR/rhcode/rh.setup.R")
 
 # load the stations vector after 1950, there are 7,738 stations
 load(file.path(local.datadir, "stations.a1950.RData"))
 month.or <- c(
-    "Jan","Feb","Mar","Apr","May","June",
-    "July","Aug", "Sep", "Oct", "Nov", "Dec"
+		"Jan","Feb","Mar","Apr","May","June",
+		"July","Aug", "Sep", "Oct", "Nov", "Dec"
 )
 source("~/Projects/Spatial/NCAR/myloess/my.loess02.R")
 source("~/Projects/Spatial/NCAR/myloess/my.predloess.R")
 
-
 ##########################################################
-## Read in bystation subsets, Experiment w/ fc, E1-E30 ##
+## Read in bystation subsets, Experiment w/o fc, E1-E30 ##
 ##########################################################
 
-for (i in 1:length(par$arg)) {
+for (i in 1:nrow(par$arg)) {
 job <- list()
 job$map <- expression({
   lapply(seq_along(map.values), function(r) {
@@ -77,46 +84,21 @@ job$map <- expression({
         value <- value[with(value, order(year, month)),]
         if (nrow(value) == 576) rhcounter("stations", "_576_", 1)
         value$time <- 1:nrow(value)
-        if(flag) {
-          fit <- do.call("cbind",
-            stl2(
-              x = value$resp, 
-              t = value$time, 
-              n.p = 12, 
-              s.window = sw, 
-              s.degree = sd, 
-              t.window = tw, 
-              t.degree = td,
-              fc.window = c(ffcw, sfcw), 
-              fc.degree = c(ffcd, sfcd), 
-              inner = inner, 
-              outer = outer
-            )[c("data","fc")]
-          )
-          names(fit)[grep("fc.fc", names(fit))] <- c("low", "middle")
-          names(fit)[grep("data.seasonal", names(fit))] <- "seasonal"
-          names(fit)[grep("fc.remainder", names(fit))] <- "remainder"
-          outvalue <- cbind(
-            subset(value,  select = c(month, year, resp, time)),
-            subset(fit, select = -c(data.trend, data.remainder, data.weights, data.sub.labels, data.raw))
-          )
-        } else {
-          fit <- stl2(
-            x = value$resp, 
-            t = value$time, 
-            n.p = 12, 
-            s.window = sw, 
-            s.degree = sd, 
-            t.window = tw, 
-            t.degree = td, 
-            inner = inner, 
-            outer = outer
-          )$data
-          outvalue <- cbind(
-            subset(value,  select = c(month, year, resp, time)),
-            subset(fit, select = -c(weights, sub.labels, raw))
-          )
-        }
+        fit <- stl2(
+          x = value$resp, 
+          t = value$time, 
+          n.p = 12, 
+          s.window = sw, 
+          s.degree = sd, 
+          t.window = tw, 
+          t.degree = td, 
+          inner = inner, 
+          outer = outer
+        )$data
+        outvalue <- cbind(
+          subset(value,  select = c(month, year, resp, time)),
+          subset(fit, select = -c(weights, sub.labels, raw))
+        )
         attributes(outvalue)$elev  <- unique(as.character(value$elev))
         attributes(outvalue)$lon <- unique(as.character(value$lon))
         attributes(outvalue)$lat <- unique(as.character(value$lat))
@@ -126,42 +108,36 @@ job$map <- expression({
   })
 })
 job$setup <- expression(
-  map = {
+	map = {
     library(lattice)
     library(yaImpute, lib.loc = lib.loc)
     library(stl2, lib.loc = lib.loc)
-  }
+	}
 )
 job$cleanup <- expression(
   map = {
     rm(list=ls())
   }
 )
-if (par$arg[[i]]$multiple) { 
+if (par$arg$sw[i] == "periodic") { 
   job$parameters <- list(
     stations = stations.a1950.tmax,
-    sw = par$arg[[i]]$sw,
-    sd = par$arg[[i]]$sd,
-    tw = par$arg[[i]]$tw,
-    td = par$arg[[i]]$td,
-    ffcw = par$arg[[i]]$ffcw,
-    sfcw = par$arg[[i]]$sfcw,
-    ffcd = par$arg[[i]]$ffcd,
-    sfcd = par$arg[[i]]$sfcd,
+    sw = par$arg$sw[i],
+    sd = par$arg$sd[i],
+    tw = par$arg$tw[i],
+    td = par$arg$td[i],
     inner = 10,
-    outer = 0,
-    flag = par$arg[[i]]$multiple
+    outer = 0
   )
 } else {
   job$parameters <- list(
     stations = stations.a1950.tmax,
-    sw = par$arg[[i]]$sw,
-    sd = par$arg[[i]]$sd,
-    tw = par$arg[[i]]$tw,
-    td = par$arg[[i]]$td,
+    sw = as.numeric(par$arg$sw[i]),
+    sd = par$arg$sd[i],
+    tw = par$arg$tw[i],
+    td = par$arg$td[i],
     inner = 10,
-    outer = 0,
-    flag = par$arg[[i]]$multiple
+    outer = 0
   )
 }
 job$input <- rhfmt(
@@ -169,24 +145,24 @@ job$input <- rhfmt(
   type = "sequence"
 ) 
 job$output <- rhfmt(
-  file.path(rh.datadir, par$dataset, "stl", "a1950", "Exp.fc", paste("E", i, sep="")), 
-  type = "sequence"
+	file.path(rh.datadir, par$dataset, "stl", "a1950", "Exp", paste("E", i, sep="")), 
+	type = "sequence"
 )
 job$mapred <- list(
-  mapred.reduce.tasks = 72,
+	mapred.reduce.tasks = 72,
   mapred.tasktimeout = 0
 )
 job$mon.sec <- 10
 job$jobname <- file.path(
-  rh.datadir, par$dataset, "stl", "a1950", "Exp.fc", paste("E", i, sep="")
+  rh.datadir, par$dataset, "stl", "a1950", "Exp", paste("E", i, sep="")
 )
 job$readback <- FALSE
 job.mr <- do.call("rhwatch", job)
 }
 
-##################################################
-## get the quantiles for each setting in Exp.fc ##
-##################################################
+########################################
+## get the quantiles for each setting ##
+########################################
 
 job <- list()
 job$map <- expression({
@@ -200,12 +176,12 @@ job$map <- expression({
     )
     mean <- mean(map.values[[r]]$remainder, na.rm = TRUE)
     sumy <- c(sumy, mean)
-    lapply(seq_along(sumy), function(k, ind = idx) {
+    lapply(seq_along(sumy), function(k, argmt = argu, ind = idx) {
       value <- data.frame(
         station = map.keys[[r]],  
         resp = sumy[k]
       )
-      value <- cbind(value, id = ind)
+      value <- cbind(value, argmt[as.integer(ind),])
       rhcollect(k, value)
     })
   })
@@ -222,10 +198,13 @@ job$reduce <- expression(
   }
 )
 job$input <- rhfmt(
-  file.path(rh.datadir, par$dataset, "stl", "a1950", "Exp.fc"), type="sequence"
+  file.path(rh.datadir, par$dataset, "stl", "a1950", "Exp"), type="sequence"
 )
 job$output <- rhfmt(
-  file.path(rh.datadir, par$dataset, "stl", "a1950", "fc.quantiles"), type="sequence"
+  file.path(rh.datadir, par$dataset, "stl", "a1950", "quantiles"), type="sequence"
+)
+job$parameters <- list(
+  argu = par$arg
 )
 job$mapred <- list(
   mapred.reduce.tasks = 6,
@@ -233,9 +212,10 @@ job$mapred <- list(
   rhipe_reduce_buff_size = 10000
 )
 job$mon.sec <- 10
-job$jobname <- file.path(rh.datadir, par$dataset, "stl", "a1950", "fc.quantiles")
+job$jobname <- file.path(rh.datadir, par$dataset, "stl", "a1950", "quantiles")
 job$readback <- FALSE
 job.mr <- do.call("rhwatch", job)
+
 
 ##############################################
 ## tunning parameters for different setting ##
@@ -248,28 +228,29 @@ library(lattice)
 lattice.theme <- trellis.par.get()
 col <- lattice.theme$superpose.symbol$col
 
-rst <- rhread("/ln/tongx/Spatial/tmp/tmax/stl/a1950/fc.quantiles")
+rst <- rhread("/ln/tongx/Spatial/tmp/tmax/stl/a1950/quantiles")
 myfun <- function(sub) {
 trellis.device(
   postscript, 
   file = paste(
-    local.output, "/a1950.quant.", sub[[1]], ".", #with elev at the end of the plot name 
+    local.output, "/a1950.quant.sw", sub[[1]], ".", #with elev at the end of the plot name 
     par$dataset, ".ps", sep = ""
   ), 
   color = TRUE,
   paper = "legal"
 )
-  b <- qqmath(~ resp
+  b <- qqmath(~resp | as.factor(sd)*as.factor(tw)*as.factor(td)
     , data = sub[[2]]
     , pch = 16
+    , layout = c(12,1)
     , distribution = qunif
     , cex = 0.2
-    , aspect = 1
-    , group = factor(id, levels=c(1,2,3))
+    , auto.key = TRUE
+    , group = sw
     , xlab = list(label = "f-value")
     , ylab = list(label = "Remainder")
     , key=list(
-        text = list(label=c("middle-span=109", "middle-span=241", "no middel")),
+        text = list(label=c("25", "37", "periodic")),
         lines = list(
           pch=16, 
           cex=0.7, 
@@ -279,6 +260,7 @@ trellis.device(
         ), 
         columns = 3
       )
+    , scale = list(y=list(relation="free"), x=list(tick.number=3))
     , panel = function(x,...) {
       panel.qqmath(x,...)
       panel.abline(h=0, col="black", lwd=0.5)
@@ -325,10 +307,10 @@ job$reduce <- expression(
   }
 )
 job$input <- rhfmt(
-  file.path(rh.datadir, par$dataset, "stl", "a1950", "Exp.fc", "E1"), type="sequence"
+  file.path(rh.datadir, par$dataset, "stl", "a1950", "Exp", "E28"), type="sequence"
 )
 job$output <- rhfmt(
-  file.path(rh.datadir, par$dataset, "stl", "a1950", "digno", "fc.E1"), type="sequence"
+  file.path(rh.datadir, par$dataset, "stl", "a1950", "digno", "E28"), type="sequence"
 )
 job$parameters <- list(
   stations = tmax.sample.a1950
@@ -339,14 +321,28 @@ job$mapred <- list(
   rhipe_reduce_buff_size = 10000
 )
 job$mon.sec <- 10
-job$jobname <- file.path(rh.datadir, par$dataset, "stl", "a1950", "digno", "fc.E1")
+job$jobname <- file.path(rh.datadir, par$dataset, "stl", "a1950", "digno", "E28")
 job$readback <- FALSE
 job.mr <- do.call("rhwatch", job)
 
-
-###########################################################
-## read in Exp.fc/E1 and change to be key=c(month, year) ##
-###########################################################
+##########################################################
+## read in Exp/E28 and change to be key=c(month, year)
+## comp.smooth(): evaluated the component at grid points which will be used to plot the levelplot 
+## input:   
+## - component: which component from stl+ would be evaluated
+## 
+## - input.stl: which stl fitting will be used, "Exp" is w/o fc 
+##              component, "Exp.fc" is w/ fc component
+##   
+## - input.Exp: the best stl parameter will be used: "Exp.fc/E1" for w/ fc
+##              "Exp/E28" for w/o fc
+##
+## - out.loess: output loess directory, "fc.E1.loess" and "E28.loess"
+##  
+## - out.Exp: different loess experiment for the loess smoothing
+##            E1 is span = 0.025, E2 is span = 0.01
+##
+##########################################################
 
 library(maps)
 library(magrittr)
@@ -360,10 +356,10 @@ def.grid <- def.grid[instate, ]
 ## E1 is span=0.025, E2 is span=0.01
 par$loess <- list(
   family = "symmetric",
-  span = 0.01,
+  span = 0.025,
   degree = 2
 )
-comp.smooth <- function(component = "middle", input.stl = "Exp.fc", input.Exp = "E1", out.loess = "fc.E1.loess", out.Exp = "E2", arg = par$loess, new.grid = def.grid) { 
+comp.smooth <- function(component = "remainder", input.stl = "Exp", input.Exp = "E28", out.loess = "E28.loess", out.Exp = "E1", arg = par$loess, new.grid = def.grid) { 
 
   file <- substr(component, 1, 3) %>% paste(out.Exp, sep=".")
 
@@ -376,7 +372,7 @@ comp.smooth <- function(component = "middle", input.stl = "Exp.fc", input.Exp = 
         .variable = c("year","month"),
         .fun = function(k, station=map.keys[[r]]) {
           key <- c(unique(k$year), unique(as.character(k$month)))
-          value <- k[, comp, drop=FALSE]
+          value <- k[, c(comp, "remainder"), drop=FALSE]
           value$station.id <- station
           value$lon <- as.numeric(attributes(map.values[[r]])$lon)
           value$lat <- as.numeric(attributes(map.values[[r]])$lat)
@@ -392,7 +388,7 @@ comp.smooth <- function(component = "middle", input.stl = "Exp.fc", input.Exp = 
         .variable = c("year","month"),
         .fun = function(k, station=map.keys[[r]]) {
           key <- c(unique(k$year), unique(as.character(k$month)))
-          value <- k[, comp, drop=FALSE]
+          value <- k[, c(comp, "remainder"), drop=FALSE]
           value$station.id <- station
           value$lon <- as.numeric(attributes(map.values[[r]])$lon)
           value$lat <- as.numeric(attributes(map.values[[r]])$lat)
@@ -412,7 +408,7 @@ comp.smooth <- function(component = "middle", input.stl = "Exp.fc", input.Exp = 
     },
     post = {
         lo.fit <- my.loess2( get(comp) ~ lon + lat, 
-          data    = subset(combine, !is.na(get(comp))), 
+          data    = subset(combine, !is.na(combine$remainder)), 
           degree  = argumt$degree, 
           span    = argumt$span,
           family  = argumt$family,
@@ -482,13 +478,22 @@ comp.smooth <- function(component = "middle", input.stl = "Exp.fc", input.Exp = 
 }
 
 ########################################
-## check the smoothness of components ##
+## check the smoothness of components 
+## check.smooth input:
+## - loess: which loess fitting will be used, "E28.loess" or "fc.E1.loess"
+##
+## - comp: component will be plotting
+##
+## - Exp: which loess smoothing span is used
+##
+## - n.cut: control the legent cutting fine degree of levelplot
+##
 ########################################
 
 library(magrittr)
 library(maps)
 
-check.smooth <- function(loess = "fc.E1.loess", comp = "remainder", Exp = "E2", n.cut = 100) {
+check.smooth <- function(loess = "E28.loess", comp = "remainder", Exp = "E1", n.cut = 100) {
 
   us.map <- map('state', plot = FALSE, fill = TRUE)
 
@@ -515,7 +520,14 @@ check.smooth <- function(loess = "fc.E1.loess", comp = "remainder", Exp = "E2", 
     paste(toupper(substring(s, 1,1)), substring(s, 2),
       sep="", collapse=" ")
   }
-
+  
+  if (comp == "remainder") {
+    mainlab <- paste("Smoothing", simpleCap(comp), "for")
+  } else if (comp == "seasonal") {
+    mainlab <- paste("Smoothing", simpleCap(comp), "Component for")
+  } else {
+    mainlab <- paste("Smoothing", simpleCap(comp), "Frequency Component for")
+  }
   trellis.device(
     device = postscript, 
     file = file.path(
@@ -534,7 +546,7 @@ check.smooth <- function(loess = "fc.E1.loess", comp = "remainder", Exp = "E2", 
  #    , colorkey = list(at = seq(-1, 1, 0.1))
       , xlab = "Longitude"
       , ylab = "Latitude"
-      , main = paste("Smoothing", simpleCap(comp), "Component for", data[[r]][[1]][1], data[[r]][[1]][2])
+      , main = paste(mainlab, data[[r]][[1]][1], data[[r]][[1]][2])
       , panel = function(x, y, z, ...) {
           panel.levelplot(x,y,z,...)
           panel.polygon(us.map$x,us.map$y, border = "black") 
@@ -546,7 +558,29 @@ check.smooth <- function(loess = "fc.E1.loess", comp = "remainder", Exp = "E2", 
 
 }
 
-loess.fit <- function(component = "remainder", input.stl = "Exp.fc", input.Exp = "E1", out.loess = "fc.E1.loess", f = "symmetric", s = 0.01, d = 2) {
+
+#########################################################
+## Spatial loess fit for component loess.fit() function
+## input:
+##   - component: the component to be fitted for loess
+##
+##   - input.stl: how many frequency component will be used. "Exp" is 
+##                w/o fc, "Exp.fc" is w/ fc
+##
+##   - input.Exp: which parameter setting to be used. "E28" for "Exp" is the best
+##                "E1" for "Exp.fc"
+##
+##   - out.loess: "fc.E1.loess" or "E28.loess"
+##
+##   - f: family for the loess fitting
+##
+##   - s: span for the loess fitting
+##
+##   - d: degree for the loess fitting
+##
+##########################################################
+
+loess.fit <- function(component = "remainder", input.stl = "Exp", input.Exp = "E28", out.loess = "E28.loess", f = "symmetric", s = 0.025, d = 2) {
 
   us.map <- map('state', plot = FALSE, fill = TRUE)
   file <- substr(component, 1, 3) %>% paste("loess.fit", sep=".")
@@ -555,18 +589,36 @@ loess.fit <- function(component = "remainder", input.stl = "Exp.fc", input.Exp =
   job <- list()
   job$map <- expression({
     lapply(seq_along(map.values), function(r) {
-      d_ply(
+      if (comp == "seasonal") { ## for seasonal we only need one year info
+        d_ply(
         .data = map.values[[r]],
         .variable = c("year","month"),
         .fun = function(k, station=map.keys[[r]]) {
           key <- c(unique(k$year), unique(as.character(k$month)))
-          value <- k[, comp, drop=FALSE]
+          value <- k[, c(comp, "remainder"), drop=FALSE]
+          value$station.id <- station
+          value$lon <- as.numeric(attributes(map.values[[r]])$lon)
+          value$lat <- as.numeric(attributes(map.values[[r]])$lat)
+          value$elev <- as.numeric(attributes(map.values[[r]])$elev)
+          if (key[1] == "1950") {
+            rhcounter("year", "_1950_", 1)    
+            rhcollect(key, value)
+          }
+        })
+      } else {  ## for the rest of component we neen 576 month all
+        d_ply(
+        .data = map.values[[r]],
+        .variable = c("year","month"),
+        .fun = function(k, station=map.keys[[r]]) {
+          key <- c(unique(k$year), unique(as.character(k$month)))
+          value <- k[, c(comp, "remainder"), drop=FALSE]
           value$station.id <- station
           value$lon <- as.numeric(attributes(map.values[[r]])$lon)
           value$lat <- as.numeric(attributes(map.values[[r]])$lat)
           value$elev <- as.numeric(attributes(map.values[[r]])$elev)
           rhcollect(key, value)
-      })
+        })
+      }
     })
   })
 
@@ -579,7 +631,7 @@ loess.fit <- function(component = "remainder", input.stl = "Exp.fc", input.Exp =
     },
     post = {
       combine$elev2 <- log2(combine$elev+128)
-      lo.fit <- my.loess2( remainder ~ lon + lat + elev2, 
+      lo.fit <- my.loess2( get(comp) ~ lon + lat + elev2, 
         data    = subset(combine, !is.na(remainder)), 
         degree  = argumt$degree, 
         span    = argumt$span,
@@ -649,3 +701,4 @@ loess.fit <- function(component = "remainder", input.stl = "Exp.fc", input.Exp =
   job$readback <- FALSE
   job.mr <- do.call("rhwatch", job)  
 }
+
