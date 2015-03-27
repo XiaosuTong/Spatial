@@ -1,6 +1,6 @@
 ########################################################
 ## spatial loess fit at all stations after 1950 
-## includes only stations  4,978
+##
 ##  - my.loess02: 
 ##      is the loess function that calculate kd-tree 
 ##      nodes, and all necessary information for interpolation
@@ -10,6 +10,11 @@
 ##      is key-value pairs that key is c(year, month), value is loess 
 ##      fit with family, degree, and span w/o elevation at that month.
 ##
+##  - loess04:
+##      "/ln/tongx/Spatial/tmp/tmax/spatial/a1950/family/span/loess04"
+##      is key-value pairs that key is c(year, month), value is loess 
+##      fit with family, degree, and span w/ elevation at that month.
+##
 ##  - loess02.bystation:
 ##      "/ln/tongx/Spatial/tmp/tmax/spatial/a1950/family/span/loess02.bystation"
 ##      is key-value pairs that key is station.id, value is data.frame
@@ -18,6 +23,16 @@
 ##  - loess02.bystation.10pc:
 ##      "/ln/tongx/Spatial/tmp/tmax/spatial/a1950/family/span/loess02.bystation.10pc"
 ##      merge loess02.bystation to 10 key-value pairs, key is meaningless
+##      faster to combine all 10 pieces for ploting.
+##
+##  - loess02/loess04.bystation.all:
+##      "/ln/tongx/Spatial/tmp/tmax/spatial/a1950/family/span/loess02.bystation.all"
+##      is key-value pairs that key is station.id, value is data.frame
+##      for the station. All stations included.
+##
+##  - loess02/loess04.bystation.all.10pc:
+##      "/ln/tongx/Spatial/tmp/tmax/spatial/a1950/family/span/loess02.bystation.all.10pc"
+##      merge loess02.bystation.all to 10 key-value pairs, key is meaningless
 ##      faster to combine all 10 pieces for ploting.
 ##
 ###################################################
@@ -32,6 +47,7 @@ par$loess <- "loess02"
 par$family <- "symmetric"
 par$span <- 0.05
 par$degree <- 2
+par$all <- TRUE
 source("~/Projects/Spatial/NCAR/rhcode/rh.setup.R")
 source("~/Projects/Spatial/NCAR/myloess/my.loess02.R")
 source("~/Projects/Spatial/NCAR/myloess/my.predloess.R")
@@ -129,19 +145,35 @@ job$map <- expression({
 		})
 	})
 })
-job$reduce <- expression(
-	pre = {
-		combined <- data.frame()
-	},
-	reduce = {
-		combined <- rbind(combined, do.call(rbind, reduce.values))
-	},
-	post = {
-		if(sum(!is.na(combined$tmax)) >= 300){
-			rhcollect(reduce.key, combined)
-		}
-	}
-)
+if (!par$all) {
+  job$reduce <- expression(
+  	pre = {
+	  	combined <- data.frame()
+	  },
+	  reduce = {
+		  combined <- rbind(combined, do.call(rbind, reduce.values))
+	  },
+	  post = {
+		  if(sum(!is.na(combined$tmax)) >= 300){
+			  rhcollect(reduce.key, combined)
+		  } 
+	  }
+  )
+  file <- "bystation"
+} else {
+  job$reduce <- expression(
+	  pre = {
+		  combined <- data.frame()
+	  },
+	  reduce = {
+		  combined <- rbind(combined, do.call(rbind, reduce.values))
+	  },
+	  post = {
+		  rhcollect(reduce.key, combined)
+	  }
+  )
+  file <- "bystation.all"
+}
 job$input <- rhfmt(
 	file.path(
 		rh.datadir, par$dataset, "spatial", "a1950", 
@@ -149,10 +181,11 @@ job$input <- rhfmt(
 	), 
 	type = "sequence"
 )
+
 job$output <- rhfmt(
 	file.path(
 		rh.datadir, par$dataset, "spatial", "a1950", 
-		par$family, paste("sp", par$span, sep=""), paste(par$loess, "bystation", sep=".")
+		par$family, paste("sp", par$span, sep=""), paste(par$loess, file, sep=".")
 	), 
 	type = "sequence"
 )
@@ -162,103 +195,10 @@ job$mapred <- list(
 job$mon.sec <- 5
 job$jobname <- file.path(
 	rh.datadir, par$dataset, "spatial", "a1950",
-	par$family, paste("sp", par$span, sep=""), paste(par$loess, "bystation", sep=".")
+	par$family, paste("sp", par$span, sep=""), paste(par$loess, file, sep=".")
 )
 job$readback <- FALSE
 job.mr <- do.call("rhwatch", job)
-
-
-## calculate the stl2 fitting for each station
-parameter <- list(
-	sw = "periodic",
-	tw = 865,
-	sd = 1,
-	td = 1,
-	fcw = 865,
-	fcd = 1,
-	ssw = 111,
-	ssd = 1
-) 
-job <- list()
-job$map <- expression({
-	lapply(seq_along(map.values), function(r) {
-		map.values[[r]] <- map.values[[r]][order(map.values[[r]]$time), ]
-		cycleSubIndices <- rep(c(1:12), ceiling(nrow(map.values[[r]])/12))[1:nrow(map.values[[r]])]
-
-		if(sum(!is.na(map.values[[r]][[dataset]])) > 50 &
-			all(by(map.values[[r]][[dataset]], list(cycleSubIndices), function(x) any(!is.na(x))))
-		) {
-			v.stl <- do.call("cbind", 
-      	stl2(
-          x = map.values[[r]][[dataset]], 
-          t = map.values[[r]]$time, 
-          n.p = 12, 
-          s.window = sw, 
-          s.degree = sd, 
-          t.window = tw, 
-          t.degree = td, 
-          fc.window = c(fcw, ssw), 
-          fc.degree = c(fcd, ssd), 
-          inner = inner, 
-          outer = outer
-      	)[c("data","fc")]
-    	)
-			names(v.stl)[grep("fc.fc", names(v.stl))] <- c("fc.trend", "fc.seasonal")
-			v.stl$fit <- v.stl$data.seasonal + v.stl$fc.trend + v.stl$fc.seasonal
-			value <- map.values[[r]]
-			value$stlfit<- v.stl$fit
-			value <- value[!is.na(value[[dataset]]), ]
-			rhcollect(sample(1:100, 1), value)
-		}
-	})
-})
-job$reduce <- expression(
-	pre = {
-		combined <- data.frame()
-	},
-	reduce = {
-		combined <- rbind(combined, do.call(rbind, reduce.values))
-	},
-	post = {
-		rhcollect(reduce.key, combined)
-	}
-)
-job$parameters <- list(
-  sw = parameter[["sw"]], 
-  tw = parameter[["tw"]], 
-  sd = parameter[["sd"]], 
-  td = parameter[["td"]],
-  fcw = parameter[["fcw"]], 
-  fcd = parameter[["fcd"]], 
-  ssw = parameter[["ssw"]], 
-  ssd = parameter[["ssd"]], 
-  inner = 10, 
-  outer = 0, 
-  dataset = par$dataset
-)
-job$setup <- expression(
-  map = {
-    library(lattice)
-    library(yaImpute, lib.loc = lib.loc)
-    library(stl2, lib.loc = lib.loc)
-  }
-)
-job$input <- rhfmt(
-	file.path(rh.datadir, par$dataset, "spatial", "a1950", "loess02.bystation"), 
-	type = "sequence"
-) 
-job$output <- rhfmt(
-	file.path(rh.datadir, par$dataset, "spatial", "a1950", "loess02.bystation.stl"), 
-	type = "sequence"
-)
-job$mapred <- list(
-	mapred.reduce.tasks = 72
-)
-job$mon.sec <- 5
-job$jobname <- file.path(rh.datadir, par$dataset, "spatial", "a1950", "loess02.bystation.stl")
-job$readback <- FALSE
-job.mr <- do.call("rhwatch", job)
-
 
 ## group all stations to 10 groups
 job <- list()
@@ -282,7 +222,7 @@ job$input <- rhfmt(
 	file.path(
 		rh.datadir, par$dataset, "spatial", "a1950", 
 		par$family, paste("sp", par$span, sep=""), 
-		paste(par$loess, "bystation", sep=".")
+		paste(par$loess, file, sep=".")
 	), 
 	type = "sequence"
 )
@@ -290,7 +230,7 @@ job$output <- rhfmt(
 	file.path(
 		rh.datadir, par$dataset, "spatial", "a1950", 
 		par$family, paste("sp", par$span, sep=""), 
-		paste(par$loess, "bystation", "10pc", sep=".")
+		paste(par$loess, file, "10pc", sep=".")
 	), 
 	type = "sequence"
 )
@@ -302,7 +242,7 @@ job$jobname <- file.path(
 	file.path(
 		rh.datadir, par$dataset, "spatial", "a1950", 
 		par$family, paste("sp", par$span, sep=""), 
-		paste(par$loess, "bystation", "10pc", sep=".")
+		paste(par$loess, file, "10pc", sep=".")
 	)
 )
 job$readback <- FALSE

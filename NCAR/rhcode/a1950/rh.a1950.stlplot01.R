@@ -11,14 +11,8 @@ col <- lattice.theme$superpose.symbol$col
 
 rst <- rhread("/ln/tongx/Spatial/tmp/tmax/stl/a1950/digno/E28")
 result <- rst[[1]][[2]]
+ylab <- "Maximum Temperature (degrees centigrade)"
 
-if(par$dataset == "tmax"){
-    ylab <- "Maximum Temperature (degrees centigrade)"
-}else if(par$dataset == "tmin"){
-    ylab <- "Minimum Temperature (degrees centigrade)"
-}else {
-    ylab <- "Precipitation (millimeters)"
-}
 ##  trend + seasonal component with original obs vs. month
 trellis.device(
   device = postscript, 
