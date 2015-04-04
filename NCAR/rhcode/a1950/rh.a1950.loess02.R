@@ -1,5 +1,6 @@
 ########################################################
-## spatial loess fit at all stations after 1950 
+## spatial loess fit at all stations after 1950 only use
+## longitude and latitude.
 ##
 ##  - my.loess02: 
 ##      is the loess function that calculate kd-tree 
@@ -36,6 +37,8 @@
 ##      faster to combine all 10 pieces for ploting.
 ##
 ###################################################
+
+
 source("~/Rhipe/rhinitial.R")
 par <- list()
 par$machine <- "gacrux"
@@ -131,7 +134,6 @@ job$readback <- FALSE
 job.mr <- do.call("rhwatch", job)
 
 ## change the key from c(year, month) to station.id, 
-## only includes stations that have over 300 obs
 job <- list()
 job$map <- expression({
 	lapply(seq_along(map.values), function(r) {

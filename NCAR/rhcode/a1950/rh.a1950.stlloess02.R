@@ -595,7 +595,7 @@ loess.fit <- function(component = "seasonal", input.stl = "Exp.fc", input.Exp = 
             rhcollect(key, value)
           }
         })
-      } else {  ## for the rest of component we neen 576 month all
+      } else {  ## for the rest of component we need 576 month all
         d_ply(
         .data = map.values[[r]],
         .variable = c("year","month"),
