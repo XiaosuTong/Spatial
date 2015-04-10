@@ -63,8 +63,8 @@ job$reduce <- expression(
 	},
 	post = {
 		value <- Qsample(combine)
-		value$elev <- reduce.key[1]
-		value$span <- reduce.key[2]
+		value$elev <- reduce.key[2]
+		value$span <- reduce.key[1]
 		rhcollect(reduce.key, value)
 	}
 )
@@ -137,8 +137,8 @@ job$reduce <- expression(
 		combine <- rbind(combine, do.call(rbind, reduce.values))
 	},
 	post = {
-		combine$elev <- reduce.key[1]
-		combine$span <- reduce.key[2]
+		combine$elev <- reduce.key[2]
+		combine$span <- reduce.key[1]
 		rhcollect(reduce.key, combine)
 	}
 )
@@ -213,6 +213,33 @@ compare <- function(file = "compare") {
   
   dev.off()
 
+  trellis.device(
+    device = postscript, 
+    file = file.path(
+      local.output, paste(par$dataset, "residual.compare.elev2", "ps", sep = ".")
+    ),
+    color = TRUE, 
+    paper = "legal"
+  )
+
+  a <- qq( elev ~ resid | factor(span)
+    , data = subset(result, resid <=10 & resid >= -10)
+    , pch = 16
+    , cex = 0.4
+    , layout = c(2,1)
+    , xlab = "Residuals w/ elevation"
+    , ylab = "Residuals w/o elevation"
+    , main = "Quantiles of Residuals"
+    , panel = function(x,y,...) {
+    	  panel.abline(a=c(0,1), col="black", lwd = 0.5)
+    	  panel.abline(h=seq(-20,20,by=5), v=seq(-20,20,by=5), col="lightgrey", lwd=0.5)
+    	  panel.xyplot(x,y,...)
+    }
+  )
+  print(a)	
+  
+  dev.off()
+
   rst <- rhread(	
 	  file.path(rh.datadir, par$dataset, "spatial", "a1950", "compare.elev.summary")
 	)
@@ -253,6 +280,36 @@ compare <- function(file = "compare") {
   }	
   
   dev.off()
+
+	trellis.device(
+	  device = postscript, 
+    file = file.path(
+      local.output, paste(par$dataset, "residual.compare.summary.elev2", "ps", sep = ".")
+    ),
+    color = TRUE, 
+    paper = "legal"
+  )
+
+	for (k in names(result)[1:6]) {
+    a <- qq( elev ~ get(k) | factor(span)
+      , data = result
+      , aspect= "xy"
+      , distribution = qunif
+      , cex = 0.4
+      , pch = 1
+      , layout = c(2,1)
+      , xlab = "Residuals w/ elevation"
+      , ylab = "Residuals w/o elevation"
+      , main = paste("Quantiles of", simpleCap(k), "of Residuals")
+      , panel = function(x, y, ...) {
+    	    panel.qq(x,y,...)
+      }
+    )
+    print(a)
+  }	
+  
+  dev.off()
+
 }	
 
 
@@ -311,8 +368,8 @@ job$reduce <- expression(
 			.variable = "flag",
 			.fun = Qsample
 		)
-		value$elev <- reduce.key[1]
-		value$span <- reduce.key[2]
+		value$elev <- reduce.key[2]
+		value$span <- reduce.key[1]
 		rhcollect(reduce.key, value)
 	}
 )
@@ -399,8 +456,8 @@ job$reduce <- expression(
 		combine <- rbind(combine, do.call(rbind, reduce.values))
 	},
 	post = {
-		combine$elev <- reduce.key[1]
-		combine$span <- reduce.key[2]
+		combine$elev <- reduce.key[2]
+		combine$span <- reduce.key[1]
 		rhcollect(reduce.key, combine)
 	}
 )
@@ -489,6 +546,34 @@ compare.impute <- function(file = "compare") {
   
   dev.off()
 
+  trellis.device(
+    device = postscript, 
+    file = file.path(
+      local.output, paste(par$dataset, "remainder.compare.imputed2", "ps", sep = ".")
+    ),
+    color = TRUE, 
+    paper = "legal"
+  )
+
+  a <- qq( flag ~ resid | factor(elev)*factor(span)
+    , data = subset(result, resid <=10 & resid >= -10)
+    , pch = 16
+    , cex = 0.4
+    , layout = c(4,1)
+    , aspect = "xy"
+    , xlab = "Remainders w/ imputed value"
+    , ylab = "Remainders w/o imputed value"
+    , main = "Quantiles of Remainder"
+    , panel = function(x,y,...) {
+    	  panel.abline(a=c(0,1), col="black", lwd = 0.5)
+    	  panel.abline(h=seq(-20,20,by=5), v=seq(-20,20,by=5), col="lightgrey", lwd=0.5)
+    	  panel.xyplot(x,y,...)
+    }
+  )
+  print(a)	
+  
+  dev.off()
+
   rst <- rhread(	
 	  file.path(rh.datadir, par$dataset, "spatial", "a1950", "compare.impute.summary")
 	)
@@ -535,4 +620,34 @@ compare.impute <- function(file = "compare") {
   }	
   
   dev.off()
+
+  trellis.device(
+    device = postscript, 
+    file = file.path(
+      local.output, paste(par$dataset, "remainder.compare.summary.imputed2", "ps", sep = ".")
+    ),
+    color = TRUE, 
+    paper = "legal"
+  )
+
+  for (k in names(result)[2:7]) {
+    a <- qq( flag ~ get(k) | factor(elev)*factor(span)
+      , data = result
+      , distribution = qunif
+      , cex = 0.4
+      , pch = 16
+      , aspect = "xy"
+      , layout = c(4,1)
+      , xlab = "Remainders w/ imputed value"
+      , ylab = "Remainders w/o imputed value" 
+      , main = paste("Quantiles of", simpleCap(k), "of Remainder")
+      , panel = function(x, y, ...) {
+          panel.qq(x, y, ...)
+      }
+    )
+    print(a)
+  }	
+  
+  dev.off()
+
 }	
