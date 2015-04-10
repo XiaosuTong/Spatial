@@ -5,9 +5,9 @@ par$dataset <- "tmax"
 par$N <- 576
 par$loess <- "loess04"
 #par$family <- "gaussian"
-par$span <- 0.025
+#par$span <- 0.025
 par$family <- "symmetric"
-#par$span <- 0.05
+par$span <- 0.05
 par$degree <- 2
 par$multiple <- 0
 par$file <- "bystation.all"
@@ -860,7 +860,7 @@ Dist.month <- function(rst = rst) {
 
 }
 
-loess.comp.plot <- function(loess="loess04" comp = "remainder", f = "symmetric", s=0.025) {
+loess.comp.plot <- function(loess="loess04", comp = "remainder", f = "symmetric", s=0.05) {
 
   file <- paste(loess, par$file, "stl", par$multiple, "bymonth", sep = ".")
 
@@ -870,6 +870,12 @@ loess.comp.plot <- function(loess="loess04" comp = "remainder", f = "symmetric",
     )
   )
 
+  file.path(
+    rh.datadir, par$dataset, "spatial", "a1950", par$family, paste("sp", par$span, sep=""),
+    paste(par$loess, par$file, "stl", par$multiple, "bymonth", sep=".")
+  )
+
+  
   tmp <- do.call(rbind, lapply(rst,"[[",1)) %>%
     data.frame(stringsAsFactors=FALSE) 
   tmp$X2 <- tmp$X2 %>% substr(1,3) %>% match(month.abb)
@@ -1047,7 +1053,7 @@ loess.comp.plot <- function(loess="loess04" comp = "remainder", f = "symmetric",
     paper = "legal"
   )
   lapply(mod, function(r, data = rst) {
-    b <- xyplot( get(comp) ~ elev2 | equal.count(lat, 20, overlap=0)
+    b <- xyplot( get(comp) ~ log2(elev+128) | equal.count(lat, 20, overlap=0)
       , data = data[[r]][[2]]
       , strip=strip.custom(var.name = "Latitude", strip.levels=rep(FALSE, 2))
       , pch = 16
@@ -1083,7 +1089,7 @@ loess.comp.plot <- function(loess="loess04" comp = "remainder", f = "symmetric",
     paper = "legal"
   )
   lapply(mod, function(r, data = rst) {
-    b <- xyplot( get(comp) ~ elev2 | equal.count(lon, 20, overlap=0)
+    b <- xyplot( get(comp) ~ log2(elev+128) | equal.count(lon, 20, overlap=0)
       , data = data[[r]][[2]]
       , strip=strip.custom(var.name = "Longitude", strip.levels=rep(FALSE, 2))
       , pch = 16
@@ -1108,6 +1114,389 @@ loess.comp.plot <- function(loess="loess04" comp = "remainder", f = "symmetric",
       }
     )
   })
+  dev.off()
+
+}
+
+
+loess.resid.plot <- function(loess = "loess04", comp = "remainder", f = "symmetric", s=0.05) {
+
+  file <- paste(loess, "loop", "same", sep=".")
+
+  rst <- rhread(
+    file.path(rh.datadir, par$dataset, "spatial", "a1950", f, paste("sp", s, sep=""), file, "Spatial1")
+  )
+
+  tmp <- do.call(rbind, lapply(rst,"[[",1)) %>%
+    data.frame(stringsAsFactors=FALSE) 
+  tmp$X2 <- tmp$X2 %>% substr(1,3) %>% match(month.abb)
+  mod <- tmp %>% with(tmp[order(X1, X2),]) %>% row.names() %>% as.numeric()
+
+  ## a simple function to Capitalize the first character of a string vector
+  simpleCap <- function(x) {
+    s <- strsplit(x, " ")[[1]]
+    paste(toupper(substring(s, 1,1)), substring(s, 2),
+      sep="", collapse=" ")
+  }
+
+  ylab <- "Residuals"
+
+  mainlab <- paste("Residuals vs. Loess Fitted Value of", simpleCap(comp))
+
+  trellis.device(
+    device = postscript, 
+    file = file.path(
+      local.output, paste(par$dataset, comp, "fit.vs.resid", "ps", sep = ".")
+    ),
+    color = TRUE, 
+    paper = "legal"
+  )
+  lapply(mod, function(r, data = rst) {
+    b <- xyplot( get(comp)-spatial ~ spatial
+      , data = data[[r]][[2]]
+      , pch = 16
+      , cex = 0.3
+      , xlab = "Fitted value"
+      , ylab = ylab
+      , key=list(
+          text = list(label=c(
+            "loess smoothing: span=0.35, degree=1"
+          )),
+          lines = list(
+            lwd=1.5, 
+            type=c("l"), 
+            col=col[2]
+          ), 
+          columns = 1
+        )
+      , main = paste(mainlab, data[[r]][[1]][1], data[[r]][[1]][2])
+      , panel = function(x,y,...) {
+          panel.abline(h=0, lwd=0.5, col="black")
+          panel.xyplot(x,y,...)
+          panel.loess(x,y, span=0.35, degree=1, col=col[2],evaluation=100,...)
+      }
+    )
+  })
+  dev.off()
+  
+  mainlab <- "Residuals vs. Latitude"
+
+  trellis.device(
+    device = postscript, 
+    file = file.path(
+      local.output, paste(par$dataset, comp, "resid.vs.lat.lon", "ps", sep = ".")
+    ),
+    color = TRUE, 
+    paper = "legal"
+  )
+  lapply(mod, function(r, data = rst) {
+    b <- xyplot( get(comp)-spatial ~ lat | equal.count(lon, 20, overlap=0)
+      , data = data[[r]][[2]]
+      , strip=strip.custom(var.name = "Longitude", strip.levels=rep(FALSE, 2))
+      , pch = 16
+      , cex = 0.3
+      , scale = list(
+          y = list(
+            relation = "free", 
+            alternating = TRUE
+          ),
+          x = list(
+           relation = "free",
+            tick.number = 3
+          )
+        )
+      , layout = c(10,2)
+      , xlab = "Latitude"
+      , ylab = ylab
+      , main = paste(mainlab, data[[r]][[1]][1], data[[r]][[1]][2])
+      , panel = function(x,y,...) {
+          panel.abline(h=0, lwd=0.5, col="black")
+          panel.xyplot(x,y,...)
+          panel.loess(x,y, span=0.75, degree=1, col=col[2],evaluation=100,...)
+      }
+    )
+  })
+  dev.off()
+
+  trellis.device(
+    device = postscript, 
+    file = file.path(
+      local.output, paste(par$dataset, comp, "resid.vs.lat.elev", "ps", sep = ".")
+    ),
+    color = TRUE, 
+    paper = "legal"
+  )
+  lapply(mod, function(r, data = rst) {
+    b <- xyplot( get(comp)-spatial ~ lat | equal.count(exp(elev2)-128, 20, overlap=0)
+      , data = data[[r]][[2]]
+      , strip=strip.custom(var.name = "Elevation", strip.levels=rep(FALSE, 2))
+      , pch = 16
+      , cex = 0.3
+      , scale = list(
+          y = list(
+            relation = "free", 
+            alternating = TRUE
+          ),
+          x = list(
+            relation = "free",
+            tick.number = 3
+          )
+        )
+      , layout = c(10,2)
+      , xlab = "Latitude"
+      , ylab = ylab
+      , main = paste(mainlab, data[[r]][[1]][1], data[[r]][[1]][2])
+      , panel = function(x,y,...) {
+          panel.abline(h=0, lwd=0.5, col="black")
+          panel.xyplot(x,y,...)
+          panel.loess(x,y, span=0.75, degree=1, col=col[2],evaluation=100,...)
+      }
+    )
+  })
+  dev.off()
+
+  mainlab <- "Residuals vs. Longitude"
+
+  trellis.device(
+    device = postscript, 
+    file = file.path(
+      local.output, paste(par$dataset, comp, "resid.vs.lon.lat", "ps", sep = ".")
+    ),
+    color = TRUE, 
+    paper = "legal"
+  )
+  lapply(mod, function(r, data = rst) {
+    b <- xyplot( get(comp)-spatial ~ lon | equal.count(lat, 20, overlap=0)
+      , data = data[[r]][[2]]
+      , strip=strip.custom(var.name = "Latitude", strip.levels=rep(FALSE, 2))
+      , pch = 16
+      , cex = 0.3
+      , scale = list(
+          y = list(
+            relation = "free", 
+            alternating = TRUE
+          ),
+          x = list(
+            relation = "free",
+            tick.number = 3
+          )
+        )
+      , layout = c(10,2)
+      , xlab = "Longitude"
+      , ylab = ylab
+      , main = paste(mainlab, data[[r]][[1]][1], data[[r]][[1]][2])
+      , panel = function(x,y,...) {
+          panel.abline(h=0, lwd=0.5, col="black")
+          panel.xyplot(x,y,...)
+          panel.loess(x,y, span=0.75, degree=1, col=col[2], evaluation=100,...)
+      }
+    )
+  })
+  dev.off()
+
+  trellis.device(
+    device = postscript, 
+    file = file.path(
+      local.output, paste(par$dataset, comp, "resid.vs.lon.elev", "ps", sep = ".")
+    ),
+    color = TRUE, 
+    paper = "legal"
+  )
+  lapply(mod, function(r, data = rst) {
+    b <- xyplot( get(comp)-spatial ~ lon | equal.count(exp(elev2)-128, 20, overlap=0)
+      , data = data[[r]][[2]]
+      , strip=strip.custom(var.name = "Elevation", strip.levels=rep(FALSE, 2))
+      , pch = 16
+      , cex = 0.3
+      , scale = list(
+          y = list(
+            relation = "free", 
+            alternating = TRUE
+          ),
+          x = list(
+            relation = "free",
+            tick.number = 3
+          )
+        )
+      , layout = c(10,2)
+      , xlab = "Longitude"
+      , ylab = ylab
+      , main = paste(mainlab, data[[r]][[1]][1], data[[r]][[1]][2])
+      , panel = function(x,y,...) {
+          panel.abline(h=0, lwd=0.5, col="black")
+          panel.xyplot(x,y,...)
+          panel.loess(x,y, span=0.75, degree=1, col=col[2],evaluation=100,...)
+      }
+    )
+  })
+  dev.off()
+ 
+  mainlab <- "Residuals vs. Elevation"
+
+  trellis.device(
+    device = postscript, 
+    file = file.path(
+      local.output, paste(par$dataset, comp, "resid.vs.elev.lat", "ps", sep = ".")
+    ),
+    color = TRUE, 
+    paper = "legal"
+  )
+  lapply(mod, function(r, data = rst) {
+    b <- xyplot( get(comp)-spatial ~ elev2 | equal.count(lat, 20, overlap=0)
+      , data = data[[r]][[2]]
+      , strip=strip.custom(var.name = "Latitude", strip.levels=rep(FALSE, 2))
+      , pch = 16
+      , cex = 0.3
+      , scale = list(
+          y = list(
+            relation = "free", 
+            alternating = TRUE
+          ),
+          x = list(
+            relation = "free",
+            tick.number = 3
+          )
+        )
+      , layout = c(10,2)
+      , xlab = "Log (Elevation + 128) (log base 2 meter)"
+      , ylab = ylab
+      , main = paste(mainlab, data[[r]][[1]][1], data[[r]][[1]][2])
+      , panel = function(x,y,...) {
+          panel.abline(h=0, lwd=0.5, col="black")
+          panel.xyplot(x,y,...)
+          panel.loess(x,y, span=0.75, degree=1, col=col[2], evaluation=100,...)
+      }
+    )
+  })
+  dev.off()
+
+  trellis.device(
+    device = postscript, 
+    file = file.path(
+      local.output, paste(par$dataset, comp, "resid.vs.elev.lon", "ps", sep = ".")
+    ),
+    color = TRUE, 
+    paper = "legal"
+  )
+  lapply(mod, function(r, data = rst) {
+    b <- xyplot( get(comp)-spatial ~ elev2 | equal.count(lon, 20, overlap=0)
+      , data = data[[r]][[2]]
+      , strip=strip.custom(var.name = "Longitude", strip.levels=rep(FALSE, 2))
+      , pch = 16
+      , cex = 0.3
+      , scale = list(
+          y = list(
+            relation = "free", 
+            alternating = TRUE
+          ),
+          x = list(
+            relation = "free",
+            tick.number = 3
+          )
+        )
+      , layout = c(10,2)
+      , xlab = "Log (Elevation + 128) (log base 2 meter)"
+      , ylab = ylab
+      , main = paste(mainlab, data[[r]][[1]][1], data[[r]][[1]][2])
+      , panel = function(x,y,...) {
+          panel.abline(h=0, lwd=0.5, col="black")
+          panel.xyplot(x,y,...)
+          panel.loess(x,y, span=0.75, degree=1, col=col[2],evaluation=100,...)
+      }
+    )
+  })
+  dev.off()
+
+  tmp <- do.call(rbind, lapply(rst,"[[",1)) %>%
+    data.frame(stringsAsFactors=FALSE) 
+  names(tmp) <- c("year", "month")
+  data <- tmp[rep(1:nrow(tmp), each = 7738),] %>% 
+    cbind(do.call("rbind", lapply(rst, "[[", 2)))
+
+  Qrst <- ddply(
+    .data = data,
+    .variable = c("year", "month"),
+    .fun = function(r) {
+      r <- r[!is.na(r$remainder - r$spatial),]
+      a <- sort(r$remainder - r$spatial)
+      idx <- round(seq(1, nrow(r), length.out = 100))
+      n.idx <- c(1:idx[2], idx[3:98], idx[99]:length(a))
+      f.value <- (n.idx - 0.5) / length(a)
+      qnorm <- qnorm(f.value)
+      value <- data.frame(
+        residual = a[n.idx], 
+        qnorm = qnorm, 
+        group = as.numeric(n.idx<idx[2] | n.idx>idx[98]),
+        fv = f.value
+      )
+    }
+  )
+  Qrst$month <- factor(
+  Qrst$month, 
+    levels = c(
+      "Jan","Feb","Mar","Apr","May","June",
+      "July","Aug", "Sep", "Oct", "Nov", "Dec"
+    )
+  )
+  trellis.device(
+    device = postscript, 
+    file = file.path(
+      local.output, paste(par$dataset, comp, "QQ.resid.month", "ps", sep = ".")
+    ),
+    color = TRUE, 
+    paper = "legal"
+  )
+  for(i in 1950:1997){
+    a <- xyplot(residual ~ qnorm | month*as.factor(year)
+      , data = Qrst
+      , subset = year == paste(i)
+      , layout = c(6,2)
+      , pch  = 16
+      , cex  = 0.3
+      , key=list(
+          text = list(label=c("quantiles in [1.5%, 98.5%]","quantiles outside [1.5%, 98.5%]")), 
+          lines = list(pch=16, cex=0.7, lwd=1.5, type=c("p","p"), col=col[1:2]),
+          columns=2
+        )
+      , xlab = list(label = "Unit normal quantile")
+      , ylab = list(label = "Residuals")
+      , main = "Normal Quantiles of Loess Residuals of Remainder"
+      , panel = function(x, y, subscripts, ...) {
+          tmp <- subset(Qrst[subscripts, ], year == paste(i))
+          panel.qqmathline(tmp[tmp$group == 0, "residual"], ...)
+          panel.abline(h=0, lwd=0.5, col="black")
+          panel.xyplot(tmp[tmp$group == 0, "qnorm"],tmp[tmp$group == 0, "residual"], col=col[1],...)
+          panel.xyplot(tmp[tmp$group == 1, "qnorm"],tmp[tmp$group == 1, "residual"], col=col[2],...)
+        }
+    )
+    print(a)
+  }
+  dev.off()
+
+  trellis.device(
+    device = postscript, 
+    file = file.path(
+      local.output, paste(par$dataset, comp, "QQ.resid.month2", "ps", sep = ".")
+    ),
+    color = TRUE, 
+    paper = "legal"
+  )
+    a <- xyplot(residual ~ qnorm | month*as.factor(year),
+      , data = Qrst, 
+      , subset = group == 0,
+      , layout = c(6,2),
+      , pch  = 16,
+      , cex  = 0.3,
+      , xlab = list(label = "Unit normal quantile"),
+      , ylab = list(label = "Residuals"),
+      , main = "Normal Quantiles of Loess Residuals of Remainder"
+      , panel = function(x,y, ...) {
+          panel.qqmathline(y,y=y,...)
+          panel.abline(h=0, lwd=0.5, col="black")
+          panel.xyplot(x,y,...)
+        }
+    )
+    print(a)
   dev.off()
 
 }
