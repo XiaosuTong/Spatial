@@ -150,7 +150,6 @@ for(i in 1:length(par$span)) {
           elev2 = combine$elev2
         )
       )
-      combine$fitted <- combine$tmax - fit  # fitted here will be updated with the new value after removing spatial fitting
       combine$spatial <- fit # remainder-spatial will be useful later for checking the convergence issue
       rhcollect(reduce.key, combine)
     }
