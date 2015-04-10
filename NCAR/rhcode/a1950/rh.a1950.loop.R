@@ -4,19 +4,24 @@ par$machine <- "gacrux"
 par$dataset <- "tmax"
 par$N <- 576
 par$loess <- "loess04" # loess04 is w/ elevation
-par$span <- seq(0.045, 0.01, by=-0.005)
 par$family <- "symmetric"
 par$degree <- 2
-par$multiple <- 0
+par$type <- "same" # or "same", "decr"
 par$parameters <- list(
 	sw = "periodic",
 	tw = 109,
 	sd = 1,
 	td = 2,
-	inner = 10,
+	inner = 2,
 	outer = 0
 ) 
-
+if (par$type == "same") {
+  par$span <- rep(0.05, 10)
+} else if (par$type == "incr") {
+  par$span <- c(seq(0.01, 0.05, by=0.005), rep(0.05, 8))
+} else {
+  par$span <- c(rep(0.05,3), seq(0.045, 0.01, by=-0.005), rep(0.01, 5))
+}
 source("~/Projects/Spatial/NCAR/rhcode/rh.setup.R")
 source("~/Projects/Spatial/NCAR/myloess/my.loess02.R")
 source("~/Projects/Spatial/NCAR/myloess/my.predloess.R")
@@ -32,7 +37,7 @@ for(i in 1:length(par$span)) {
   
   FileOutput <- file.path(
     rh.datadir, par$dataset, "spatial", "a1950", par$family, paste("sp", "0.05", sep=""), 
-    paste(par$loess, "loop", sep="."), paste("STL", i, sep="")
+    paste(par$loess, "loop", par$type, sep="."), paste("STL", i, sep="")
   )
 
   # In each loop, the first job is STL+ at each station, output key is station.id
@@ -41,11 +46,12 @@ for(i in 1:length(par$span)) {
     lapply(seq_along(map.values), function(r) {
       map.values[[r]] <- map.values[[r]][order(map.values[[r]]$time), ]
       if (first) {
-        Index <- which(!is.na(map.values[[r]]$tmax))
-        map.values[[r]]$fitted[Index] <- map.values[[r]]$tmax[Index]
+        Index <- which(is.na(map.values[[r]]$tmax))
+        map.values[[r]]$tmax[Index] <- map.values[[r]]$fitted[Index]
+        map.values[[r]]$spatial <- 0
       }
       v.stl <- stl2(
-        x = map.values[[r]]$fitted, 
+        x = with(map.values[[r]], tmax - spatial), 
         t = map.values[[r]]$time, 
         n.p = 12, 
         s.window = parameters$sw, 
@@ -55,10 +61,17 @@ for(i in 1:length(par$span)) {
         inner = parameters$inner, 
         outer = parameters$outer
       )$data
-      value <- cbind(
-      	subset(map.values[[r]], select = -c(station.id, elev, lon, lat, elev2)), 
-      	subset(v.stl, select = -c(weights, sub.labels, raw))
-      )
+      if (first) {
+        value <- cbind(
+          subset(map.values[[r]], select = -c(station.id, elev, lon, lat, elev2)), 
+          subset(v.stl, select = -c(weights, sub.labels, raw))
+        )
+      } else {
+        value <- cbind(
+          subset(map.values[[r]], select = -c(station.id, lon, lat, elev2)), 
+          subset(v.stl, select = -c(weights, sub.labels, raw))
+        )        
+      }
       attr(value, "location") <- c(map.values[[r]][1, c("lon", "lat", "elev2", "station.id")])
       rhcollect(map.keys[[r]], value)
     })
@@ -92,7 +105,7 @@ for(i in 1:length(par$span)) {
   # Second job output is the spatial fitting, output key is month and year
   FileOutput <- file.path(
     rh.datadir, par$dataset, "spatial", "a1950", par$family, paste("sp", "0.05", sep=""), 
-    paste(par$loess, "loop", sep="."), paste("Spatial", i, sep="")
+    paste(par$loess, "loop", par$type, sep="."), paste("Spatial", i, sep="")
   )
 
   job2 <- list()
@@ -103,6 +116,7 @@ for(i in 1:length(par$span)) {
         .variable = c("year","month"),
         .fun = function(k, station = map.keys[[r]]) {
           key <- c(unique(k$year), unique(as.character(k$month)))
+          k$fitted <- with(k, tmax - trend - seasonal)
           value <- subset(k, select = -c(trend, seasonal, year, month))
           value$station.id <- station
           value$lon <- as.numeric(attributes(map.values[[r]])$location$lon)
@@ -120,8 +134,8 @@ for(i in 1:length(par$span)) {
       combine <- rbind(combine, do.call(rbind, reduce.values))
     },
     post = {
-      lo.fit <- my.loess2( remainder ~ lon + lat + elev2, 
-        data    = subset(combine, !is.na(remainder)), 
+      lo.fit <- my.loess2( fitted ~ lon + lat + elev2, 
+        data    = subset(combine, !is.na(fitted)), 
         degree  = argumt$degree, 
         span    = argumt$span,
         family  = argumt$family,
@@ -136,8 +150,8 @@ for(i in 1:length(par$span)) {
           elev2 = combine$elev2
         )
       )
-      combine$fitted <- combine$fitted - fit  # fitted here will be updated with the new value after removing spatial fitting
-      combine$resid <- combine$remainder - fit # resid will be useful later for checking the convergency issue
+      combine$fitted <- combine$tmax - fit  # fitted here will be updated with the new value after removing spatial fitting
+      combine$spatial <- fit # remainder-spatial will be useful later for checking the convergence issue
       rhcollect(reduce.key, combine)
     }
   )
@@ -179,7 +193,7 @@ for(i in 1:length(par$span)) {
 
   FileOutput <- file.path(
     rh.datadir, par$dataset, "spatial", "a1950", par$family, paste("sp", "0.05", sep=""), 
-    paste(par$loess, "loop", sep="."), paste("Spatial", i, ".bystation", sep="")
+    paste(par$loess, "loop", par$type, sep="."), paste("Spatial", i, ".bystation", sep="")
   )
 
   # job3 is just changing the key from month and year to station.id from job2
@@ -189,7 +203,7 @@ for(i in 1:length(par$span)) {
       map.values[[r]]$year <- map.keys[[r]][1]
       map.values[[r]]$month <- map.keys[[r]][2]
       lapply(1:dim(map.values[[r]])[1], function(i){
-        value <- subset(map.values[[r]][i, ], select = -c(resid, remainder))
+        value <- subset(map.values[[r]][i, ], select = -c(remainder))
         rhcollect(as.character(value$station.id), value)
       })
     })
@@ -218,3 +232,53 @@ for(i in 1:length(par$span)) {
   FileInput <- FileOutput
 
 }
+
+##############################################
+## check the convergence of findal residuals##
+##############################################
+job4 <- list()
+job4$map <- expression({
+  lapply(seq_along(map.values), function(r) {
+    file <- Sys.getenv("mapred.input.file")
+    key <- substr(unlist(strsplit(tail(strsplit(file, "/")[[1]],3)[2], "[.]")), 8, 9)
+    value <- with(map.values[[r]], (remainder-spatial)^2)
+    rhcollect(as.numeric(key), value)
+  })
+})
+job4$reduce <- expression(
+  pre= {
+    combine <- vector()
+  },
+  reduce = {
+    combine <- c(combine, unlist(reduce.values))
+  },
+  post = {
+    rhcollect(reduce.key, mean(combine, na.rm = TRUE))
+  }
+)
+job4$input <- rhfmt(
+  file.path(
+    rh.datadir, par$dataset, "spatial", "a1950", par$family, 
+    paste("sp", "0.05", sep=""), paste(par$loess, "loop", par$type, sep="."), paste("Spatial",1:length(par$span), sep="")
+  ), 
+  type = "sequence"
+)
+job4$output <- rhfmt(
+  file.path(rh.datadir, par$dataset, "spatial", "a1950", par$family, 
+    paste("sp", "0.05", sep=""), paste(par$loess, "loop", par$type, sep="."), "residuals"
+  ), 
+  type = "sequence"
+)
+job4$mapred <- list(mapred.reduce.tasks = 8)
+job4$mon.sec <- 10
+job4$jobname <- file.path(
+  rh.datadir, par$dataset, "spatial", "a1950", par$family, 
+  paste("sp", "0.05", sep=""), paste(par$loess, "loop", par$type, sep="."), "residuals"
+)  
+job4$readback <- FALSE
+job.mr <- do.call("rhwatch", job4)
+
+rst <- rhread("/ln/tongx/Spatial/tmp/tmax/spatial/a1950/symmetric/sp0.05/loess04.loop.incr/residuals")
+result <- data.frame(idx=unlist(lapply(rst, "[[", 1)), MSE = unlist(lapply(rst, "[[", 2)))
+xyplot(MSE ~ idx, data=result)
+
