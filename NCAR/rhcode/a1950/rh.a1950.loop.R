@@ -7,12 +7,13 @@ par$N <- 576
 par$loess <- "loess04" # loess04 is w/ elevation
 par$family <- "symmetric"
 par$degree <- 2
-par$outer <- 2
+par$outer <- 5
+par$loop <- "loopelevno2"
 par$type <- "same" # or "same", "decr"
 par$parameters <- list(
-	sw = "periodic",
+	sw = 37,
 	tw = 109,
-	sd = 1,
+	sd = 2,
 	td = 2,
 	inner = 1,
 	outer = 1
@@ -43,7 +44,7 @@ for(o in 1:par$outer) {
     
     FileOutput <- file.path(
       rh.datadir, par$dataset, "spatial", "a1950", par$family, paste("sp", "0.05", sep=""), 
-      paste(par$loess, "loopnew", par$type, sep="."), paste("STL", i, sep="")
+      paste(par$loess, par$loop, par$type, sep="."), paste("STL", i, sep="")
     )  
 
     # In each loop, the first job is STL+ at each station, output key is station.id
@@ -115,7 +116,7 @@ for(o in 1:par$outer) {
     # Second job output is the spatial fitting, output key is month and year
     FileOutput <- file.path(
       rh.datadir, par$dataset, "spatial", "a1950", par$family, paste("sp", "0.05", sep=""), 
-      paste(par$loess, "loopnew", par$type, sep="."), paste("Spatial", i, sep="")
+      paste(par$loess, par$loop, par$type, sep="."), paste("Spatial", i, sep="")
     )  
 
     job2 <- list()
@@ -150,6 +151,7 @@ for(o in 1:par$outer) {
           weights = subset(combine, !is.na(fitted))$weights,
           family  = argumt$family,
           parametric = "elev2",
+          drop.square = "elev2",
           control = loess.control(surface = "direct")
         )
         fit <- my.predict.loess(
@@ -202,7 +204,7 @@ for(o in 1:par$outer) {
 
     FileOutput <- file.path(
       rh.datadir, par$dataset, "spatial", "a1950", par$family, paste("sp", "0.05", sep=""), 
-      paste(par$loess, "loop", par$type, sep="."), paste("Spatial", i, ".bystation", sep="")
+      paste(par$loess, par$loop, par$type, sep="."), paste("Spatial", i, ".bystation", sep="")
     )  
 
     # job3 is just changing the key from month and year to station.id from job2
@@ -248,7 +250,7 @@ for(o in 1:par$outer) {
 
     FileOutput <- file.path(
       rh.datadir, par$dataset, "spatial", "a1950", par$family, paste("sp", "0.05", sep=""), 
-      paste(par$loess, "loopnew", par$type, sep="."), "residual"
+      paste(par$loess, par$loop, par$type, sep="."), "residual"
     )  
 
     job4 <- list()
@@ -286,7 +288,7 @@ for(o in 1:par$outer) {
 
     FileOutput <- file.path(
       rh.datadir, par$dataset, "spatial", "a1950", par$family, paste("sp", "0.05", sep=""), 
-      paste(par$loess, "loopnew", par$type, sep="."), paste("Outer", o, ".bystation", sep="")
+      paste(par$loess, par$loop, par$type, sep="."), paste("Outer", o, ".bystation", sep="")
     )
 
     job5 <- list()
