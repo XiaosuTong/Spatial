@@ -25,6 +25,7 @@ regression fit. The maximum of k is 15, which means we only can have 4 predictor
   5. In ehg127, for design matrix, a preliminary factorization X = QR into R and Q with Q'Q = I
 followed by SVD of R allows the pseudo-inverse to be computed efficiently.
   6. ehg106, the q nearest are searched by sorting based on the distance of big circle distance.
+The weights are also calculated based on big circle distance of longitude and latitude.
   7. Not sure what is vval2?
 
 - lowese: interpolation based on kd-tree
