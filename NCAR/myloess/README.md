@@ -24,7 +24,8 @@ can be found in v from v(iv(12)) in Fortran, v[iv[11]-1] in C.
 regression fit. The maximum of k is 15, which means we only can have 4 predictors at most.
   5. In ehg127, for design matrix, a preliminary factorization X = QR into R and Q with Q'Q = I
 followed by SVD of R allows the pseudo-inverse to be computed efficiently.
-  6. Not sure what is vval2?
+  6. ehg106, the q nearest are searched by sorting based on the distance of big circle distance.
+  7. Not sure what is vval2?
 
 - lowese: interpolation based on kd-tree
 ```

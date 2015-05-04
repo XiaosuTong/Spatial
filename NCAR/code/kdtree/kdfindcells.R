@@ -2,7 +2,7 @@
 ## Sample stations from a1950 stations
 #######################################
 
-## build a kdt-tree using the 7,342 stations after 1950 with over 300 obs
+## build a kdt-tree using the 7,738 stations after 1950
 ## randomly sample one station from each cell
 
 library(plyr)
@@ -10,9 +10,9 @@ library(maps)
 par <- list()
 par$machine <- "gacrux"
 par$dataset <- "tmax"
-par$family <- "gaussian"
+par$family <- "symmetric"
 par$span <- 0.05
-par$loess <- "loess02.bystation.10pc"
+par$loess <- "loess04.bystation.all.10pc"
 source("~/Projects/Spatial/NCAR/myloess/kdtree.R")
 source("~/Rhipe/rhinitial.R")
 source("~/Projects/Spatial/NCAR/rhcode/rh.setup.R")
@@ -20,8 +20,8 @@ load("~/Projects/Spatial/NCAR/RData/info.RData")
 dyn.load("~/Projects/Spatial/NCAR/myloess/src/cppkdtree.so")
 source("~/Projects/Spatial/NCAR/code/spatial/mykdtree.R")
 
-## to get total stations after 1950 that have more than 300 obs
-## there are 7,342 stations
+## to get total stations after 1950
+## there are 7,738 stations
 rst <- rhread(
 	file.path(
 		rh.datadir, par$dataset, "spatial", "a1950", 
