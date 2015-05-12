@@ -8,7 +8,7 @@ par$loess <- "loess04" # loess04 is w/ elevation
 par$family <- "symmetric"
 par$degree <- 2
 par$outer <- 5
-par$loop <- "loopelevno2"
+par$loop <- "loopelevno2" # loopnew is the current version of backfitting, looptest is degree=1 for elevation(drop.square)
 par$type <- "same" # or "same", "decr"
 par$parameters <- list(
 	sw = 37,

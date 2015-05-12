@@ -3,7 +3,7 @@
 #############################################
 
 ## compare the loess fit without elev with fit without elev
-## so compare loess02 with loess04
+## so compare loess02 with loess04, and loess06
 library(maps)
 library(lattice)
 lattice.theme <- trellis.par.get()
@@ -15,6 +15,7 @@ par$machine <- "gacrux"
 par$dataset <- "tmax"
 par$loess1 <- "loess02.bystation.all"
 par$loess2 <- "loess04.bystation.all"
+par$loess3 <- "loess06.bystation.all"
 source("~/Projects/Spatial/NCAR/rhcode/rh.setup.R")
 
 Qsample <- function(num) {
@@ -45,7 +46,9 @@ job$map <- expression({
 			key[1] <- "0.025"
 		}
 		if ("loess04" %in% key[2]) {
-			key[2] <- "w/ elev"
+			key[2] <- "w/ quadratic elev"
+		} else if ("loess06" %in% key[2]) {
+      key[2] <- "w/ linear elev"
 		} else {
 			key[2] <- "w/o elev"
 		}
@@ -80,11 +83,19 @@ job$input <- rhfmt(
 	  ),
 	  file.path(
 		  rh.datadir, par$dataset, "spatial", "a1950", 
+		  "symmetric", "sp0.05", par$loess3
+	  ),
+	  file.path(
+		  rh.datadir, par$dataset, "spatial", "a1950", 
 	    "symmetric", "sp0.025", par$loess1 
 	  ),
 	  file.path(
 		  rh.datadir, par$dataset, "spatial", "a1950", 
 		  "symmetric", "sp0.025", par$loess2
+	  ),
+	  file.path(
+		  rh.datadir, par$dataset, "spatial", "a1950", 
+		  "symmetric", "sp0.025", par$loess3
 	  )
 	),	 
 	type = "sequence"
@@ -119,7 +130,9 @@ job$map <- expression({
 			key[1] <- "0.025"
 		}
 		if ("loess04" %in% key[2]) {
-			key[2] <- "w/ elev"
+			key[2] <- "w/ quadratic elev"
+		} else if ("loess06" %in% key[2]) {
+      key[2] <- "w/ linear elev"
 		} else {
 			key[2] <- "w/o elev"
 		}
@@ -146,19 +159,27 @@ job$input <- rhfmt(
 	c(
 	  file.path(
 		  rh.datadir, par$dataset, "spatial", "a1950", 
-	    "symmetric", "sp0.05", "loess04" 
+	    "symmetric", "sp0.05", par$loess1 
 	  ),
 	  file.path(
 		  rh.datadir, par$dataset, "spatial", "a1950", 
-		  "symmetric", "sp0.05", "loess02"
+		  "symmetric", "sp0.05", par$loess2
 	  ),
 	  file.path(
 		  rh.datadir, par$dataset, "spatial", "a1950", 
-	    "symmetric", "sp0.025", "loess04" 
+		  "symmetric", "sp0.05", par$loess3
 	  ),
 	  file.path(
 		  rh.datadir, par$dataset, "spatial", "a1950", 
-		  "symmetric", "sp0.025", "loess02"
+	    "symmetric", "sp0.025", par$loess1 
+	  ),
+	  file.path(
+		  rh.datadir, par$dataset, "spatial", "a1950", 
+		  "symmetric", "sp0.025", par$loess2
+	  ),
+	  file.path(
+		  rh.datadir, par$dataset, "spatial", "a1950", 
+		  "symmetric", "sp0.025", par$loess3
 	  )
 	),	 
 	type = "sequence"
@@ -198,8 +219,8 @@ compare <- function(file = "compare") {
   a <- xyplot( resid ~ fv | factor(elev)*factor(span)
     , data = result
     , pch = 16
-    , cex = 0.3
-    , layout = c(4,1)
+    , cex = 0.4
+    , layout = c(6,1)
     , xlab = "f-value"
     , ylab = "Residuals"
     , main = "Quantiles of Residuals"
@@ -221,11 +242,11 @@ compare <- function(file = "compare") {
     color = TRUE, 
     paper = "legal"
   )
-
+  sub <- subset(result, elev != "w/ quadratic elev")
   a <- qq( elev ~ resid | factor(span)
-    , data = subset(result, resid <=10 & resid >= -10)
+    , data = subset(sub, resid <=10 & resid >= -10)
     , pch = 16
-    , cex = 0.4
+    , cex = 0.5
     , layout = c(2,1)
     , xlab = "Residuals w/ elevation"
     , ylab = "Residuals w/o elevation"
@@ -237,7 +258,24 @@ compare <- function(file = "compare") {
     }
   )
   print(a)	
-  
+
+  sub <- subset(result, elev != "w/o elev")
+  a <- qq( elev ~ resid | factor(span)
+    , data = subset(sub, resid <=10 & resid >= -10)
+    , pch = 16
+    , cex = 0.5
+    , layout = c(2,1)
+    , xlab = "Residuals w/ linear elevation"
+    , ylab = "Residuals w/ quadratic elevation"
+    , main = "Quantiles of Residuals"
+    , panel = function(x,y,...) {
+    	  panel.abline(a=c(0,1), col="black", lwd = 0.5)
+    	  panel.abline(h=seq(-20,20,by=5), v=seq(-20,20,by=5), col="lightgrey", lwd=0.5)
+    	  panel.xyplot(x,y,...)
+    }
+  )
+  print(a)	
+
   dev.off()
 
   rst <- rhread(	
