@@ -1,3 +1,10 @@
+##################
+##
+##  loopnew is the current version of backfitting, inner=5, outer=5, span = 0.05
+##
+##  loopout1 is inner=20, outer=1, span = 0.018
+##
+##################
 source("~/Rhipe/rhinitial.R")
 par <- list()
 par$modified <- TRUE
@@ -7,8 +14,8 @@ par$N <- 576
 par$loess <- "loess04" # loess04 is w/ elevation
 par$family <- "symmetric"
 par$degree <- 2
-par$outer <- 5
-par$loop <- "loopelevno2" # loopnew is the current version of backfitting, looptest is degree=1 for elevation(drop.square)
+par$outer <- 1
+par$loop <- "loopout1" # loopnew is the current version of backfitting, looptest is degree=1 for elevation(drop.square)
 par$type <- "same" # or "same", "decr"
 par$parameters <- list(
 	sw = 37,
@@ -19,7 +26,7 @@ par$parameters <- list(
 	outer = 1
 ) 
 if (par$type == "same") {
-  par$span <- rep(0.05, 5)
+  par$span <- rep(0.018, 20)
 } else if (par$type == "incr") {
   par$span <- c(seq(0.03, 0.05, by=0.005))
 } else {

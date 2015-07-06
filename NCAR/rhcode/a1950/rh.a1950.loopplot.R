@@ -7,7 +7,8 @@ par$N <- 576
 par$loess <- "loess04" # loess04 is w/ elevation
 par$family <- "symmetric"
 par$degree <- 2
-par$outer <- 5
+par$outer <- 1
+par$loop <- "loopout1"
 par$type <- "same" # or "same", "decr"
 par$parameters <- list(
   sw = "periodic",
@@ -18,7 +19,7 @@ par$parameters <- list(
   outer = 1
 ) 
 if (par$type == "same") {
-  par$span <- rep(0.05, 5)
+  par$span <- rep(0.05, 20)
 } else if (par$type == "incr") {
   par$span <- c(seq(0.03, 0.05, by=0.005))
 } else {
@@ -55,13 +56,13 @@ job4$reduce <- expression(
 job4$input <- rhfmt(
   file.path(
     rh.datadir, par$dataset, "spatial", "a1950", par$family, 
-    paste("sp", "0.05", sep=""), paste(par$loess, "loop", par$type, sep="."), paste("Spatial",1:length(par$span), sep="")
+    paste("sp", "0.05", sep=""), paste(par$loess, par$loop, par$type, sep="."), paste("Spatial",1:length(par$span), sep="")
   ), 
   type = "sequence"
 )
 job4$output <- rhfmt(
   file.path(rh.datadir, par$dataset, "spatial", "a1950", par$family, 
-    paste("sp", "0.05", sep=""), paste(par$loess, "loop", par$type, sep="."), "residuals"
+    paste("sp", "0.05", sep=""), paste(par$loess, par$loop, par$type, sep="."), "residuals"
   ), 
   type = "sequence"
 )
@@ -69,7 +70,7 @@ job4$mapred <- list(mapred.reduce.tasks = 8)
 job4$mon.sec <- 10
 job4$jobname <- file.path(
   rh.datadir, par$dataset, "spatial", "a1950", par$family, 
-  paste("sp", "0.05", sep=""), paste(par$loess, "loop", par$type, sep="."), "residuals"
+  paste("sp", "0.05", sep=""), paste(par$loess, par$loop, par$type, sep="."), "residuals"
 )  
 job4$readback <- FALSE
 job.mr <- do.call("rhwatch", job4)
@@ -78,7 +79,7 @@ MSE <- function(type = "same") {
   
   rst <- rhread(
     file.path(rh.datadir, par$dataset, "spatial", "a1950", par$family, 
-      paste("sp", "0.05", sep=""), paste(par$loess, "loop", type, sep="."), "residuals"
+      paste("sp", "0.05", sep=""), paste(par$loess, par$loop, type, sep="."), "residuals"
     )
   )
 
@@ -93,11 +94,10 @@ MSE <- function(type = "same") {
       local.output, paste(par$dataset, "backfitting", type, "MSE", "ps", sep = ".")
     ),
     color = TRUE, 
-    paper = "legal"
+    paper = "letter"
   )
   b <- xyplot(MSE ~ iter
     , data = result[order(result$iter),]
-    , aspect = 1
     , type = "b"
     , xlab = "Iteration time"
     , ylab = "Mean Squared Error"
