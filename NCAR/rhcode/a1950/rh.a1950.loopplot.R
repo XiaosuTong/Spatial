@@ -19,7 +19,7 @@ par$parameters <- list(
   outer = 1
 ) 
 if (par$type == "same") {
-  par$span <- rep(0.05, 20)
+  par$span <- rep(0.018, 20)
 } else if (par$type == "incr") {
   par$span <- c(seq(0.03, 0.05, by=0.005))
 } else {

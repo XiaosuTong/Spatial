@@ -45,7 +45,7 @@ par$dataset <- "tmax"
 par$N <- 576
 par$loess <- "loess04"
 #par$family <- "gaussian"
-par$span <- 0.05
+par$span <- 0.018
 #par$span <- 0.025
 par$family <- "symmetric"
 par$degree <- 2

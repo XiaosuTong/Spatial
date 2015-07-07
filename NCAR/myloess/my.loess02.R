@@ -1,6 +1,15 @@
+#####################################################
 ## my.loess02 is used to get the vertices of kd-tree
 ## and then do interpolation based on the kd-tree 
 ## dynamic load a shared library file .so
+## 
+## The reason to use my.loess02 instead of loess is the NA.
+## We have to first pass nonNA into loess function to calculate
+## the kd-tree info, and then fit at all locations (NA and nonNA)
+## using predict,loess. But if we use loess in the first step, it
+## will do kd-tree and interpolation. By using my.loess02, we only
+## do kd-tree without interpolation, saving computation time. Then
+## we can do the interpolation in predict.loess.
 
 dyn.load("~/Github/Spatial/NCAR/myloess/shareLib/myloess2.so")
 #source("my.loess01.R")

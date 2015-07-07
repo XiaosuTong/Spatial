@@ -16,7 +16,7 @@
 ##      is key-value pairs that key is c(year, month), value is loess 
 ##      fit with family, degree, and span w/ elevation at that month.
 ##
-##  - loess04:
+##  - loess06:
 ##      "/ln/tongx/Spatial/tmp/tmax/spatial/a1950/family/span/loess06"
 ##      is key-value pairs that key is c(year, month), value is loess 
 ##      fit with family, degree, and span w/ elevation degree=1 at that month.

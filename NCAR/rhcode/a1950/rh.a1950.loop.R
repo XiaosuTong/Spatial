@@ -26,7 +26,7 @@ par$parameters <- list(
 	outer = 1
 ) 
 if (par$type == "same") {
-  par$span <- rep(0.018, 20)
+  par$span <- rep(0.018, 40)
 } else if (par$type == "incr") {
   par$span <- c(seq(0.03, 0.05, by=0.005))
 } else {
@@ -41,7 +41,7 @@ source("~/Projects/Spatial/NCAR/myloess/my.predloess.R")
 
 FileInput <- file.path(
   rh.datadir, par$dataset, "spatial", "a1950", par$family, 
-  paste("sp", "0.05", sep=""), paste(par$loess, "bystation.all", sep=".")
+  paste("sp", "0.018", sep=""), paste(par$loess, "bystation.all", sep=".")
 )  
 
 
@@ -50,7 +50,7 @@ for(o in 1:par$outer) {
   for(i in 1:length(par$span)) {
     
     FileOutput <- file.path(
-      rh.datadir, par$dataset, "spatial", "a1950", par$family, paste("sp", "0.05", sep=""), 
+      rh.datadir, par$dataset, "spatial", "a1950", par$family, paste("sp", "0.018", sep=""), 
       paste(par$loess, par$loop, par$type, sep="."), paste("STL", i, sep="")
     )  
 
@@ -122,7 +122,7 @@ for(o in 1:par$outer) {
     
     # Second job output is the spatial fitting, output key is month and year
     FileOutput <- file.path(
-      rh.datadir, par$dataset, "spatial", "a1950", par$family, paste("sp", "0.05", sep=""), 
+      rh.datadir, par$dataset, "spatial", "a1950", par$family, paste("sp", "0.018", sep=""), 
       paste(par$loess, par$loop, par$type, sep="."), paste("Spatial", i, sep="")
     )  
 
@@ -157,9 +157,8 @@ for(o in 1:par$outer) {
           span    = argumt$span,
           weights = subset(combine, !is.na(fitted))$weights,
           family  = argumt$family,
-          parametric = "elev2",
-          drop.square = "elev2",
-          control = loess.control(surface = "direct")
+          parametric = "elev2"
+          #control = loess.control(surface = "direct")
         )
         fit <- my.predict.loess(
           object = lo.fit, 
@@ -210,7 +209,7 @@ for(o in 1:par$outer) {
     FileInput <- FileOutput  
 
     FileOutput <- file.path(
-      rh.datadir, par$dataset, "spatial", "a1950", par$family, paste("sp", "0.05", sep=""), 
+      rh.datadir, par$dataset, "spatial", "a1950", par$family, paste("sp", "0.018", sep=""), 
       paste(par$loess, par$loop, par$type, sep="."), paste("Spatial", i, ".bystation", sep="")
     )  
 
@@ -256,7 +255,7 @@ for(o in 1:par$outer) {
   if(par$outer > 1) {
 
     FileOutput <- file.path(
-      rh.datadir, par$dataset, "spatial", "a1950", par$family, paste("sp", "0.05", sep=""), 
+      rh.datadir, par$dataset, "spatial", "a1950", par$family, paste("sp", "0.018", sep=""), 
       paste(par$loess, par$loop, par$type, sep="."), "residual"
     )  
 
@@ -294,7 +293,7 @@ for(o in 1:par$outer) {
     weight <- do.call("rhwatch", job4)[[1]][[2]]
 
     FileOutput <- file.path(
-      rh.datadir, par$dataset, "spatial", "a1950", par$family, paste("sp", "0.05", sep=""), 
+      rh.datadir, par$dataset, "spatial", "a1950", par$family, paste("sp", "0.018", sep=""), 
       paste(par$loess, par$loop, par$type, sep="."), paste("Outer", o, ".bystation", sep="")
     )
 
