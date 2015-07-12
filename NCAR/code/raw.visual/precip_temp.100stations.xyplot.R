@@ -6,238 +6,171 @@
 
 #Set up the directory and load the data.
 library(lattice)
-datadir <- "~/Projects/Spatial/NCAR/RData/"
-outputdir <- "~/Projects/Spatial/NCAR/output/"
-load(paste(datadir,"USmonthlyMet.RData", sep=""))
+library(plyr)
 
-#Count the observation number for each station.
-Pcount <- tapply(!is.na(USppt$precip), USppt$station.id, sum)
-TMaxcount <- tapply(!is.na(UStemp$tmax), UStemp$station.id, sum)
-TMincount <- tapply(!is.na(UStemp$tmin), UStemp$station.id, sum)
+lattice.theme <- trellis.par.get()
+col <- lattice.theme$superpose.symbol$col
 
-###################################################
-##scatter plot and line plot for precipitation
-####################################################
-Pcount <- sort(Pcount, decreasing=TRUE)
-stations <- head(names(Pcount),100)
+datadir <- "~/Projects/Spatial/NCAR/RData"
+outputdir <- "~/Projects/Spatial/NCAR/output"
+load(file.path(datadir, "USmonthlyMet.RData"))
+load(file.path(datadir, "stations.100.RData"))
 
-tmp <- USppt[USppt[,1] %in% stations,]
-tmp <- tmp[!(is.na(tmp$precip)),]
+#############################################
+## scatter plot of raw obs for given stations
+## 
+## scatterRaw function
+##   - input:
+##       stations: station.id vector
+##       
+##       data: UStemp or USppt
+##
+##       target: which variable to be plotted, tmax, tmin, or precip
+##
+##       size: the size of ps file, letter or legal
+##
+##       test: if it is TRUE, only this first station in stations vector will be plotted
+##
+###############################################
+scatterRaw <- function(stations=stations.tmax, data=UStemp, target = "tmax", size = "letter", test = TRUE){
+  
+  data <- subset(data, station.id %in% stations)
+  
+  data  <- arrange(data, station.id, year, month)
 
+  data$factor <- factor(
+    x = rep(rep(paste("Period", 1:9), c(rep(144,8),84)), times=100), 
+    levels = paste("Period", c(9:1))
+  )
+  data$time <- c(rep(0:143,8), 0:83) 
+  
+  if (target == "tmax") {
+    ylab <- "Maximum Temperature (degrees centigrade)"
+  } else if (target == "tmin") {
+    ylab <- "Minimum Temperature (degrees centigrade)"
+  } else {
+    ylab <- "Precipitation (millimeters)"
+  }
 
-month <- tmp$month
-levels(month) <- c(4,8,12,2,1,7,6,3,5,11,10,9)
-month <- as.numeric(factor(month, levels=c(1:12)))
-date <- paste(tmp$year, month, "01", sep="-")
-tmp$date <- as.POSIXct(strptime(date, format = "%Y-%m-%d"), format='%Y%m%d', tz="")
-tmp <- tmp[order(tmp$date),]
-start <- as.POSIXct(strptime(paste(head(tmp$year,1)-1, "01", "01", sep="-"), format = "%Y-%m-%d"), format='%Y%m%d', tz="")
-end <- as.POSIXct(strptime(paste(tail(tmp$year,1)+1, "12", "01", sep="-"), format = "%Y-%m-%d"), format='%Y%m%d', tz="")
-tmp <- tmp[order(tmp[,1]),]
-tmp$factor <- factor(rep(rep(paste("Period", 1:9), c(rep(144,8),84)), times=100), levels=paste("Period", c(9:1)))
-tmp$time <- c(rep(0:143,8), 0:83) 
+  if(test) {
+    stations <- stations[1]
+  }
 
-trellis.device(postscript, file = paste(outputdir, "scatterplot_of_precipitation_for_100_stations",".ps", sep = ""), color=TRUE, paper="legal")
-     for(i in stations){   
-	b <- xyplot( precip ~ time | factor,
-             data = tmp[tmp$station.id==i,],
-             xlab = list(label = "Month", cex = 1.2),
-             ylab = list(label = "Precipitation (millimeters)", cex = 1.2),
-	     main = list(label = paste("Station ", i, sep=""), cex=1.5),
-             type = "b",
-             pch=16,
-             cex=0.5,
-	     layout = c(1,9),
-#	     strip.left = TRUE,
-	     strip = FALSE,
-#             aspect= 0.1,
-             grib = TRUE,
-             xlim = c(0, 143),
-#             scales = list(y = list(relation = 'free', cex=1.5), x=list(relation= 'free',format = "%b %Y", tick.number=10), cex=1.2),
-	     scales = list(y = list(relation = 'same', alternating=TRUE), x=list(at=seq(0,143,by=12), relation='same')),
-             panel = function(...) {
-                  panel.abline(h=seq(0,max(tmp$precip),by=10), v=seq(0,145,by=12), color="lightgrey", lty=3, lwd=0.5)
-                  panel.xyplot(...)
-             }
-        )
-        print(b)
-     }
-dev.off()
-
-#trellis.device(postscript, file = paste("lineplot_of_precipitation_for_100_stations",".ps", sep = ""), color=TRUE, paper="legal")
-#    for(i in stations){
-#        b <- xyplot( precip ~ date | factor,
-#             data = tmp[tmp$station.id==i,],
-#             xlab = list(label = "Time", cex = 1.5),
-#             ylab = list(label = "Precipitation (millimeters)", cex = 1.5),
-#	     main = list(label = paste("Precipitation for station ", i, sep=""), cex=1.5),
-#             type = "l",
-#             layout = c(1,9),
-#	     strip.left= TRUE,
-#	     strip = FALSE,
-#             aspect= 0.06,
-#             grib = TRUE,
-#             scales = list(y = list(relation = 'same', cex=1, alternating=TRUE), x=list(draw=FALSE, relation='free')),
-##            xlim = c(start, end),
-##             scales = list(y = list(relation = 'free', cex=1.5), x=list(relation= 'free',format = "%b %Y", tick.number=10), cex=1.2),
-#             panel = function(...) {
-#                  panel.abline(h=seq(0,max(tmp$precip),by=10), v=seq(start, end, by="12 month"), color="lightgrey", lty=3, lwd=0.5)
-#                  panel.xyplot(...)
-#             }
-#        )
-#        print(b)
-#    }
-#dev.off()
-
-#########################################################
-##scatter plot and line plot for maximum temperature
-#########################################################
-TMaxcount <- sort(TMaxcount, decreasing=TRUE)
-stations <- head(names(TMaxcount),100)
-
-tmp <- UStemp[UStemp[,1] %in% stations,]
-tmp <- tmp[!(is.na(tmp$tmax)),]
-
-
-month <- tmp$month
-levels(month) <- c(4,8,12,2,1,7,6,3,5,11,10,9)
-month <- as.numeric(factor(month, levels=c(1:12)))
-date <- paste(tmp$year, month, "01", sep="-")
-tmp$date <- as.POSIXct(strptime(date, format = "%Y-%m-%d"), format='%Y%m%d', tz="")
-tmp <- tmp[order(tmp$date),]
-start <- as.POSIXct(strptime(paste(head(tmp$year,1)-1, "01", "01", sep="-"), format = "%Y-%m-%d"), format='%Y%m%d', tz="")
-end <- as.POSIXct(strptime(paste(tail(tmp$year,1)+1, "12", "01", sep="-"), format = "%Y-%m-%d"), format='%Y%m%d', tz="")
-tmp <- tmp[order(tmp[,1]),]
-tmp$factor <- factor(rep(rep(paste("Period", 1:9), c(rep(144,8),84)), times=100), levels=paste("Period", c(9:1)))
-tmp$time <- c(rep(0:143,8), 0:83)
-
-
-#trellis.device(postscript, file = paste("lineplot_of_tmax_for_100_stations",".ps", sep = ""), color=TRUE, paper="legal")
-#    for(i in stations){
-#        b <- xyplot( tmax ~ date | factor,
-#             data = tmp[tmp$station.id==i,],
-#             xlab = list(label = "Time", cex = 1.5),
-#             ylab = list(label = "Temperature (degrees centigrade)", cex = 1.5),
-#	     main = list(label = paste("Max Temperature for station ", i, sep=""), cex=1.5),
-#             type = "l",
-#             layout = c(1,9),
-#	     strip.left=TRUE,
-#	     strip = FALSE,
-#             aspect= 0.06,
-#             grib = TRUE,
-##             xlim = c(start, end),
-##             scales = list(y = list(relation = 'free', cex=1.5), x=list(relation='free',format = "%b %Y", tick.number=10), cex=1.2),
-#             scales = list(y = list(relation = 'same', cex=1, alternating=TRUE), x=list(draw=FALSE, relation='free')),
-#             panel = function(...) {
-#                  panel.abline(h=seq(0,max(tmp$tmax),by=5), v=seq(start, end, by="12 month"), color="lightgrey", lty=3, lwd=0.5)
-#                  panel.xyplot(...)
-#             }
-#        )
-#        print(b)
-#    }
-#dev.off()
-
-trellis.device(postscript, file = paste(outputdir, "scatterplot_of_tmax_for_100_stations",".ps", sep = ""), color=TRUE, paper="legal")
-   for(i in stations){
-        b <- xyplot( tmax ~ time | factor,
-             data = tmp[tmp$station.id==i,],
-             xlab = list(label = "Month", cex = 1.2),
-             ylab = list(label = "Maximum Temperature (degrees centigrade)", cex = 1.2),
-             main = list(label = paste("Station ", i, sep=""), cex=1.5),
-	     type = "b",
-             pch=16,
-             cex=0.5,	     
-             layout = c(1,9),
-	     strip = FALSE,
-#	     strip.left = TRUE,
-             aspect= 0.06,
-             grib = TRUE,
-             xlim = c(0, 143),
-#             scales = list(y = list(relation = 'free', cex=1.5), x=list(relation='free',format = "%b %Y", tick.number=10), cex=1.2),
-             scales = list(y = list(relation = 'same', alternating=TRUE), x=list(at = seq(0, 143, by=12), relation='same')),
-             panel = function(...) {
-                  panel.abline(h=seq(0,max(tmp$tmax),by=5), v=seq(0,145,by=12), color="lightgrey", lty=3, lwd=0.5)
-                  panel.xyplot(...)
-             }
-        )
-        print(b)
+  trellis.device(
+    device = postscript, 
+    file = file.path(outputdir, paste("scatterplot", target,"100stations.ps", sep=".")), 
+    color=TRUE, 
+    paper=size
+  )
+    for(i in stations){   
+      b <- xyplot( get(target) ~ time | factor
+        , data = data
+        , subset = station.id == i
+        , xlab = list(label = "Month", cex = 1.2)
+        , ylab = list(label = ylab, cex = 1.2)
+        , main = list(label=paste("Station ", i, sep=""), cex=1)
+        , type = "b"
+        , pch = 16
+        , cex = 0.5
+        , aspect = "xy"
+        , layout = c(1,9)
+        , strip = FALSE
+        , xlim = c(0, 143)
+        , scales = list(
+            y = list(relation = 'same', alternating=TRUE), 
+            x = list(at=seq(0,143,by=12), relation='same')
+          )
+        , panel = function(x, y, ...) {
+            panel.abline( v=seq(0,143,by=12), color="lightgrey", lty=3, lwd=0.5)
+            panel.xyplot(x, y, ...)
+          }
+      )
+      print(b)
     }
-dev.off()
+  dev.off()
 
-########################################################
-##scatter plot and line plot for minimum temperature
-#######################################################
-TMincount <- sort(TMincount, decreasing=TRUE)
-stations <- head(names(TMincount),100)
-
-tmp <- UStemp[UStemp[,1] %in% stations,]
-tmp <- tmp[!(is.na(tmp$tmin)),]
+}
 
 
-month <- tmp$month
-levels(month) <- c(4,8,12,2,1,7,6,3,5,11,10,9)
-month <- as.numeric(factor(month, levels=c(1:12)))
-date <- paste(tmp$year, month, "01", sep="-")
-tmp$date <- as.POSIXct(strptime(date, format = "%Y-%m-%d"), format='%Y%m%d', tz="")
-tmp <- tmp[order(tmp$date),]
-start <- as.POSIXct(strptime(paste(head(tmp$year,1)-1, "01", "01", sep="-"), format = "%Y-%m-%d"), format='%Y%m%d', tz="")
-end <- as.POSIXct(strptime(paste(tail(tmp$year,1)+1, "12", "01", sep="-"), format = "%Y-%m-%d"), format='%Y%m%d', tz="")
-tmp <- tmp[order(tmp[,1]),]
-tmp$factor <- factor(rep(rep(paste("Period", 1:9), c(rep(144,8),84)), times=100), levels=paste("Period", c(9:1)))
-tmp$time <- c(rep(0:143,8), 0:83)
+######################################################
+## scatter plot of raw obs for given stations conditional on month
+## 
+## monthRaw function
+##   - input:
+##       stations: station.id vector
+##       
+##       data: UStemp or USppt
+##
+##       target: which variable to be plotted, tmax, tmin, or precip
+##
+##       size: the size of ps file, letter or legal
+##
+##       test: if it is TRUE, only this first station in stations vector will be plotted
+##
+#####################################################
+monthRaw <- function(stations=stations.tmax, data=UStemp, target = "tmax", size = "letter", test = TRUE) {
 
+  library(plyr)
 
+  data <- subset(data, station.id %in% stations)
 
-trellis.device(postscript, file = paste(outputdir, "scatterplot_of_tmin_for_100_stations",".ps", sep = ""), color=TRUE, paper="legal")
-    for(i in stations){
-        b <- xyplot( tmin ~ time | factor,
-             data = tmp[tmp$station.id==i,],
-             xlab = list(label = "Month", cex = 1.2),
-             ylab = list(label = "Minimum Temperature (degrees centigrade)", cex = 1.2),
-	     main = list(label = paste("Station ", i, sep=""), cex=1.5),
-	     strip = FALSE,
-#	     strip.left = TRUE,
-             type = "b",
-             pch=16,
-             cex=0.5,
-             layout = c(1,9),
-             aspect= 0.06,
-             grib = TRUE,
-             xlim = c(0, 143),
-#             scales = list(y = list(relation = 'free', cex=1.5), x=list(relation='free',format = "%b %Y", tick.number=10), cex=1.2),
-             scales = list(y = list(relation = 'same', alternating=TRUE), x=list(at = seq(0,143, by=12), relation='same')),
-             panel = function(...) {
-                  panel.abline(h=seq(min(tmp$tmin),max(tmp$tmin),by=5), v=seq(0,145,by=12), color="lightgrey", lty=3, lwd=0.5)
-                  panel.xyplot(...)
-             }
+  data <- arrange(data, station.id, month, year)
+  
+  dd <- ddply(
+    .data = data,
+    .vari = c("station.id","month"),
+    .fun = summarise,
+    mean = mean(get(target))
+  )
+  data$mean <- dd[rep(row.names(dd), each=103),]$mean
+
+  if (target == "tmax") {
+    ylab <- "Maximum Temperature (degrees centigrade)"
+  } else if (target == "tmin") {
+    ylab <- "Minimum Temperature (degrees centigrade)"
+  } else {
+    ylab <- "Precipitation (millimeters)"
+  }
+
+  if(test) {
+    stations <- stations[1]
+  }
+
+trellis.device(
+  device = postscript, 
+  file = file.path(outputdir, paste("scatter", target,"100stations.cond.month.ps", sep=".")), 
+  color = TRUE, 
+  paper = size
+)
+  for(i in stations){
+    b <- xyplot( get(target)-mean ~ year | month
+      , data = data
+      , subset = station.id == i
+      , xlab = list(label = "Year", cex = 1.2)
+      , ylab = list(label = "Maximum Temperature (degrees centigrade)", cex = 1.2)
+      , main = list(label = paste("Station ", i, sep=""))
+      , type = "p"
+      , pch = 16
+      , cex = 0.5      
+      , layout = c(4,3)
+      , strip = TRUE
+      , scales = list(
+          y = list(relation = 'same', alternating=TRUE), 
+          x = list(tick.number=10, relation='same')
         )
-        print(b)
-    }
-dev.off()
+      , key=list(
+        text = list(label=c("observation","loess smoothing")), 
+        lines = list(pch=16, cex=0.7, lwd=1.5, type=c("p","l"), col=col[1:2]),
+        columns=2
+      )
+      , panel = function(x,y,...) {
+          panel.abline(h=seq(-10,10,by=5), v=seq(1900,2000,by=20), color="lightgrey", lty=3, lwd=0.5)
+          panel.xyplot(x,y,...)
+          panel.loess(x,y,span=2/3,degree=1,family="symmetric",evaluation = 100,col=col[2],...)
+        }
+    )
+    print(b)
+  }
+dev.off()  
 
-#trellis.device(postscript, file = paste("lineplot_of_tmin_for_100_stations",".ps", sep = ""), color=TRUE, paper="legal")
-#    for(i in stations){
-#	b <- xyplot( tmin ~ date | factor,
-#             data = tmp[tmp$station.id==i,],
-#             xlab = list(label = "Time", cex = 1.5),
-#             ylab = list(label = "Temperature (degrees centigrade)", cex = 1.5),
-#             main = list(label = paste("Min Temperature for station ", i, sep=""), cex=1.5),
-#             type = "l",
-#             layout = c(1,9),
-#	     strip = FALSE,
-#	     strip.left = TRUE,
-#             aspect= 0.06,
-#             grib = TRUE,
-#       #      xlim = c(start, end),
-##             scales = list(y = list(relation = 'free', cex=1.5), x=list(relation='free',format = "%b %Y", tick.number=10), cex=1.2),
-#             scales = list(y = list(relation = 'same', cex=1, alternating=TRUE), x=list(draw=FALSE, relation='free')),
-#             panel = function(...) {
-#                  panel.abline(h=seq(min(tmp$tmin),max(tmp$tmin),by=5), v=seq(start, end, by="12 month"), color="lightgrey", lty=3, lwd=0.5)
-#                  panel.xyplot(...)
-#             }
-#        )
-#        print(b)
-#    }
-#dev.off()
-
-
+}
