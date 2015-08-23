@@ -11,7 +11,7 @@ source("~/Projects/Spatial/NCAR/myloess/my.predloess.R")
 source("~/Projects/Spatial/NCAR/myloess/kdtree.R")
 
 par$degree <- 2
-par$span <- seq(0.01,0.05,0.001)
+par$span <- seq(0.01,0.1,0.005)
 par$drop <- c(TRUE, FALSE) # drop for the qudratic term of elevation
 
 sampleStation <- function(df, seed) {
@@ -20,14 +20,14 @@ sampleStation <- function(df, seed) {
 
   row.names(data) <- 1:nrow(data)
 
-  rst <- cppkdtree(as.matrix(data[,c("lat", "lon", "elev")]), 200)
+  rst <- cppkdtree(as.matrix(data[,c("lat", "lon")]), 200)
   
   idx <- ddply(
 	  .data = rst,
 	  .variable = "leaf",
 	  .fun = function(r) {
 		  set.seed(seed)
-		  data.frame(rowID = sample(r$idx, 3), rep = c(1,2,3))
+		  data.frame(rowID = sample(r$idx, nrow(r)), rep = c(1:nrow(r)))
 	  }
   )
 
@@ -297,7 +297,7 @@ xyplot(resid ~ as.numeric(as.character(span))
   , main = "Mean Squared Error vs. Span"
   , pch = 1
   , type = "b"
-  , scale = list(x=list(at=seq(0.01,0.05, by=0.004)))
+  , scale = list(x=list(at=seq(0.01,0.1, by=0.005)))
   , panel = function(x,y, ...) {
       panel.xyplot(x,y,...)
       panel.abline(h=min(y), v=x[which.min(y)], lty=1, lwd=0.5, col="black")

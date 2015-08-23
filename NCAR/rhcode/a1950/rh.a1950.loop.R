@@ -1,8 +1,18 @@
 ##################
 ##
-##  loopnew is the current version of backfitting, inner=5, outer=5, span = 0.05
+##  loopnew is the current version of backfitting, inner=5, outer=5
 ##
-##  loopout1 is inner=20, outer=1, span = 0.018
+##  loopout1 is inner=40, outer=1
+##
+##  loop.periodic is inner= 40, outer=1, sw="periodic", tw=1, td=2, elev.degree=2
+##
+##  looptest is change the spatial loess to be tmax-trend ~ lon + lat + elev WRONG!!!!!backfitting is substract out all other
+##  component when fit one
+##  sw = "periodic", tw = 109, td = 2
+##
+##  loop.nonperiodic is inner = 40, outer=1, sw = 37, sd =1, tw = 109, td=1
+##
+##  loop.longtrend is inner = 20, outer=1, sw = 37, sd = 1, td=1, tw=425
 ##
 ##################
 source("~/Rhipe/rhinitial.R")
@@ -15,18 +25,18 @@ par$loess <- "loess04" # loess04 is w/ elevation
 par$family <- "symmetric"
 par$degree <- 2
 par$outer <- 1
-par$loop <- "loopout1" # loopnew is the current version of backfitting, looptest is degree=1 for elevation(drop.square)
+par$loop <- "loop.longtrend" 
 par$type <- "same" # or "same", "decr"
 par$parameters <- list(
 	sw = 37,
-	tw = 109,
-	sd = 2,
-	td = 2,
+	tw = 425,
+	sd = 1,
+	td = 1,
 	inner = 1,
 	outer = 1
 ) 
 if (par$type == "same") {
-  par$span <- rep(0.018, 40)
+  par$span <- rep(0.038, 40)
 } else if (par$type == "incr") {
   par$span <- c(seq(0.03, 0.05, by=0.005))
 } else {
@@ -41,7 +51,7 @@ source("~/Projects/Spatial/NCAR/myloess/my.predloess.R")
 
 FileInput <- file.path(
   rh.datadir, par$dataset, "spatial", "a1950", par$family, 
-  paste("sp", "0.018", sep=""), paste(par$loess, "bystation.all", sep=".")
+  paste("sp", par$span[1], sep=""), paste(par$loess, "bystation.all", sep=".")
 )  
 
 
@@ -50,8 +60,8 @@ for(o in 1:par$outer) {
   for(i in 1:length(par$span)) {
     
     FileOutput <- file.path(
-      rh.datadir, par$dataset, "spatial", "a1950", par$family, paste("sp", "0.018", sep=""), 
-      paste(par$loess, par$loop, par$type, sep="."), paste("STL", i, sep="")
+      rh.datadir, par$dataset, "spatial", "a1950", par$family, paste("sp", par$span[1], sep=""), 
+      paste(par$loess, par$loop, par$type, sep="."), "STL"
     )  
 
     # In each loop, the first job is STL+ at each station, output key is station.id
@@ -115,19 +125,17 @@ for(o in 1:par$outer) {
 
     job.mr <- do.call("rhwatch", job1)
     
-    arg <- list(degree = par$degree, span = par$span[i], family = "gaussian")
-    
     # The output from job1 is the input to job2
     FileInput <- FileOutput
     
     # Second job output is the spatial fitting, output key is month and year
     FileOutput <- file.path(
-      rh.datadir, par$dataset, "spatial", "a1950", par$family, paste("sp", "0.018", sep=""), 
-      paste(par$loess, par$loop, par$type, sep="."), paste("Spatial", i, sep="")
+      rh.datadir, par$dataset, "spatial", "a1950", par$family, paste("sp", par$span[1], sep=""), 
+      paste(par$loess, par$loop, par$type, sep="."), "byMonth"
     )  
 
-    job2 <- list()
-    job2$map <- expression({
+    job21 <- list()
+    job21$map <- expression({
       lapply(seq_along(map.values), function(r) {
         d_ply(
           .data = map.values[[r]],
@@ -143,7 +151,7 @@ for(o in 1:par$outer) {
         })
     	})
     })
-    job2$reduce <- expression(
+    job21$reduce <- expression(
       pre = {
         combine <- data.frame()
       },
@@ -151,69 +159,101 @@ for(o in 1:par$outer) {
         combine <- rbind(combine, do.call(rbind, reduce.values))
       },
       post = {
-        lo.fit <- my.loess2( (tmax - seasonal - trend) ~ lon + lat + elev2, 
-          data    = subset(combine, !is.na(fitted)), 
+        rhcollect(reduce.key, combine)
+      }
+    )
+    job21$setup <- expression(
+      map = {
+        library(plyr)
+      }
+    )
+    job21$mapred <- list(
+      mapred.reduce.tasks = 72,
+      mapred.tasktimeout = 0,
+      rhipe_reduce_buff_size = 10000
+    )
+    job21$combiner <- TRUE
+    job21$input <- rhfmt(FileInput, type="sequence")
+    job21$output <- rhfmt(FileOutput, type="sequence")
+    job21$mon.sec <- 10
+    job21$jobname <- FileOutput
+    job21$readback <- FALSE  
+
+    job.mr <- do.call("rhwatch", job21)  
+
+    # The output from job21 is the input to job22
+    FileInput <- FileOutput  
+
+    FileOutput <- file.path(
+      rh.datadir, par$dataset, "spatial", "a1950", par$family, paste("sp", par$span[1], sep=""), 
+      paste(par$loess, par$loop, par$type, sep="."), paste("Spatial", i, sep="")
+    )  
+
+    arg <- list(degree = par$degree, span = par$span[i], family = "gaussian")
+
+    job22 <- list()
+    job22$map <- expression({
+      lapply(seq_along(map.values), function(r) {
+        value <- map.values[[r]]
+        lo.fit <- my.loess2( (tmax - trend - seasonal) ~ lon + lat + elev2, 
+          data    = subset(value, !is.na(fitted)), 
           degree  = argumt$degree, 
           span    = argumt$span,
-          weights = subset(combine, !is.na(fitted))$weights,
+          weights = subset(value, !is.na(fitted))$weights,
           family  = argumt$family,
-          parametric = "elev2"
-          #control = loess.control(surface = "direct")
+          parametric = "elev2",
+          control = loess.control(surface = "direct")
         )
         fit <- my.predict.loess(
           object = lo.fit, 
           newdata = data.frame(
-            lon = combine$lon, 
-            lat = combine$lat,
-            elev2 = combine$elev2
+            lon = value$lon, 
+            lat = value$lat,
+            elev2 = value$elev2
           )
         )
-        combine$spatial <- fit 
-        rhcollect(reduce.key, combine)
-      }
-    )
-    job2$parameters <- list(
+        value$spatial <- fit
+        rhcollect(map.keys[[r]], value)
+      })
+    })
+    job22$parameters <- list(
       argumt = arg,
       my.loess2 = my.loess2,
       my.simple2 = my.simple2,
       my.predict.loess = my.predict.loess,
       my.predLoess = my.predLoess
     )
-    job2$setup <- expression(
+    job22$setup <- expression(
       map = {
-        library(plyr)
-      },
-      reduce = {
         library(maps, lib.loc = lib.loc)
         system("chmod 777 myloess2.so")
         dyn.load("myloess2.so")
       }
     )
-    job2$shared <- c(
+    job22$shared <- c(
       file.path(rh.datadir, par$dataset, "shareRLib", "myloess2.so")
     )
-    job2$mapred <- list(
+    job22$mapred <- list(
       mapred.reduce.tasks = 72,
-      mapred.tasktimeout = 0,
-      rhipe_reduce_buff_size = 2500
+      mapred.tasktimeout = 0
     )
-    job2$input <- rhfmt(FileInput, type="sequence")
-    job2$output <- rhfmt(FileOutput, type="sequence")
-    job2$mon.sec <- 10
-    job2$jobname <- FileOutput
-    job2$readback <- FALSE  
+    job22$input <- rhfmt(FileInput, type="sequence")
+    job22$output <- rhfmt(FileOutput, type="sequence")
+    job22$mon.sec <- 10
+    job22$jobname <- FileOutput
+    job22$readback <- FALSE  
 
-    job.mr <- do.call("rhwatch", job2)  
+    job.mr <- do.call("rhwatch", job22)  
 
-    # The output from job2 is the input to job3
+    # The output from job22 is the input to job3
     FileInput <- FileOutput  
 
     FileOutput <- file.path(
-      rh.datadir, par$dataset, "spatial", "a1950", par$family, paste("sp", "0.018", sep=""), 
-      paste(par$loess, par$loop, par$type, sep="."), paste("Spatial", i, ".bystation", sep="")
+      rh.datadir, par$dataset, "spatial", "a1950", par$family, paste("sp", par$span[1], sep=""), 
+      paste(par$loess, par$loop, par$type, sep="."), paste("Spatial", ".bystation", sep="")
     )  
 
-    # job3 is just changing the key from month and year to station.id from job2
+    # job3 is just changing the key from month and year to station.id from job22
     job3 <- list()
     job3$map <- expression({
       lapply(seq_along(map.values), function(r) {
@@ -255,7 +295,7 @@ for(o in 1:par$outer) {
   if(par$outer > 1) {
 
     FileOutput <- file.path(
-      rh.datadir, par$dataset, "spatial", "a1950", par$family, paste("sp", "0.018", sep=""), 
+      rh.datadir, par$dataset, "spatial", "a1950", par$family, paste("sp", par$span[1], sep=""), 
       paste(par$loess, par$loop, par$type, sep="."), "residual"
     )  
 
@@ -293,7 +333,7 @@ for(o in 1:par$outer) {
     weight <- do.call("rhwatch", job4)[[1]][[2]]
 
     FileOutput <- file.path(
-      rh.datadir, par$dataset, "spatial", "a1950", par$family, paste("sp", "0.018", sep=""), 
+      rh.datadir, par$dataset, "spatial", "a1950", par$family, paste("sp", par$span[1], sep=""), 
       paste(par$loess, par$loop, par$type, sep="."), paste("Outer", o, ".bystation", sep="")
     )
 

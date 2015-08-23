@@ -14,7 +14,7 @@
 #In data01 this script, only s.window and t.window are varied.
 source("~/Rhipe/rhinitial.R")
 dataset <- "tmax"
-index <- "E1"
+index <- "E3"
 par <- list()
 par$machine <- "gacrux"
 source("~/Projects/Spatial/NCAR/rhcode/rh.setup.R")

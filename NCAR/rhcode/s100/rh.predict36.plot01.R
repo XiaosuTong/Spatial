@@ -17,7 +17,7 @@
 #The dataset for Tmax on HDFS is already Ordered the stations by the observation counts
 
 dataset <- "tmax"
-index <- "E1"
+index <- "E3"
 
 if(index == "E1"){
     parameter <- expand.grid(
@@ -53,12 +53,13 @@ if(index == "E1"){
 
 lattice.theme <- trellis.par.get()
 col <- lattice.theme$superpose.symbol$col
+
 if(dataset == "tmax") {
-    ylab <- "Maximum Temperature"
+    ylab <-  "Maximum Temperature (degrees centigrade)"
 }else if(dataset == "tmin") {
-    ylab <- "Minimum Temperature"
+    ylab <- "Minimum Temperature (degrees centigrade)"
 }else {
-    ylab <- "Precipitation"
+    ylab <- "Precipitation (millimeters)"
 }
 
 

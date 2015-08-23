@@ -118,5 +118,5 @@ job$mapred <- list(
 ),
 job$jobname <- paste(rh.output, par$dataset, sep=""),
 job$readback <- FALSE
-job$copyFiles <- TRUE,
+job$copyFiles <- TRUE
 job.mr <- do.call("rhwatch", job)

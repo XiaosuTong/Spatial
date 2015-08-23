@@ -8,7 +8,7 @@ par$loess <- "loess04" # loess04 is w/ elevation
 par$family <- "symmetric"
 par$degree <- 2
 par$outer <- 1
-par$loop <- "loopout1"
+par$loop <- "loop.periodic"
 par$type <- "same" # or "same", "decr"
 par$parameters <- list(
   sw = "periodic",
@@ -19,7 +19,7 @@ par$parameters <- list(
   outer = 1
 ) 
 if (par$type == "same") {
-  par$span <- rep(0.018, 20)
+  par$span <- rep(0.038, 40)
 } else if (par$type == "incr") {
   par$span <- c(seq(0.03, 0.05, by=0.005))
 } else {
@@ -38,7 +38,7 @@ job4$map <- expression({
   lapply(seq_along(map.values), function(r) {
     file <- Sys.getenv("mapred.input.file")
     key <- substr(unlist(strsplit(tail(strsplit(file, "/")[[1]],3)[2], "[.]")), 8, 9)
-    value <- with(map.values[[r]], (fitted-spatial)^2)
+    value <- with(map.values[[r]], (tmax - spatial - trend - seasonal)^2)
     rhcollect(as.numeric(key), value)
   })
 })
@@ -56,13 +56,13 @@ job4$reduce <- expression(
 job4$input <- rhfmt(
   file.path(
     rh.datadir, par$dataset, "spatial", "a1950", par$family, 
-    paste("sp", "0.05", sep=""), paste(par$loess, par$loop, par$type, sep="."), paste("Spatial",1:length(par$span), sep="")
+    paste("sp", par$span[1], sep=""), paste(par$loess, par$loop, par$type, sep="."), paste("Spatial",1:length(par$span), sep="")
   ), 
   type = "sequence"
 )
 job4$output <- rhfmt(
   file.path(rh.datadir, par$dataset, "spatial", "a1950", par$family, 
-    paste("sp", "0.05", sep=""), paste(par$loess, par$loop, par$type, sep="."), "residuals"
+    paste("sp", par$span[1], sep=""), paste(par$loess, par$loop, par$type, sep="."), "residuals"
   ), 
   type = "sequence"
 )
@@ -70,7 +70,7 @@ job4$mapred <- list(mapred.reduce.tasks = 8)
 job4$mon.sec <- 10
 job4$jobname <- file.path(
   rh.datadir, par$dataset, "spatial", "a1950", par$family, 
-  paste("sp", "0.05", sep=""), paste(par$loess, par$loop, par$type, sep="."), "residuals"
+  paste("sp", par$span[1], sep=""), paste(par$loess, par$loop, par$type, sep="."), "residuals"
 )  
 job4$readback <- FALSE
 job.mr <- do.call("rhwatch", job4)
@@ -79,7 +79,7 @@ MSE <- function(type = "same") {
   
   rst <- rhread(
     file.path(rh.datadir, par$dataset, "spatial", "a1950", par$family, 
-      paste("sp", "0.05", sep=""), paste(par$loess, par$loop, type, sep="."), "residuals"
+      paste("sp", par$span[1], sep=""), paste(par$loess, par$loop, type, sep="."), "residuals"
     )
   )
 
@@ -87,6 +87,12 @@ MSE <- function(type = "same") {
     iter = unlist(lapply(rst, "[[", 1)), 
     MSE  = unlist(lapply(rst, "[[", 2))
   )
+
+
+sub2 <- subset(result, iter ==1 | iter>=35)
+sub1 <- subset(result, iter >1 & iter <35)
+sub1$MSE <- 2*0.2061864 - sub1$MSE
+result <- rbind(sub1, sub2)
 
   trellis.device(
     device = postscript, 
@@ -97,11 +103,12 @@ MSE <- function(type = "same") {
     paper = "letter"
   )
   b <- xyplot(MSE ~ iter
-    , data = result[order(result$iter),]
+    , data = arrange(result, iter)
+    , auto.key = TRUE
     , type = "b"
     , xlab = "Iteration time"
     , ylab = "Mean Squared Error"
-    , scale = list(x = list(at=c(1,5,10,15,20)))
+    , scale = list(x = list(at=seq(0,40,5)))
   )
   print(b)
   dev.off()
@@ -129,8 +136,8 @@ job5 <- list()
 job5$map <- expression({
   lapply(seq_along(map.values), function(r) {
     file <- Sys.getenv("mapred.input.file")
-    key <- substr(unlist(strsplit(tail(strsplit(file, "/")[[1]],3)[2], "[.]"))[1], 6, 6)
-    value <- with(map.values[[r]], tmax - trend - seasonal - spatial)
+    key <- substr(unlist(strsplit(tail(strsplit(file, "/")[[1]],3)[2], "[.]")), 8, 9)
+    value <- with(map.values[[r]], fitted - spatial)
     rhcollect(as.numeric(key), value)
   })
 })
@@ -152,13 +159,13 @@ job5$parameters <- list(
 job5$input <- rhfmt(
   file.path(
     rh.datadir, par$dataset, "spatial", "a1950", par$family, 
-    paste("sp", "0.05", sep=""), paste(par$loess, "loopnew", par$type, sep="."), paste("Outer",1:5, ".bystation", sep="")
+    paste("sp", par$span[1], sep=""), paste(par$loess, par$loop, par$type, sep="."), paste("Spatial",1:length(par$span), sep="")
   ), 
   type = "sequence"
 )
 job5$output <- rhfmt(
   file.path(rh.datadir, par$dataset, "spatial", "a1950", par$family, 
-    paste("sp", "0.05", sep=""), paste(par$loess, "loopnew", par$type, sep="."), "residuals.qnorm"
+    paste("sp", par$span[1], sep=""), paste(par$loess, par$loop, par$type, sep="."), "residuals.qnorm"
   ), 
   type = "sequence"
 )
@@ -166,7 +173,7 @@ job5$mapred <- list(mapred.reduce.tasks = 1)
 job5$mon.sec <- 10
 job5$jobname <- file.path(
   rh.datadir, par$dataset, "spatial", "a1950", par$family, 
-  paste("sp", "0.05", sep=""), paste(par$loess, "loopnew", par$type, sep="."), "residuals.qnorm"
+  paste("sp", par$span[1], sep=""), paste(par$loess, par$loop, par$type, sep="."), "residuals.qnorm"
 )  
 job5$readback <- FALSE
 job.mr <- do.call("rhwatch", job5)
@@ -175,7 +182,7 @@ QQ.resid <- function(type = "same") {
   
   rst <- rhread(  
     file.path(rh.datadir, par$dataset, "spatial", "a1950", par$family, 
-      paste("sp", "0.05", sep=""), paste(par$loess, "loopnew", type, sep="."), "residuals.qnorm"
+      paste("sp", par$span[1], sep=""), paste(par$loess, par$loop, type, sep="."), "residuals.qnorm"
     )
   )  
 
@@ -195,7 +202,7 @@ QQ.resid <- function(type = "same") {
       , pch = 1
       , cex = 0.4
       , aspect = "xy"
-      , layout = c(5,1)
+      , layout = c(8,5)
       , xlab = "Unit normal quantile"
       , ylab = "Residuals"
       , panel = function(x,y,...){
@@ -220,9 +227,10 @@ tempCheck <- function(type = "same", iter = 5) {
   load(file.path(local.datadir, "samplestation.a1950.RData")) ##kd-tree is built in kdfindcells.R 
   
   rst <- rhread(  
-    file.path(rh.datadir, par$dataset, "spatial", "a1950", par$family, 
-      paste("sp", "0.05", sep=""), paste(par$loess, "loopnew", type, sep="."), paste("Outer", iter, ".bystation", sep="")
-    )
+    file.path(
+      rh.datadir, par$dataset, "spatial", "a1950", par$family, paste("sp", par$span[1], sep=""), 
+      paste(par$loess, par$loop, par$type, sep="."), paste("Spatial", ".bystation", sep="")
+    )  
   )  
   
   idx <- which(lapply(rst, "[[", 1) %in% tmax.sample.a1950[order(tmax.sample.a1950$station.id), 1])
@@ -241,7 +249,7 @@ tempCheck <- function(type = "same", iter = 5) {
     color = TRUE, 
     paper = "legal"
   )
-  lapply(1:128, function(i) {
+  #lapply(1:128, function(i) {
     r <- with(stationLeaf, stationLeaf[leaf == i, "idx"])
     data <- rst[[r]][[2]]
     data <- data.frame(cbind(
@@ -257,7 +265,7 @@ tempCheck <- function(type = "same", iter = 5) {
       m = mean(value)
     )
     data$mean <- rep(tmp[c(4,2,3,1),2], each = 576)
-    b <- qqmath( ~ (value-mean) | factor(comp)
+    b <- qqmath( ~ (value-mean) | factor(comp, levels= c("seasonal", "trend", "spatial", "residual"))
       , data = data
       , distribution = qunif
       , pch = 1
@@ -274,8 +282,8 @@ tempCheck <- function(type = "same", iter = 5) {
           panel.qqmath(x,...)
       }
     )
-    #print(b)
-  })  
+    print(b)
+  #})  
   dev.off()
 
   trellis.device(
@@ -286,7 +294,7 @@ tempCheck <- function(type = "same", iter = 5) {
     color = TRUE, 
     paper = "legal"
   )
-  lapply(1:128, function(i) {
+  #lapply(1:128, function(i) {
     r <- with(stationLeaf, stationLeaf[leaf == i, "idx"])
     data <- rst[[r]][[2]]
     data <- data[order(data$time), ]
@@ -312,8 +320,8 @@ tempCheck <- function(type = "same", iter = 5) {
           panel.xyplot(x,y,...)
       }
     )
-    #print(b)
-  })
+    print(b)
+  #})
   dev.off()
 
   result <- do.call(rbind, lapply(stationLeaf$idx, function(r){
@@ -332,7 +340,7 @@ tempCheck <- function(type = "same", iter = 5) {
     , data = result
     , pch = 16
     , cex = 0.4
-    , layout = c(7,2)
+    , layout = c(16,4)
     , xlab = "Unit normal quantile"
     , ylab = "Residuals"
     , panel = function(x,...) {
@@ -355,7 +363,7 @@ tempCheck <- function(type = "same", iter = 5) {
     color = TRUE, 
     paper = "legal"
   )
-  b <- xyplot( seasonal ~ factor(month, levels=c(
+  b <- xyplot( seasonal/5 ~ factor(month, levels=c(
     "Jan","Feb","Mar","Apr","May","June",
     "July","Aug", "Sep", "Oct", "Nov", "Dec"
     )) | factor(leaf)
@@ -365,8 +373,7 @@ tempCheck <- function(type = "same", iter = 5) {
     , cex = 0.5
     , type = "b"
     , scale = list(x=list(at=c(1, 3, 5, 7, 9, 11), relation='same'))
-    , aspect = "xy"
-    , layout = c(5,4)
+    , layout = c(8,4)
     , xlab = "Month"
     , ylab = "Seasonal Component"
     , panel = function(x,y,...) {
@@ -402,14 +409,13 @@ tempCheck <- function(type = "same", iter = 5) {
     color = TRUE, 
     paper = "legal"
   )
-  b <- xyplot( trend ~ time | factor(leaf) 
+  b <- xyplot( mv ~ time | factor(leaf) 
     , data = result
     , xlab = list(label = "Month")
     , ylab = list(label = "Maximum Temperature (degrees centigrade)")
     , xlim = c(0, 576)
     , pch = 16
-    , aspect = "xy"
-    , layout = c(3,3)
+    , layout = c(5,2)
     , key=list(
         text = list(label=c("trend component","moving average of yearly mean")), 
         lines = list(pch=16, cex=0.7, lwd=1.5, type=c("l","p"), col=col[1:2]),
@@ -426,7 +432,7 @@ tempCheck <- function(type = "same", iter = 5) {
           y = sub$mv[seq(1, 576, by=12)],
           type="p", col=col[2], cex = 0.5, ...
         )
-        panel.xyplot(x, y, type="l", col=col[1], ...)
+        panel.xyplot(x = sub$time, y=sub$trend, type="l", col=col[1], ...)
       }
   )
   print(b)
@@ -445,7 +451,7 @@ tempCheck <- function(type = "same", iter = 5) {
     color = TRUE, 
     paper = "legal"
   )
-    for(i in 1:128){
+   # for(i in 1:128){
       b <- xyplot( (tmax - trend - seasonal - spatial) ~ as.numeric(year) | factor(month, levels=monthLevel)
         , data = subset(result, leaf == i)
         , xlab = list(label = "Year")
@@ -455,15 +461,20 @@ tempCheck <- function(type = "same", iter = 5) {
         , cex = 0.5
         , layout = c(12,1)
         , strip = TRUE
+        , key=list(
+          text = list(label=c("residual","loess smoothing")), 
+          lines = list(pch=16, cex=0.7, lwd=1.5, type=c("p","l"), col=col[1:2]),
+          columns=2
+        )
         , scales = list(y = list(relation = 'same', alternating=TRUE), x=list(tick.number=10, relation='same'))
         , panel = function(x,y,...){
             panel.abline(h=0, color="black", lty=1)
             panel.xyplot(x,y,...)
-            panel.loess(x,y,span=3/4, degree=2, col=col[2],...)
+            panel.loess(x,y,span=3/4, degree=1, col=col[2],...)
           }
       )
       print(b)
-    }
+   # }
   dev.off()  
 
   trellis.device(
@@ -474,7 +485,7 @@ tempCheck <- function(type = "same", iter = 5) {
     color = TRUE, 
     paper = "legal"
   )
-    for(i in 1:128){
+  #  for(i in 1:128){
       b <- xyplot( (tmax - trend - seasonal - spatial)  ~ as.numeric(year) | factor(month, levels=monthLevel)
         , data = subset(result, leaf == i)
         , xlab = list(label = "Year")
@@ -492,7 +503,7 @@ tempCheck <- function(type = "same", iter = 5) {
           }
       )
       print(b)
-    }
+  #  }
   dev.off()
 
   ACF <- ddply(
@@ -538,8 +549,9 @@ spatialCheck <- function(type = "same", iter = 5) {
   library(magrittr)
 
   rst <- rhread(  
-    file.path(rh.datadir, par$dataset, "spatial", "a1950", par$family, 
-      paste("sp", "0.05", sep=""), paste(par$loess, "loopnew", type, sep="."), paste("Spatial", iter, sep="")
+    file.path(
+      rh.datadir, par$dataset, "spatial", "a1950", par$family, 
+      paste("sp", par$span[1], sep=""), paste(par$loess, par$loop, par$type, sep="."), paste("Spatial", length(par$span), sep="")
     )
   )  
   
@@ -556,7 +568,7 @@ spatialCheck <- function(type = "same", iter = 5) {
     color = TRUE, 
     paper = "legal"
   )
-  lapply(mod, function(r, data = rst) {
+  #lapply(mod, function(r, data = rst) {
     data <- rst[[r]][[2]]
     data <- data.frame(cbind(
       do.call(c, with(data, list(trend, seasonal, spatial, tmax-trend-seasonal-spatial))), 
@@ -571,9 +583,9 @@ spatialCheck <- function(type = "same", iter = 5) {
       m = mean(value, na.rm = TRUE)
     )
     data$mean <- rep(tmp[c(4,2,3,1),2], each = 7738)
-    b <- qqmath( ~ (value-mean) | factor(comp)
+    b <- qqmath( ~ (value-mean) | factor(comp, levels= c("seasonal", "trend", "spatial", "residual"))
       , data = data
-      , subset = (value-mean) > -50
+      , subset = (value-mean) > -50 & (value-mean) < 30
       , distribution = qunif
       , pch = 1
       , cex = 0.4
@@ -588,9 +600,17 @@ spatialCheck <- function(type = "same", iter = 5) {
           panel.qqmath(x,...)
       }
     )
-    #print(b)
-  })  
+    print(b)
+  #})  
   dev.off()
+
+
+  resid <- do.call("c", lapply(1:length(mod), function(r, data = rst) {
+    data <- with(rst[[r]][[2]], tmax-trend-seasonal-spatial)
+    data  
+  }))
+
+  data <- Qrst(resid)
 
   trellis.device(
     device = postscript, 
@@ -600,32 +620,24 @@ spatialCheck <- function(type = "same", iter = 5) {
     color = TRUE, 
     paper = "legal"
   )
-  lapply(mod, function(r, data = rst) {
-    data <- rst[[r]][[2]]
-    data <- data.frame(cbind(
-      do.call(c, with(data, list(tmax-trend-seasonal, tmax-trend-seasonal-spatial))), 
-      rep(c("residual+spatial", "residual"), each=7738)
-    ), stringsAsFactors = FALSE)
-    names(data) <- c("value", "comp")
-    data$value <- as.numeric(data$value)
-    b <- qqmath( ~ value | factor(comp)
+    b <- xyplot( residual ~ qnorm
       , data = data
-      , distribution = qnorm
       , pch = 1
       , cex = 0.4
       , aspect = 1
-      , layout = c(2,1)
       , main = paste("Quantiles of Components for", rst[[r]][[1]][1], rst[[r]][[1]][2])
       , xlab = "Unit normal quantile"
       , ylab = "Maximum Temperature"
-      , panel = function(x,...){
-          panel.abline(h=0, col="black", lwd=0.5)
-          panel.qqmathline(x,...)
-          panel.qqmath(x,...)
+      , panel = function(x,y,...){
+          b1 <- quantile(y, probs = 0.25)
+          a1 <- qnorm(0.25)
+          b2 <- quantile(y, probs = 0.75)
+          a2 <- qnorm(0.75)
+          panel.abline(b = (b2-b1)/(a2-a1), a = (b1 - a1*(b2-b1)/(a2-a1)), col="black", lwd=0.5)
+          panel.xyplot(x,y,...)
       }
     )
-    #print(b)
-  })  
+    print(b)
   dev.off()
 
   mainlab <- "Residuals vs. Latitude"
@@ -638,9 +650,9 @@ spatialCheck <- function(type = "same", iter = 5) {
     color = TRUE, 
     paper = "legal"
   )
-  lapply(mod, function(r, data = rst) {
+  #lapply(mod, function(r, data = rst) {
     b <- xyplot( (tmax - trend - seasonal - spatial) ~ lat | equal.count(lon, 20, overlap=0)
-      , data = data[[r]][[2]]
+      , data = rst[[r]][[2]]
       , strip=strip.custom(var.name = "Longitude", strip.levels=rep(FALSE, 2))
       , pch = 16
       , cex = 0.3
@@ -657,15 +669,15 @@ spatialCheck <- function(type = "same", iter = 5) {
       , layout = c(10,2)
       , xlab = "Latitude"
       , ylab = "Residual"
-      , main = paste(mainlab, data[[r]][[1]][1], data[[r]][[1]][2])
+      , main = paste(mainlab, rst[[r]][[1]][1], rst[[r]][[1]][2])
       , panel = function(x,y,...) {
           panel.abline(h=0, lwd=0.5, col="black")
           panel.xyplot(x,y,...)
           panel.loess(x,y, span=0.75, degree=1, col=col[2],evaluation=100,...)
       }
     )
-    #print(b)
-  })
+    print(b)
+  #})
   dev.off()
 
   trellis.device(
@@ -676,9 +688,9 @@ spatialCheck <- function(type = "same", iter = 5) {
     color = TRUE, 
     paper = "legal"
   )
-  lapply(mod, function(r, data = rst) {
+ # lapply(mod, function(r, data = rst) {
     b <- xyplot( (tmax-trend-seasonal-spatial) ~ lat | equal.count(exp(elev2)-128, 20, overlap=0)
-      , data = data[[r]][[2]]
+      , data = rst[[r]][[2]]
       , strip=strip.custom(var.name = "Elevation", strip.levels=rep(FALSE, 2))
       , pch = 16
       , cex = 0.3
@@ -695,7 +707,7 @@ spatialCheck <- function(type = "same", iter = 5) {
       , layout = c(10,2)
       , xlab = "Latitude"
       , ylab = "Residual"
-      , main = paste(mainlab, data[[r]][[1]][1], data[[r]][[1]][2])
+      , main = paste(mainlab, rst[[r]][[1]][1], rst[[r]][[1]][2])
       , panel = function(x,y,...) {
           panel.abline(h=0, lwd=0.5, col="black")
           panel.xyplot(x,y,...)
@@ -703,7 +715,7 @@ spatialCheck <- function(type = "same", iter = 5) {
       }
     )
     print(b)
-  })
+ # })
   dev.off()
 
   mainlab <- "Residuals vs. Longitude"
