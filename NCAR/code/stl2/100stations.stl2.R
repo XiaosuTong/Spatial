@@ -12,7 +12,7 @@ datadir <- "~/Projects/Spatial/NCAR/RData/"
 load(paste(datadir,"USmonthlyMet.RData", sep=""))
 load(paste(datadir,"stations.RData", sep=""))
 
-fitSTL <- function(stations=stations.tmax, data=UStemp, target = "tmax", size = "legal", test = TRUE, parameter) {}
+fitSTL <- function(stations=stations.tmax, data=UStemp, target = "tmax", size = "legal", test = TRUE, parameter) {
   
   data <- subset(data, station.id %in% stations)
   
@@ -71,6 +71,7 @@ fitSTL <- function(stations=stations.tmax, data=UStemp, target = "tmax", size = 
     
   }
 
+}
 ##################################
 ##trend+seasonal time series plot
 ##################################
