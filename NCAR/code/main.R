@@ -1,0 +1,38 @@
+#Set up the directory and load the data.
+library(lattice)
+library(plyr)
+
+source("~/Rhipe/ross.initial.R")
+
+par <- list()
+par$dataset <- "tmax"
+par$Machine <- "rossmann"
+source("~/Projects/Spatial/NCAR/rhcode/rh.setup.R")
+
+if(par$dataset == "precip") {
+  Nstations <- 11918
+} else {
+  Nstations <- 8125
+}
+
+lattice.theme <- trellis.par.get()
+col <- lattice.theme$superpose.symbol$col
+
+## Rhipe job creating data.frame of 100 stations  ##
+source(file.path(local.root, "rhcode", "s100", "rh.100stations.R"))
+rst <- rhread(file.path(rh.root, par$dataset, "100stations", "aggregated"))[[1]][[2]]
+## create plots for raw observations  ##
+source(file.path(local.root, "code", "raw.visual", "100stations.plot.R"))
+scatterRaw(data=rst, outputdir=file.path(local.root, "output"), target="tmax", size = "letter", test = F)
+monthRaw(data=rst, outputdir=file.path(local.root, "output"), target = "tmax", size = "letter", test = F)
+monthQQ(data=rst, outputdir=file.path(local.root, "output"), target = "tmax", size = "letter", test = F)
+monthSpatial(data=rst, outputdir=file.path(local.root, "output"), target = "tmax", vari="lon", size = "letter")
+monthSpatial(data=rst, outputdir=file.path(local.root, "output"), target = "tmax", vari="lat", size = "letter")
+monthSpatial(data=rst, outputdir=file.path(local.root, "output"), target = "tmax", vari="elev", size = "letter")
+
+## Rhipe job running stl2 on each station of 100 stations ##
+source(file.path(local.root, "rhcode", "s100", "rh.100stations.stl.R"))
+source(file.path(local.root, "code", "raw.visual", "100stations.stl2.R"))
+STLfit(sw=77, sd=1, tw=495, td=2, fcw=NULL, fcd=NULL)
+rst <- rhread(file.path(rh.root, par$dataset, "100stations", "STL", "t495td2_s77sd1_ffd"))[[1]][[2]]
+

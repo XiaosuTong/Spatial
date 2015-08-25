@@ -1,21 +1,3 @@
-##############################################################################
-##Precipitation and temperature for the 100 most observations stations
-##Raw data AGAINST time (month index).
-##Difference between this code and old code file is change the period to be 9.
-##############################################################################
-
-#Set up the directory and load the data.
-library(lattice)
-library(plyr)
-
-lattice.theme <- trellis.par.get()
-col <- lattice.theme$superpose.symbol$col
-
-datadir <- "~/Projects/Spatial/NCAR/RData"
-outputdir <- "~/Projects/Spatial/NCAR/output"
-load(file.path(datadir, "USmonthlyMet.RData"))
-load(file.path(datadir, "stations.100.RData"))
-
 #############################################
 ## scatter plot of raw obs for given stations
 ## 

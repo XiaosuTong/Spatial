@@ -5,79 +5,14 @@
 #load the data
 library(lattice)
 library(plyr)
-library(stl2)
 library(maps)
-outputdir <- "~/Projects/Spatial/NCAR/output/"
-datadir <- "~/Projects/Spatial/NCAR/RData/"
-load(paste(datadir,"USmonthlyMet.RData", sep=""))
-load(paste(datadir,"stations.RData", sep=""))
 
-fitSTL <- function(stations=stations.tmax, data=UStemp, target = "tmax", size = "legal", test = TRUE, parameter) {
-  
-  data <- subset(data, station.id %in% stations)
-  
-  #parameter <- list(sw="periodic", sd=1, tw=1141, td=1, inner=10, outer=0, flag=FALSE)
-  #parameter <- list(sw="periodic", sd=1, tw=1855, td=1, fcw=c(1855,121), fcd=c(1,2), inner=10, outer=0, flag=TRUE)
-
-  if(dataset == "tmax"){
-      ylab <- "Maximum Temperature (degrees centigrade)"
-  }else if(dataset == "tmin"){
-      ylab <- "Minimum Temperature (degrees centigrade)"
-  }else {
-      ylab <- "Precipitation (millimeters)"
-  }
-  
-  if(any(with(data, is.na(get(target))) == TRUE)) stop("The first 100 stations have NA")
-
-  data  <- arrange(data, station.id, year, month)
-
-  data$factor <- factor(
-    x = rep(rep(paste("Period", 1:9), c(rep(144,8),84)), times=100), 
-    levels = paste("Period", c(9:1))
-  )
-  data$time <- c(rep(0:143,8), 0:83) 
-
-  if(parameter$flag){
-    
-    dr <- ddply(data, "station.id", function(r){
-      do.call("cbind", stl2(r$response, r$date,
-        n.p=12,
-        s.window = parameter$sw,
-        s.degree = parameter$sd,
-        t.window = parameter$tw,
-        t.degree = parameter$td,
-        fc.window = parameter$fcw,
-        fc.degree = parameter$fcd,
-        inner = parameter$inner,
-        outer = parameter$outer)[c("data","fc")]
-      )
-    })
-    data <- cbind(data, subset(dr, select = -c(station.id, data.raw, data.sub.labels)))
-    names(data)[grep("fc.fc", names(data))] <- c("fc.trend", "fc.second")
-  
-  }else{
-
-    dr <- ddply(data, "station.id", function(r){
-  	  stl2(r$response, r$date, 
-  	  n.p = 12, 
-  	  s.window = parameter$sw, 
-  	  s.degree = parameter$sd, 
-  	  t.window = parameter$tw, 
-  	  t.degree = parameter$td, 
-  	  inner = parameter$inner, 
-  	  outer = parameter$outer)$data
-    })
-    data <- cbind(data, subset(dr, select = -c(station.id, raw, sub.labels)))
-    
-  }
-
-}
 ##################################
 ##trend+seasonal time series plot
 ##################################
 trellis.device(
-    device = postscript, 
-    file = paste(
+  device = postscript, 
+  file = paste(
         outputdir, 
         "scatterplot_of_", 
         dataset, 
