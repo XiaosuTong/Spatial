@@ -20,11 +20,10 @@ STLfit <- function(sw, sd, tw, td, fcw=NULL, fcd=NULL) {
 
         fit <- do.call("cbind", stl2(
           x=value$resp, t=value$date, n.p=12, s.window=par$sw, s.degree=par$sd, t.window=par$tw, 
-          t.degree=par$td, fc.window=par$fcw, fc.degree=par$fcd, inner=10, outer=0
+          t.degree=par$td, fc.window=c(par$tw,par$fcw), fc.degree=c(par$td,par$fcd), inner=10, outer=0
         )[c("data","fc")])
-
-        value <- cbind(value, subset(fit, select = -c(data.raw, data.sub.labels)))
-        names(value)[grep("fc.fc", names(value))] <- c("fc.trend", "fc.second")
+        value <- cbind(value, subset(fit, select = -c(data.raw, data.trend, data.remainder, data.weights, data.sub.labels)))
+        names(value)[grep("fc.fc", names(value))] <- c("fc.first", "fc.second")
 
       }
       rhcollect(1, value)

@@ -10,107 +10,118 @@ library(maps)
 ##################################
 ##trend+seasonal time series plot
 ##################################
-trellis.device(
-  device = postscript, 
-  file = paste(
-        outputdir, 
-        "scatterplot_of_", 
-        dataset, 
-        "_with_stl2_trend+seasonal_for_100_stations",
-        ".ps", 
-        sep = ""
-    ), 
-    color=TRUE, 
-    paper="legal"
-)
-	for(i in stations){
-    	b <- xyplot( response ~ time | factor,
-        	data = subset(tmp, station.id==i),
-            xlab = list(label = "Month", cex = 1.2),
-            ylab = list(label = paste("Station", i, ylab, sep=" "), cex = 1.2),
-            layout = c(1,9),
-			aspect= 0.06,
-			strip = FALSE,
-            grib = TRUE,
-            xlim = c(0, 143),
-#           scales = list(y = list(relation = 'free', cex=1.5), x=list(relation= 'free',format = "%b %Y", tick.number=10), cex=1.2),
-            scales = list(
-                y = list(relation = 'same', tick.number=4, alternating=TRUE), 
-                x = list(at=seq(0, 143, by=12), relation='same')
-            ),
-            panel = function(x,y,subscripts,...) {
-                 panel.abline(v=seq(0,145, by=12), color="lightgrey", lty=3, lwd=0.5)
-                 panel.xyplot(x, y, type="p", col=col[1], pch=16, cex=0.5, ...)
-				 sub <- subset(tmp, station.id==i)
-				 panel.xyplot(sub[subscripts,]$time, (sub[subscripts,]$trend+sub[subscripts,]$seasonal), type="l", col=col[2], lwd=1, ...)            
-            }
-        )
-        print(b)
-   }
-dev.off()
+fitRaw <- function(data=rst, outputdir, target="tmax", size = "letter", test = TRUE){
 
-trellis.device(
+  data$factor <- factor(
+    x = rep(rep(paste("Period", 1:9), c(rep(144,8),84)), times=100),
+    levels = paste("Period", c(9:1))
+  )
+  data$time <- c(rep(0:143,8), 0:83) 
+
+  stations <- unique(data$station.id)
+
+  if(test) {
+    stations <- stations[1]
+  }
+
+  if (target == "tmax") {
+    ylab <- "Maximum Temperature (degrees centigrade)"
+  } else if (target == "tmin") {
+    ylab <- "Minimum Temperature (degrees centigrade)"
+  } else {
+    ylab <- "Precipitation (millimeters)"
+  }
+
+  trellis.device(
     device = postscript, 
-    file = paste(
-        outputdir, 
-        "scatterplot_of_", 
-        dataset, 
-        "_with_stl2_seasonal+fc_for_100_stations",
-        ".ps", 
-        sep = ""
-    ), 
-    color=TRUE, 
-    paper="legal"
-)
+    file = file.path(outputdir, paste("fitted", "100stations", target, "ps", sep=".")),
+    color = TRUE, 
+    paper = size
+  )
     for(i in stations){
-        b <- xyplot( response ~ time | factor,
-            data = subset(tmp, station.id==i),
-            xlab = list(label = "Month", cex = 1.2),
-            ylab = list(label = paste("Station", i, ylab, sep=" "), cex = 1.2),
-            layout = c(1,9),
-            aspect= 0.06,
-            strip = FALSE,
-            grib = TRUE,
-            xlim = c(0, 143),
-            scales = list(
-                y = list(relation = 'same', tick.number=4, alternating=TRUE), 
-                x=list(at=seq(0, 143, by=12), relation='same')
-            ),
-            panel = function(x,y,subscripts,...) {
-                 panel.abline(v=seq(0,145, by=12), color="lightgrey", lty=3, lwd=0.5)
-                 panel.xyplot(x, y, type="p", col=col[1], pch=16, cex=0.5, ...)
-                 sub <- subset(tmp, station.id==i)
-                 panel.xyplot(sub[subscripts,]$time, (sub[subscripts,]$data.seasonal+sub[subscripts,]$fc.trend+sub[subscripts,]$fc.second), type="l", col=col[2], lwd=1, ...)
-            }
+      sub <- subset(data, station.id==i)
+      b <- xyplot( resp ~ time | factor,
+        , data = sub
+        , xlab = list(label = "Month", cex = 1.5)
+        , ylab = list(label = ylab, cex = 1.5)
+        , main = list(label=paste("Station ", i, sep=""), cex=1)
+        , layout = c(1,9)
+        , aspect= "xy"
+        , strip = FALSE,
+        , xlim = c(0, 143)
+        , key=list(
+          text = list(label=c("raw","fitted")), 
+          lines = list(pch=16, cex=0.7, lwd=1.5, type=c("p","l"), col=col[1:2]),
+          columns=2
         )
-        print(b)
-   }
-dev.off()
+        , scales = list(
+            y = list(tick.number=4), 
+            x = list(at=seq(0, 143, by=12), relation='same')
+          )
+        , panel = function(x,y,subscripts,...) {
+            panel.abline(v=seq(0,145, by=12), color="lightgrey", lty=3, lwd=0.5)
+            panel.xyplot(x, y, type="p", col=col[1], pch=16, cex=0.5, ...)
+            if (!any(grepl("fc", names(rst)))) {
+              panel.xyplot(sub[subscripts,]$time, (sub[subscripts,]$trend+sub[subscripts,]$seasonal), type="l", col=col[2], lwd=1, ...)            
+            } else {
+              panel.xyplot(sub[subscripts,]$time, (sub[subscripts,]$data.seasonal+sub[subscripts,]$fc.trend+sub[subscripts,]$fc.second), type="l", col=col[2], lwd=1, ...)
+            }
+          }
+      )
+      print(b)
+    }
+  dev.off()
+
+}
 
 ##################################################################################
 #QQ plot and time series plot of Pooled remainder of max temperature for 100 stations
 ##################################################################################
 #Create the QQ plot of temperature for one station
-trellis.device(postscript, file = paste(outputdir, "QQ_plot_of_stl2_remainder_", dataset ,"_of_100_stations", ".ps", sep = ""), color=TRUE, paper="legal")
-	a <- qqmath(~ fc.remainder | unique(station.id),
-		data = tmp,
-		distribution = qnorm,
-		aspect = 1,
-		pch = 16,
-		cex = 0.3,
-		layout = c(6,3),
-        xlab = list(label="Unit normal quantile", cex=1.2),
-        ylab = list(label=ylab, cex=1.2),
-#       scales = list(x = list(cex=1.5), y = list(cex=1.5)),
-        prepanel = prepanel.qqmathline,
-        panel = function(x, y,...) {
-        	panel.grid(lty=3, lwd=0.5, col="black",...)
-            panel.qqmathline(x, y=x)
-            panel.qqmath(x, y,...)
+remainder <- function(data=rst, outputdir, target="tmax", size = "letter", test = TRUE) {
+
+  stations <- unique(data$station.id)
+
+  if(test) {
+    stations <- stations[1]
+  }
+
+  if (target == "tmax") {
+    ylab <- "Maximum Temperature (degrees centigrade)"
+  } else if (target == "tmin") {
+    ylab <- "Minimum Temperature (degrees centigrade)"
+  } else {
+    ylab <- "Precipitation (millimeters)"
+  }
+  
+  idx <- grep("remainder", names(data))
+  trellis.device(
+    device = postscript, 
+    file = file.path(outputdir, paste("remainder", "100stations", target, "ps", sep=".")), 
+    color = TRUE, 
+    paper = size
+  )
+    a <- qqmath( ~ data[, idx] | unique(station.id),
+      , data = data, 
+      , distribution = qnorm,
+      , aspect = 1,
+      , pch = 16,
+      , cex = 0.3,
+      , layout = c(4,3),
+      , xlab = list(label="Unit normal quantile", cex=1.5),
+      , ylab = list(label=ylab, cex=1.5),
+      , scales = list(x = list(cex=1.2), y = list(cex=1.2)),
+      , prepanel = prepanel.qqmathline,
+      , panel = function(x, y,...) {
+          panel.grid(lty=3, lwd=0.5, col="black",...)
+          panel.qqmathline(x, y=x)
+          panel.qqmath(x, y,...)
         }
-	)
+    )
     print(a)
-dev.off()
+  dev.off()
+
+}
 
 tmp.remainder <- tmp
 tmp.remainder$time1 <- rep(0:1235,100)
