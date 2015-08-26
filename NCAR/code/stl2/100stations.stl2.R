@@ -34,7 +34,7 @@ fitRaw <- function(data=rst, outputdir, target="tmax", size = "letter", test = T
 
   trellis.device(
     device = postscript, 
-    file = file.path(outputdir, paste("fitted", "100stations", target, "ps", sep=".")),
+    file = file.path(outputdir, paste("fitted.time", "100stations", target, "ps", sep=".")),
     color = TRUE, 
     paper = size
   )
@@ -78,13 +78,9 @@ fitRaw <- function(data=rst, outputdir, target="tmax", size = "letter", test = T
 #QQ plot and time series plot of Pooled remainder of max temperature for 100 stations
 ##################################################################################
 #Create the QQ plot of temperature for one station
-remainder <- function(data=rst, outputdir, target="tmax", size = "letter", test = TRUE) {
+remainder <- function(data=rst, outputdir, target="tmax", size = "letter", test=TRUE) {
 
   stations <- unique(data$station.id)
-
-  if(test) {
-    stations <- stations[1]
-  }
 
   if (target == "tmax") {
     ylab <- "Maximum Temperature (degrees centigrade)"
@@ -95,30 +91,70 @@ remainder <- function(data=rst, outputdir, target="tmax", size = "letter", test 
   }
   
   idx <- grep("remainder", names(data))
+  
   trellis.device(
     device = postscript, 
-    file = file.path(outputdir, paste("remainder", "100stations", target, "ps", sep=".")), 
+    file = file.path(outputdir, paste("QQ.remainder", "100stations", target, "ps", sep=".")), 
     color = TRUE, 
     paper = size
   )
     a <- qqmath( ~ data[, idx] | unique(station.id),
-      , data = data, 
-      , distribution = qnorm,
-      , aspect = 1,
-      , pch = 16,
-      , cex = 0.3,
-      , layout = c(4,3),
-      , xlab = list(label="Unit normal quantile", cex=1.5),
-      , ylab = list(label=ylab, cex=1.5),
-      , scales = list(x = list(cex=1.2), y = list(cex=1.2)),
-      , prepanel = prepanel.qqmathline,
+      , data = data
+      , distribution = qnorm
+      , aspect = 1
+      , pch = 16
+      , cex = 0.3
+      , layout = c(5,3)
+      , xlab = list(label="Unit normal quantile", cex=1.5)
+      , ylab = list(label=ylab, cex=1.5)
+      , scales = list(x = list(cex=1.2), y = list(cex=1.2))
+      , prepanel = prepanel.qqmathline
       , panel = function(x, y,...) {
-          panel.grid(lty=3, lwd=0.5, col="black",...)
-          panel.qqmathline(x, y=x)
+          #panel.grid(lty=3, lwd=0.5, col="black",...)
+          panel.abline(h= seq(-15,15,by=5), v=c(-2,0,2), lty=2, lwd=0.5, col="lightgrey")
+		  panel.qqmathline(x, y=x)
           panel.qqmath(x, y,...)
         }
     )
     print(a)
+  dev.off()
+
+  if(test) {
+    stations <- stations[1]
+  }
+  
+  trellis.device(
+    device = postscript, 
+	file = file.path(outputdir, paste("remainder.time", "100stations", target, "ps", sep=".")),  
+	color = TRUE, 
+	paper=size
+  )
+  for(i in stations){
+    b <- xyplot( data[, idx] ~ date,
+      , data = data
+	  , subset = station.id == i
+	  , main = list(label=paste("Station ", i, sep=""), cex=1)
+      , xlab = list(label = "Month", cex = 1.5)
+      , ylab = list(label = ylab, cex = 1.5)
+      , xlim = c(0, 1235)
+      , key = list(
+          text=list(label=c("remainder","degree=2,span=0.15","degree=1,span=0.35")), 
+          lines=list(pch=16, cex=1, lwd=2, type=c("p","l", "l"), col=col[1:3]), 
+		  columns=3
+		)
+      , scales = list(
+	      y = list(relation = 'same', alternating=TRUE, cex = 1.2), 
+		  x = list(at=seq(0, 1235, by=120), cex = 1.2, relation='same')
+		)
+      , panel = function(x,y,...) {
+          panel.abline(h=0)
+          panel.xyplot(x, y, pch=16, cex = 0.5, ...)
+          panel.loess(x,y,degree=2,span=0.15, col=col[2], lwd = 2, evaluation=200,...)
+          panel.loess(x,y,degree=1,span=0.35, col=col[3], lwd = 2, evaluation=200,...)
+        }
+    )
+    print(b)
+  }
   dev.off()
 
 }
@@ -151,29 +187,7 @@ trellis.device(postscript, file = paste(outputdir, "scatterplot_of_", dataset, "
    }
 dev.off()
 
-trellis.device(postscript, file = paste(outputdir, "scatterplot_of_", dataset, "_with_stl2_remainder2_for_100_stations",".ps", sep = ""), color=TRUE, paper="legal")
-   for(i in stations){
-        b <- xyplot( fc.remainder ~ time1,
-             data = subset(tmp.remainder, station.id==i),
-             xlab = list(label = "Month", cex = 1.2),
-             ylab = list(label = paste("Station", i, ylab), cex = 1.2),
-             type = "p",
-             pch = 16,
-             cex = 0.5,
-             xlim = c(0, 1235),
-			 key = list(text=list(label=c("remainder","degree=2,span=0.15","degree=1,span=0.35")), lines=list(pch=c(".", "", ""), cex=4, lwd=1.5, type=c("p","l", "l"), col=col[1:3]), columns=3),
-#           scales = list(y = list(relation = 'free', cex=1.5), x=list(relation= 'free',format = "%b %Y", tick.number=10), cex=1.2),
-             scales = list(y = list(relation = 'same', alternating=TRUE), x=list(at=seq(0, 1235, by=120), relation='same')),
-             panel = function(x,y,...) {
-                  panel.abline(h=0)
-                  panel.xyplot(x,y,...)
-                  panel.loess(x,y,degree=2,span=0.15, col=col[2], evaluation=100,...)
-		  		  panel.loess(x,y,degree=1,span=0.35, col=col[3], evaluation=100,...)
-             }
-        )
-        print(b)
-   }
-dev.off()
+
 
 
 #################################################
