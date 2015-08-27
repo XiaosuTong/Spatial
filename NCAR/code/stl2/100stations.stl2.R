@@ -304,8 +304,8 @@ remainderDiag <- function(data=rst, outputdir, target="tmax", size = "letter", t
             x = list(cex=1.2)
           )
         , main = list(label=paste("Station ", i, sep=""), cex=1)
-        , xlab = list(label="Unit normal quantile", cex=1.5),
-        , ylab = list(label = paste("Station",i,ylab, sep=" "), cex = 1.5),
+        , xlab = list(label="Unit normal quantile", cex=1.5)
+        , ylab = list(label = ylab, cex = 1.5)
         , prepanel = prepanel.qqmathline,
         , panel = function(x, y,...) {
             panel.abline(h= seq(-15,15,by=5), v=c(-2,0,2), lty=1, lwd=1.5, col="lightgrey")
