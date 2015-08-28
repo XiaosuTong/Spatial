@@ -320,6 +320,125 @@ remainderDiag <- function(data=rst, outputdir, target="tmax", size = "letter", t
 }
 
 
+################################################################
+##  diagnostic plots for remainders, QQ, scatter, line plots  ##
+################################################################
+seasonalDiag <- function(data=rst, outputdir, target="tmax", size = "letter", test=TRUE) {
+
+  rorder <- ddply(
+    .data = rst,
+    .variables = "station.id",
+    .fun = summarise,
+    mean = mean(resp)
+  )
+  order.st <- arrange(rorder, mean)$station.id
+
+  idx <- grep("seasonal", names(data))
+
+  if(test) {
+    order.st <- order.st[1]
+  }
+  
+  if (target == "tmax") {
+    ylab <- "Maximum Temperature (degrees centigrade)"
+  } else if (target == "tmin") {
+    ylab <- "Minimum Temperature (degrees centigrade)"
+  } else {
+    ylab <- "Precipitation (millimeters)"
+  }
+
+  trellis.device(
+    device = postscript, 
+    file = file.path(outputdir, paste("seasonal.month", "100stations", target, "ps", sep=".")),
+    color = TRUE, 
+    paper = size
+  )
+    for(i in order.st){
+      b <- xyplot( data[, idx] ~ as.numeric(year) | factor(month, levels = month.abb)
+        , data = data
+        , subset = station.id == i
+        , main = list(label=paste("Station ", i, sep=""), cex=1)
+        , xlab = list(label = "Year", cex = 1.5)
+        , ylab = list(label = ylab, cex = 1.5)
+        , layout = c(12,1)
+        , scales = list(
+            y = list(cex=1.2), 
+            x = list(tick.number=2, relation='same', cex=1.2)
+          )
+        , panel = function(x,y,...) {
+            panel.abline(h=0, color="black", lty=1)
+            panel.xyplot(x,y,cex=0.4, pch=16, ...)
+          }
+      )
+      print(b)
+    }
+  dev.off()
+
+  mmean <- ddply(
+    .data = data,
+    .variable = c("station.id","month"),
+    .fun = summarise,
+    mean = mean(resp)
+  )
+  mmean <- arrange(mmean, match(month, month.abb))
+
+  trellis.device(
+    device = postscript, 
+    file =  file.path(outputdir, paste("seasonalperiod.month", "100stations", target, "ps", sep=".")),
+    color = TRUE, 
+    paper = size
+  )
+    b <- xyplot( mean ~ match(month, month.abb) | station.id,
+      , data = mmean
+      , xlab = list(label = "Month", cex = 1.5)
+      , ylab = list(label = ylab, cex = 1.5)
+      , layout = c(5,4)
+      , scales = list(
+          y = list(cex=1.2), 
+          x = list(at=c(1, 3, 5, 7, 9, 11), relation='same', cex=1.2)
+        )
+      , panel = function(x,y,...) {
+          panel.xyplot(x,y,, type="b", cex=0.5, pch=16, ...)
+        }
+    )
+    print(b)
+  dev.off()
+
+
+  trellis.device(
+    device = postscript, 
+    file = paste(outputdir, "scatterplot_of_", dataset, "_seasonal+remainder_nomean_same_for_100_stations_conditional_month",".ps", sep = ""), 
+    color = TRUE, 
+    paper = size
+  )
+    for(i in stations){
+      b <- xyplot( sr ~ year | month,
+        data = subset(tmp.sr, station.id==i),
+             xlab = list(label = "Year", cex = 1.2),
+             ylab = list(label = paste("Station",i, ylab, sep=" "), cex = 1.2),
+             key=list(text=list(label=c("seasonal","seasonal+remainder")), lines=list(pch=c("","."), cex=4, lwd=1.5, type=c("l","p"), col=col[2:1]), columns=2),
+             layout = c(12,1),
+             scales = list(y = list(relation = 'same', alternating=TRUE), x=list(tick.number=10, relation='same')),
+       prepanel = function(x,y,subscripts,...){
+          v <- subset(tmp.sr, station.id==i)[subscripts,]
+                mean <- v$seasonal
+        prepanel.default.xyplot(x,y-mean,...)
+       },
+             panel = function(x,y,subscripts,...) {
+              panel.abline(h=0, color="black", lty=1)
+          v <- subset(tmp.sr, station.id==i)[subscripts,]
+        mean <- v$seasonal
+        panel.xyplot(x, y-mean, type="p", col=col[1], pch=16, cex=0.5, ...)
+        panel.xyplot(x, v$seasonal-mean, type="l", col=col[2], ...)
+             }
+        )
+        print(b)
+     }
+dev.off()
+
+}
+
+
 ##########################################################################
 ##time series plot of trend component and yearly average of raw from stl2
 ##########################################################################
