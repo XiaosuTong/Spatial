@@ -88,12 +88,6 @@ MSE <- function(type = "same") {
     MSE  = unlist(lapply(rst, "[[", 2))
   )
 
-
-sub2 <- subset(result, iter ==1 | iter>=35)
-sub1 <- subset(result, iter >1 & iter <35)
-sub1$MSE <- 2*0.2061864 - sub1$MSE
-result <- rbind(sub1, sub2)
-
   trellis.device(
     device = postscript, 
     file = file.path(
@@ -137,7 +131,7 @@ job5$map <- expression({
   lapply(seq_along(map.values), function(r) {
     file <- Sys.getenv("mapred.input.file")
     key <- substr(unlist(strsplit(tail(strsplit(file, "/")[[1]],3)[2], "[.]")), 8, 9)
-    value <- with(map.values[[r]], fitted - spatial)
+    value <- with(map.values[[r]], tmax - spatial - trend - seasonal)
     rhcollect(as.numeric(key), value)
   })
 })
@@ -195,16 +189,17 @@ QQ.resid <- function(type = "same") {
       local.output, paste(par$dataset, "backfitting", type, "QQ.resid", "ps", sep = ".")
     ),
     color = TRUE, 
-    paper = "legal"
+    paper = "letter"
   )
     b <- xyplot(residual ~ qnorm | factor(iter)
       , data = result
       , pch = 1
       , cex = 0.4
       , aspect = "xy"
-      , layout = c(8,5)
-      , xlab = "Unit normal quantile"
-      , ylab = "Residuals"
+      , layout = c(5,2)
+	  , scale = list(cex=1.2)
+      , xlab = list(label="Unit normal quantile", cex=1.5)
+      , ylab = list(label="Residuals", cex=1.5)
       , panel = function(x,y,...){
           panel.qqmathline(y,y=y,...)
           panel.xyplot(x,y,...)
@@ -247,9 +242,9 @@ tempCheck <- function(type = "same", iter = 5) {
       local.output, paste(par$dataset, "backfitting", type, "comps.by.stations", "ps", sep = ".")
     ),
     color = TRUE, 
-    paper = "legal"
+    paper = "letter"
   )
-  #lapply(1:128, function(i) {
+  lapply(1:128, function(i) {
     r <- with(stationLeaf, stationLeaf[leaf == i, "idx"])
     data <- rst[[r]][[2]]
     data <- data.frame(cbind(
@@ -268,22 +263,20 @@ tempCheck <- function(type = "same", iter = 5) {
     b <- qqmath( ~ (value-mean) | factor(comp, levels= c("seasonal", "trend", "spatial", "residual"))
       , data = data
       , distribution = qunif
-      , pch = 1
-      , cex = 0.4
       , aspect = 2
       , layout = c(4,1)
-      , main = paste("Quantiles of Components")
       , sub = paste("Station from cell", tmax.sample.a1950[tmax.sample.a1950$station.id == rst[[r]][[1]], 2]) 
-      , xlab = "f-value"
-      , ylab = "Maximum Temperature"
+      , xlab = list(label="f-value", cex=1.5)
+      , ylab = list(label="Maximum Temperature (degrees centigrade)", cex=1.5)
+      , scale = list(cex=1.2)
       , panel = function(x,...){
           panel.abline(h=seq(-15,15,by=3),v=seq(0,1,by=0.2), lwd=0.5, lty=1, col="lightgray")
           panel.abline(h=0, col="black", lwd=0.5)
-          panel.qqmath(x,...)
+          panel.qqmath(x,pch=1, cex=0.4, ...)
       }
     )
-    print(b)
-  #})  
+    #print(b)
+  })  
   dev.off()
 
   trellis.device(
@@ -292,12 +285,12 @@ tempCheck <- function(type = "same", iter = 5) {
       local.output, paste(par$dataset, "backfitting", type, "resid.by.stations", "ps", sep = ".")
     ),
     color = TRUE, 
-    paper = "legal"
+    paper = "letter"
   )
-  #lapply(1:128, function(i) {
+  lapply(1:128, function(i) {
     r <- with(stationLeaf, stationLeaf[leaf == i, "idx"])
     data <- rst[[r]][[2]]
-    data <- data[order(data$time), ]
+    data <- arrange(data, time)
     data$time1 <- rep(0:95, 6)
     data$factor <- factor(
       rep(1:6, each = 96),
@@ -305,23 +298,30 @@ tempCheck <- function(type = "same", iter = 5) {
     )
     b <- xyplot((tmax - trend - seasonal - spatial) ~ time1 | factor
       , data = data
-      , pch = 1
       , strip = FALSE
-      , cex = 0.4
-      , aspect = "xy"
       , layout = c(1,6)
       , xlim = c(-1, 96)
-      , scale = list(x = list(at=seq(0, 95, by=12)))
-      , main = paste("Station from cell", tmax.sample.a1950[tmax.sample.a1950$station.id == rst[[r]][[1]], 2]) 
-      , xlab = "Month"
-      , ylab = "Residuals"
+      , scale = list(
+          x = list(at=seq(0, 95, by=12), cex=1.2), 
+          y = list(cex=1.2, tick.number=3)
+        )
+      , key = list(
+          text=list(label=c("remainder","loess smoothing")), 
+          lines=list(pch=16, cex=1, lwd=2, type=c("p","l"), col=col[1:2]), 
+          columns=2
+        )
+      , between = list(y=0.5)
+      , sub = paste("Station from cell", tmax.sample.a1950[tmax.sample.a1950$station.id == rst[[r]][[1]], 2]) 
+      , xlab = list(label="Month", cex=1.5)
+      , ylab = list(label="Residuals", cex=1.5)
       , panel = function(x,y,...){
           panel.abline(h=0, col="black", lwd=0.5)
-          panel.xyplot(x,y,...)
+          panel.loess(x,y,degree=2,span=0.15, col=col[2], lwd = 2, evaluation=200,...)
+          panel.xyplot(x,y, pch=16, cex=0.6,...)
       }
     )
-    print(b)
-  #})
+    #print(b)
+  })
   dev.off()
 
   result <- do.call(rbind, lapply(stationLeaf$idx, function(r){
@@ -334,18 +334,18 @@ tempCheck <- function(type = "same", iter = 5) {
       local.output, paste(par$dataset, "backfitting", type, "QQ.by.stations", "ps", sep = ".")
     ),
     color = TRUE, 
-    paper = "legal"
+    paper = "letter"
   )
   b <- qqmath(~ (tmax - trend - seasonal - spatial) | factor(leaf)
     , data = result
-    , pch = 16
-    , cex = 0.4
-    , layout = c(16,4)
-    , xlab = "Unit normal quantile"
-    , ylab = "Residuals"
+    , aspect = "xy"
+    , layout = c(16,1)
+    , xlab = list(label="Unit normal quantile", cex=1.5)
+    , ylab = list(label="Residuals", cex=1.5)
+    , scale = list(cex=1.2)
     , panel = function(x,...) {
         panel.qqmathline(x,...)
-        panel.qqmath(x,...)
+        panel.qqmath(x,pch=16, cex=0.4, ...)
     }
   )
   print(b)
@@ -361,35 +361,33 @@ tempCheck <- function(type = "same", iter = 5) {
       local.output, paste(par$dataset, "backfitting", type, "seasonal.by.stations", "ps", sep = ".")
     ),
     color = TRUE, 
-    paper = "legal"
+    paper = "letter"
   )
-  b <- xyplot( seasonal/5 ~ factor(month, levels=c(
+  b <- xyplot( seasonal ~ factor(month, levels=c(
     "Jan","Feb","Mar","Apr","May","June",
     "July","Aug", "Sep", "Oct", "Nov", "Dec"
     )) | factor(leaf)
-    , data = result[order(result$time),]
+    , data = arrange(result, time)
     , subset = year == "1950"
-    , pch = 16
-    , cex = 0.5
-    , type = "b"
-    , scale = list(x=list(at=c(1, 3, 5, 7, 9, 11), relation='same'))
-    , layout = c(8,4)
-    , xlab = "Month"
-    , ylab = "Seasonal Component"
+    , scale = list(x=list(at=c(1, 3, 5, 7, 9, 11), cex=1.2), y=list(cex=1.2))
+    , layout = c(4,4)
+    , xlab = list(label="Month", cex=1.5)
+    , ylab = list(label="Seasonal Component", cex=1.2)
     , panel = function(x,y,...) {
-        panel.xyplot(x,y,...)
+        panel.xyplot(x,y,pch=1, cex=0.5, type="b", ...)
     }
   )
   print(b)
   dev.off()
 
-  mav <- function(x,n=5){  
+  mav <- function(x,n=10){  
 
     data.frame(mv=matrix(filter(x$mean,rep(1/n,n), sides=2), ncol=1), stringsAsFactors=FALSE)  
 
   }  
 
-  dr <- result %>% ddply(
+  dr <- ddply(
+    .data = result,
     .variable = c("station.id", "year"),
     .fun = summarise,
     mean = mean(tmax, na.rm=TRUE)
@@ -398,7 +396,7 @@ tempCheck <- function(type = "same", iter = 5) {
     .fun= mav
   )  
 
-  result <- result[order(result$station.id, result$time),]
+  result <- arrange(result, station.id, time)
   result <- dr[rep(row.names(dr), each=12), "mv", drop=FALSE] %>% cbind(result)
 
   trellis.device(
@@ -407,32 +405,37 @@ tempCheck <- function(type = "same", iter = 5) {
       local.output, paste(par$dataset, "backfitting", type, "trend.by.stations", "ps", sep = ".")
     ),
     color = TRUE, 
-    paper = "legal"
+    paper = "letter"
   )
   b <- xyplot( mv ~ time | factor(leaf) 
     , data = result
-    , xlab = list(label = "Month")
-    , ylab = list(label = "Maximum Temperature (degrees centigrade)")
+    , xlab = list(label = "Month", cex=1.5)
+    , ylab = list(label = "Maximum Temperature (degrees centigrade)", cex=1.5)
     , xlim = c(0, 576)
-    , pch = 16
-    , layout = c(5,2)
+    , layout = c(4,3)
     , key=list(
         text = list(label=c("trend component","moving average of yearly mean")), 
-        lines = list(pch=16, cex=0.7, lwd=1.5, type=c("l","p"), col=col[1:2]),
+        lines = list(pch=16, cex=1, lwd=2, type=c("l","p"), col=col[1:2]),
         columns=2
       )
+    , prepanel = function(x,y,subscripts,...){ 
+        v <- result[subscripts,] 
+        ylim <- range(v$trend, na.rm=TRUE) 
+        ans <- prepanel.default.xyplot(v$time, v$mv, ...) 
+        ans$ylim <- range(c(ans$ylim, ylim), na.rm=TRUE) 
+        ans 
+      }
     , scales = list(
-        y = list(relation = 'free'), 
-        x=list(at=seq(0, 576, by=120), relation = 'same')
+        y = list(relation = 'free', cex=1.2), 
+        x=list(at=seq(0, 576, by=120), cex=1.2)
       )
     , panel = function(x, y, subscripts, ...) {
         sub <- result[subscripts, ]
         panel.xyplot(
-          x = sub$time[seq(1, 576, by=12)],
-          y = sub$mv[seq(1, 576, by=12)],
-          type="p", col=col[2], cex = 0.5, ...
+          x = sub$time[seq(1, 576, by=12)], y = sub$mv[seq(1, 576, by=12)],
+          type="p", col=col[2], cex = 0.5, pch=16,...
         )
-        panel.xyplot(x = sub$time, y=sub$trend, type="l", col=col[1], ...)
+        panel.xyplot(x = sub$time, y=sub$trend, type="l", col=col[1], lwd=2, ...)
       }
   )
   print(b)
@@ -449,32 +452,33 @@ tempCheck <- function(type = "same", iter = 5) {
       local.output, paste(par$dataset, "backfitting", type, "residmonth.by.stations", "ps", sep = ".")
     ),
     color = TRUE, 
-    paper = "legal"
+    paper = "letter"
   )
-   # for(i in 1:128){
+    for(i in 1:128){
       b <- xyplot( (tmax - trend - seasonal - spatial) ~ as.numeric(year) | factor(month, levels=monthLevel)
-        , data = subset(result, leaf == i)
-        , xlab = list(label = "Year")
-        , ylab = list(label = "Maximum Temperature (degrees centigrade)")
-        , main = paste("Residuals from station of cell", i)
-        , pch = 16
-        , cex = 0.5
+        , data = result
+        , subset = leaf == i
+        , xlab = list(label = "Year", cex=1.5)
+        , ylab = list(label = "Maximum Temperature (degrees centigrade)", cex=1.5)
+        , sub = paste("Station from cell", i)
         , layout = c(12,1)
-        , strip = TRUE
         , key=list(
-          text = list(label=c("residual","loess smoothing")), 
-          lines = list(pch=16, cex=0.7, lwd=1.5, type=c("p","l"), col=col[1:2]),
-          columns=2
-        )
-        , scales = list(y = list(relation = 'same', alternating=TRUE), x=list(tick.number=10, relation='same'))
+            text = list(label=c("residual","loess smoothing")), 
+            lines = list(pch=16, cex=1, lwd=2, type=c("p","l"), col=col[1:2]),
+            columns=2
+          )
+        , scales = list(
+            y = list(cex=1.2), 
+            x = list(tick.number=4, cex=1.2)
+          )
         , panel = function(x,y,...){
             panel.abline(h=0, color="black", lty=1)
-            panel.xyplot(x,y,...)
-            panel.loess(x,y,span=3/4, degree=1, col=col[2],...)
+            panel.xyplot(x,y, pch=16, cex=0.5,...)
+            panel.loess(x,y,span=3/4, degree=1, lwd=2, col=col[2],...)
           }
       )
       print(b)
-   # }
+    }
   dev.off()  
 
   trellis.device(
@@ -509,10 +513,11 @@ tempCheck <- function(type = "same", iter = 5) {
   ACF <- ddply(
     .data = result,
     .variables = "leaf",
-    .fun = summarise,
-    correlation = c(acf((tmax - trend - seasonal - spatial), plot=FALSE)$acf),
-    lag = c(acf((tmax - trend - seasonal - spatial), plot=FALSE)$lag) 
-  )  
+    .fun = function(r) {
+      corr <- acf(with(r, tmax - trend - seasonal - spatial), plot=FALSE)
+      data.frame(correlation = corr$acf, lag = corr$lag)
+    }
+  )
 
   trellis.device(
     device = postscript, 
@@ -520,22 +525,21 @@ tempCheck <- function(type = "same", iter = 5) {
       local.output, paste(par$dataset, "backfitting", type, "residACF.by.stations", "ps", sep = ".")
     ),
     color = TRUE, 
-    paper = "legal"
+    paper = "letter"
   )     
-    for(i in 1:128){
-      b <- xyplot( correlation ~ lag
-        , data = subset(ACF, leaf==i & lag!=0)
-        , xlab = list(label = "Lag")
-        , ylab = list(label = "ACF")
-        , main = list(label = paste("Station from cell", i))
-        , type = "h"
-        , panel = function(x,y,...) {
-            panel.abline(h=0)
-            panel.xyplot(x,y,...)
-          }
-      )
-      print(b)
-    }
+    b <- xyplot( correlation ~ lag | factor(leaf)
+      , data = ACF
+      , subset = lag != 0
+      , xlab = list(label = "Lag", cex=1.5)
+      , ylab = list(label = "ACF", cex=1.5)
+      , scale = list(cex=1.2)
+      , layout = c(2,2)
+      , panel = function(x,y,...) {
+          panel.abline(h=0)
+          panel.xyplot(x,y, type="h", ...)
+        }
+    )
+    print(b)
   dev.off()
 
 }
@@ -566,9 +570,9 @@ spatialCheck <- function(type = "same", iter = 5) {
       local.output, paste(par$dataset, "backfitting", type, "comps.by.month", "ps", sep = ".")
     ),
     color = TRUE, 
-    paper = "legal"
+    paper = "letter"
   )
-  #lapply(mod, function(r, data = rst) {
+  #lapply(mod, function(r) {
     data <- rst[[r]][[2]]
     data <- data.frame(cbind(
       do.call(c, with(data, list(trend, seasonal, spatial, tmax-trend-seasonal-spatial))), 
@@ -585,19 +589,17 @@ spatialCheck <- function(type = "same", iter = 5) {
     data$mean <- rep(tmp[c(4,2,3,1),2], each = 7738)
     b <- qqmath( ~ (value-mean) | factor(comp, levels= c("seasonal", "trend", "spatial", "residual"))
       , data = data
-      , subset = (value-mean) > -50 & (value-mean) < 30
+      #, subset = (value-mean) > -50 & (value-mean) < 30
       , distribution = qunif
-      , pch = 1
-      , cex = 0.4
       , aspect = 2
       , layout = c(4,1)
-      , main = paste("Quantiles of Components for", rst[[r]][[1]][1], rst[[r]][[1]][2])
-      , xlab = "f-value"
-      , ylab = "Maximum Temperature"
+      , sub = paste(rst[[r]][[1]][1], rst[[r]][[1]][2])
+      , xlab = list(label="f-value", cex=1.5)
+      , ylab = list(label="Maximum Temperature (degrees centigrade)", cex=1.5)
       , panel = function(x,...){
           panel.abline(h=seq(-15,15,by=3),v=seq(0,1,by=0.2), lwd=0.5, lty=1, col="lightgray")
           panel.abline(h=0, col="black", lwd=0.5)
-          panel.qqmath(x,...)
+          panel.qqmath(x,pch=1, cex=0.4, ...)
       }
     )
     print(b)

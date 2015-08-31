@@ -193,12 +193,12 @@ remainderDiag <- function(data=rst, outputdir, target="tmax", size = "letter", t
     .data = data,
     .variables = "station.id",
     .fun = function(r) {
-	  corr <- acf(r[, idx], plot=FALSE)
-	  data.frame(
+      corr <- acf(r[, idx], plot=FALSE)
+      data.frame(
         correlation = corr$acf,
         lag = corr$lag 
       )
-	}
+    }
   )
 
   trellis.device(
@@ -227,9 +227,9 @@ remainderDiag <- function(data=rst, outputdir, target="tmax", size = "letter", t
 
  trellis.device(
     device = postscript, 
-	file = file.path(outputdir, paste("remainder.month", "100stations", target, "ps", sep=".")),
-	color = TRUE, 
-	paper=size
+    file = file.path(outputdir, paste("remainder.month", "100stations", target, "ps", sep=".")),
+    color = TRUE, 
+    paper=size
   )
     for(i in stations){
       b <- xyplot( data[,idx] ~ as.numeric(year) | factor(month, levels = month.abb)
@@ -260,9 +260,9 @@ remainderDiag <- function(data=rst, outputdir, target="tmax", size = "letter", t
 
   trellis.device(
     device = postscript, 
-	file = file.path(outputdir, paste("remainder.month2", "100stations", target, "ps", sep=".")),
-	color = TRUE, 
-	paper = size
+    file = file.path(outputdir, paste("remainder.month2", "100stations", target, "ps", sep=".")),
+    color = TRUE, 
+    paper = size
   )
     for(i in stations){
       b <- xyplot( data[,idx] ~ as.numeric(year) | factor(month, levels = month.abb)
@@ -288,9 +288,9 @@ remainderDiag <- function(data=rst, outputdir, target="tmax", size = "letter", t
 
   trellis.device(
     device = postscript, 
-	file = file.path(outputdir, paste("QQ.remainder.month", "100stations", target, "ps", sep=".")),
-	color = TRUE, 
-	paper = size
+    file = file.path(outputdir, paste("QQ.remainder.month", "100stations", target, "ps", sep=".")),
+    color = TRUE, 
+    paper = size
   )
     for(i in stations){
       a <- qqmath( ~ data[, idx] | factor(month, levels = month.abb),
