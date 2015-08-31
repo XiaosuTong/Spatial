@@ -4,7 +4,7 @@
 ##
 ##  loopout1 is inner=40, outer=1
 ##
-##  loop.periodic is inner= 40, outer=1, sw="periodic", tw=1, td=2, elev.degree=2
+##  loop.periodic is inner= 40, outer=1, sw="periodic", tw=109, td=2, elev.degree=2
 ##
 ##  looptest is change the spatial loess to be tmax-trend ~ lon + lat + elev WRONG!!!!!backfitting is substract out all other
 ##  component when fit one
