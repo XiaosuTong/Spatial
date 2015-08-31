@@ -15,12 +15,7 @@
 ##  loop.longtrend is inner = 20, outer=1, sw = 37, sd = 1, td=1, tw=425
 ##
 ##################
-source("~/Rhipe/rhinitial.R")
-par <- list()
 par$modified <- TRUE
-par$machine <- "gacrux"
-par$dataset <- "tmax"
-par$N <- 576
 par$loess <- "loess04" # loess04 is w/ elevation
 par$family <- "symmetric"
 par$degree <- 2
@@ -36,7 +31,7 @@ par$parameters <- list(
 	outer = 1
 ) 
 if (par$type == "same") {
-  par$span <- rep(0.038, 40)
+  par$span <- rep(0.035, 40)
 } else if (par$type == "incr") {
   par$span <- c(seq(0.03, 0.05, by=0.005))
 } else {
@@ -50,7 +45,7 @@ source("~/Projects/Spatial/NCAR/myloess/my.predloess.R")
 # Key is the station.id
 
 FileInput <- file.path(
-  rh.datadir, par$dataset, "spatial", "a1950", par$family, 
+  rh.root, par$dataset, "a1950", "spatial", par$family, 
   paste("sp", par$span[1], sep=""), paste(par$loess, "bystation.all", sep=".")
 )  
 
@@ -60,7 +55,7 @@ for(o in 1:par$outer) {
   for(i in 1:length(par$span)) {
     
     FileOutput <- file.path(
-      rh.datadir, par$dataset, "spatial", "a1950", par$family, paste("sp", par$span[1], sep=""), 
+      rh.root, par$dataset, "a1950", "spatial", par$family, paste("sp", par$span[1], sep=""), 
       paste(par$loess, par$loop, par$type, sep="."), "STL"
     )  
 
@@ -68,19 +63,19 @@ for(o in 1:par$outer) {
     job1 <- list()
     job1$map <- expression({
       lapply(seq_along(map.values), function(r) {
-        map.values[[r]] <- map.values[[r]][order(map.values[[r]]$time), ]
+        v <- arrange(map.values[[r]], time)
         if (first) {
-          Index <- which(is.na(map.values[[r]]$tmax))
-          map.values[[r]]$tmax[Index] <- map.values[[r]]$fitted[Index]
-          map.values[[r]]$spatial <- 0
-          map.values[[r]]$trend <- 0
-          map.values[[r]]$weight <- 1
+          Index <- which(is.na(v$resp))
+          v$resp[Index] <- v$fitted[Index]
+          v$spatial <- 0
+          v$trend <- 0
+          v$weight <- 1
         } 
         v.stl <- stl3(
-          x = with(map.values[[r]], tmax - spatial), 
-          t = map.values[[r]]$time, 
-          trend = map.values[[r]]$trend,
-          weight = map.values[[r]]$weight, 
+          x = with(v, resp - spatial), 
+          t = v$time, 
+          trend = v$trend,
+          weight = v$weight, 
           n.p = 12, 
           s.window = parameters$sw, 
           s.degree = parameters$sd, 
@@ -91,16 +86,16 @@ for(o in 1:par$outer) {
         )$data
         if (first) {
           value <- cbind(
-            subset(map.values[[r]], select = -c(station.id, elev, lon, lat, elev2, trend)), 
+            subset(v, select = -c(station.id, elev, lon, lat, elev2, trend)), 
             subset(v.stl, select = -c(weights, sub.labels, raw, remainder))
           )
         } else {
           value <- cbind(
-            subset(map.values[[r]], select = -c(station.id, lon, lat, elev2, trend, seasonal)), 
+            subset(v, select = -c(station.id, lon, lat, elev2, trend, seasonal)), 
             subset(v.stl, select = -c(weights, sub.labels, raw, remainder))
           )        
         }
-        attr(value, "location") <- c(map.values[[r]][1, c("lon", "lat", "elev2", "station.id")])
+        attr(value, "location") <- c(v[1, c("lon", "lat", "elev2", "station.id")])
         rhcollect(map.keys[[r]], value)
       })
     })
@@ -112,8 +107,9 @@ for(o in 1:par$outer) {
     job1$setup <- expression(
       map = {
         library(lattice)
-        library(yaImpute, lib.loc = lib.loc)
-        library(stl3, lib.loc = lib.loc)
+        library(yaImpute)
+        library(plyr)
+        library(stl3)
       }
     )
     job1$input <- rhfmt(FileInput , type = "sequence")
@@ -130,7 +126,7 @@ for(o in 1:par$outer) {
     
     # Second job output is the spatial fitting, output key is month and year
     FileOutput <- file.path(
-      rh.datadir, par$dataset, "spatial", "a1950", par$family, paste("sp", par$span[1], sep=""), 
+      rh.root, par$dataset, "a1950", "spatial", par$family, paste("sp", par$span[1], sep=""), 
       paste(par$loess, par$loop, par$type, sep="."), "byMonth"
     )  
 
@@ -185,7 +181,7 @@ for(o in 1:par$outer) {
     FileInput <- FileOutput  
 
     FileOutput <- file.path(
-      rh.datadir, par$dataset, "spatial", "a1950", par$family, paste("sp", par$span[1], sep=""), 
+      rh.root, par$dataset, "a1950", "spatial", par$family, paste("sp", par$span[1], sep=""), 
       paste(par$loess, par$loop, par$type, sep="."), paste("Spatial", i, sep="")
     )  
 
@@ -195,7 +191,7 @@ for(o in 1:par$outer) {
     job22$map <- expression({
       lapply(seq_along(map.values), function(r) {
         value <- map.values[[r]]
-        lo.fit <- my.loess2( (tmax - trend - seasonal) ~ lon + lat + elev2, 
+        lo.fit <- my.loess2( (resp - trend - seasonal) ~ lon + lat + elev2, 
           data    = subset(value, !is.na(fitted)), 
           degree  = argumt$degree, 
           span    = argumt$span,
@@ -225,13 +221,13 @@ for(o in 1:par$outer) {
     )
     job22$setup <- expression(
       map = {
-        library(maps, lib.loc = lib.loc)
+        library(maps)
         system("chmod 777 myloess2.so")
         dyn.load("myloess2.so")
       }
     )
     job22$shared <- c(
-      file.path(rh.datadir, par$dataset, "shareRLib", "myloess2.so")
+      file.path(file.path(rh.root, par$dataset, "shareRLib", "myloess2.so"))
     )
     job22$mapred <- list(
       mapred.reduce.tasks = 72,
@@ -249,7 +245,7 @@ for(o in 1:par$outer) {
     FileInput <- FileOutput  
 
     FileOutput <- file.path(
-      rh.datadir, par$dataset, "spatial", "a1950", par$family, paste("sp", par$span[1], sep=""), 
+      rh.root, par$dataset, "a1950", "spatial", par$family, paste("sp", par$span[1], sep=""), 
       paste(par$loess, par$loop, par$type, sep="."), paste("Spatial", ".bystation", sep="")
     )  
 
@@ -295,14 +291,14 @@ for(o in 1:par$outer) {
   if(par$outer > 1) {
 
     FileOutput <- file.path(
-      rh.datadir, par$dataset, "spatial", "a1950", par$family, paste("sp", par$span[1], sep=""), 
+      rh.root, par$dataset, "a1950", "spatial", par$family, paste("sp", par$span[1], sep=""), 
       paste(par$loess, par$loop, par$type, sep="."), "residual"
     )  
 
     job4 <- list()
     job4$map <- expression({
       lapply(seq_along(map.values), function(r) {
-        R.abs <- abs(with(map.values[[r]], tmax - spatial - seasonal - trend))
+        R.abs <- abs(with(map.values[[r]], resp - spatial - seasonal - trend))
         rhcollect(1, R.abs)
       })
     })
@@ -333,14 +329,14 @@ for(o in 1:par$outer) {
     weight <- do.call("rhwatch", job4)[[1]][[2]]
 
     FileOutput <- file.path(
-      rh.datadir, par$dataset, "spatial", "a1950", par$family, paste("sp", par$span[1], sep=""), 
+      rh.root, par$dataset, "a1950", "spatial", par$family, paste("sp", par$span[1], sep=""), 
       paste(par$loess, par$loop, par$type, sep="."), paste("Outer", o, ".bystation", sep="")
     )
 
     job5 <- list()
     job5$map <- expression({
       lapply(seq_along(map.values), function(r) {
-        R.abs <- abs(with(map.values[[r]], tmax - spatial - seasonal - trend))
+        R.abs <- abs(with(map.values[[r]], resp - spatial - seasonal - trend))
         w <- (1 - (R.abs / h)^2)^2
         w[R.abs <= h1] <- 1
         w[R.abs >= h9] <- 0

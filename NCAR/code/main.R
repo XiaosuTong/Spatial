@@ -33,6 +33,17 @@ monthSpatial(data=rst, outputdir=file.path(local.root, "output"), target = "tmax
 ## Rhipe job running stl2 on each station of 100 stations ##
 source(file.path(local.root, "rhcode", "s100", "rh.100stations.stl.R"))
 source(file.path(local.root, "code", "raw.visual", "100stations.stl2.R"))
+
 STLfit(sw=77, sd=1, tw=495, td=2, fcw=NULL, fcd=NULL)
 rst <- rhread(file.path(rh.root, par$dataset, "100stations", "STL", "t495td2_s77sd1_ffd"))[[1]][[2]]
+fitRaw(data=rst, outputdir=file.path(local.root, "output"), target="tmax", size = "letter", test = F)
+remainderDiag(data=rst, outputdir=file.path(local.root, "output"), target="tmax", size = "letter", test=F)
+seasonalDiag(data=rst, outputdir=file.path(local.root, "output"), target="tmax", size = "letter", test=F)
+trendDiag(data=rst, outputdir=file.path(local.root, "output"), target="tmax", size = "letter", test=F, fc = FALSE)
 
+STLfit(sw=77, sd=1, tw=495, td=2, fcw=NULL, fcd=NULL)
+rst <- rhread(file.path(rh.root, par$dataset, "100stations", "STL", "t495td2_s77sd1_ffd"))[[1]][[2]]
+fitRaw(data=rst, outputdir=file.path(local.root, "output"), target="tmax", size = "letter", test = F)
+remainderDiag(data=rst, outputdir=file.path(local.root, "output"), target="tmax", size = "letter", test=F)
+seasonalDiag(data=rst, outputdir=file.path(local.root, "output"), target="tmax", size = "letter", test=F)
+trendDiag(data=rst, outputdir=file.path(local.root, "output"), target="tmax", size = "letter", test=F, fc = FALSE)

@@ -464,21 +464,28 @@ trendDiag <- function(data=rst, outputdir, target="tmax", size = "letter", test=
   }
   
   if (fc) {
-    target <- "fc.first"
+    vari <- "fc.first"
     klab <- "low frequency component"
   } else {
     klab <- "trend component"
-    target <- "trend"
+    vari <- "trend"
   }
   
   tmean <- ddply(
-    .data = rst,
+    .data = tmp,
     .variables = c("station.id","year"),
     .fun = function(r) {
       data.frame(mean = mean(r$resp))
     }
   )
-  trendmean <- merge(x=rst, y=tmean, by=c("station.id","year"), all.x=TRUE)
+  tmv <- ddply(
+    .data = arrange(tmean, year),
+    .variables = "station.id",
+    .fun = summarise,
+    mv = as.numeric(filter(mean, rep(1/10,10), sides=2)),
+    year = year
+  )
+  trendmean <- merge(x=data, y=tmv, by=c("station.id","year"), all.x=TRUE)
 
   trellis.device(
     device = postscript, 
@@ -486,23 +493,21 @@ trendDiag <- function(data=rst, outputdir, target="tmax", size = "letter", test=
     color = TRUE, 
     paper = size
   )
-    b <- xyplot( get(target) ~ date | station.id, 
+    b <- xyplot( get(vari) ~ date | station.id, 
       , data = trendmean
       , xlab = list(label = "Month", cex = 1.5)
       , ylab = list(label = ylab, cex = 1.5)
-      , xlim = c(0, 1236)
-      , layout = c(5,1)
-      , asepct = "xy"
+      , layout = c(4,3)
       , key=list(
-          text = list(label=c(klab,"yearly mean")), 
+          text = list(label=c(klab,"moving average of yearly mean")), 
           lines = list(pch=16, cex=1, lwd=2, type=c("l","p"), col=col[1:2]),
           columns=2
         )
       , prepanel = function(x,y,subscripts,...){ 
           v <- trendmean[subscripts,] 
-          ylim <- range(v$mean) 
-          ans <- prepanel.default.xyplot(v$date, v[, target], ...) 
-          ans$ylim <- range(ans$ylim, ylim) 
+          ylim <- range(v$mv, na.rm=TRUE) 
+          ans <- prepanel.default.xyplot(v$date, v[, vari], ...) 
+          ans$ylim <- range(c(ans$ylim, ylim), na.rm=TRUE) 
           ans 
         } 
       , scales = list(
@@ -511,360 +516,70 @@ trendDiag <- function(data=rst, outputdir, target="tmax", size = "letter", test=
         )
       , panel = function(x, y, subscripts, ...) {
           v <- trendmean[subscripts,]
-          panel.xyplot(v$date[seq(1,1236,12)], v$mean[seq(1,1236,12)], type="p", pch=16, cex=0.6, col=col[2], ...)
+          panel.xyplot(v$date[seq(1,1236,12)], v$mv[seq(1,1236,12)], type="p", pch=16, cex=0.5, col=col[2], ...)
           panel.xyplot(x, y, type="l", lwd=2, col=col[1], ...)
         }
     )
     print(b)
   dev.off()
 
-trellis.device(
-    device = postscript, 
-    file = paste(
-        outputdir, "scatterplot_of_", dataset, 
-        "_with_stl2_fc.second_for_100_stations",
-        ".ps", sep = ""
-    ), 
-    color = TRUE, 
-    paper = "legal"
-)
-b <- xyplot( (mean-fc.trend) ~ time | station.id,
-    data = tmp.trend,
-    xlab = list(label = "Month", cex = 1.2),
-    ylab = list(label = ylab, cex = 1.2),
-#   strip = strip.custom(par.strip.text= list(cex = 1.5)),
-#   par.settings = list(layout.heights = list(strip = 1.5)),
-    xlim = c(0, 1235),
-    layout = c(2,1),
-    aspect="xy",
-    key=list(
-        text = list(label=c(
-            "middle frequency component",
-            "yearly mean-low frequency component"
-        )),
-        lines = list(
-            pch=c("","."), 
-            cex=4, 
-            lwd=1.5, 
-            type=c("l","p"), 
-            col=col[1:2]
-        ), 
-        columns = 2
-    ),
-    scales = list(
-        y = list(relation = 'free'), 
-        x = list(at=seq(0, 1236, by=120), relation = 'same')
-    ),
-    prepanel = function(x,y,subscripts,...){
-        v <- tmp.trend[subscripts,]
-        ylim <- range(v$mean-v$fc.trend)
-        ans <- prepanel.default.xyplot(v$time, v$fc.second, ...)
-        ans$ylim <- range(ans$ylim, ylim)
-        ans
-    },
-    panel = function(x, y, subscripts, ...) {
-        panel.xyplot(x,y,type="p", col=col[2], pch=16, cex=0.3,...)
-        v <- tmp.trend[subscripts,]
-        panel.xyplot(v$time, v$fc.second, type="l", col=col[1], ...)
-        panel.abline(v=seq(0,1236, by=60), color="lightgrey", lty=3, lwd=0.5) 
-    }
-)
-print(b)
-dev.off()
+  if (fc) {
 
-######################################################
-##Trend + remainder component and loess from stl2
-######################################################
-tmp.fc <- tmp[, c(!(names(tmp) %in% c("weights","trend", "remainder")))]
-tmp.fc$tr <- tmp.fc$response - tmp.fc$seasonal
-tmp.fc$time <- rep(0:1235,100)
+    trendmean <- merge(x=data, y=tmean, by=c("station.id","year"), all.x=TRUE)
 
-trellis.device(
-    device = postscript, 
-    file = paste(
-        outputdir, "scatterplot_of_", dataset, 
-        "_after_seasonal_for_100_stations",".ps", sep = ""
-    ), 
-    color = TRUE, 
-    paper = "legal"
-)
-b <- xyplot( tr ~ time | station.id,
-    data = tmp.fc,
-    xlab = list(label = "Month", cex = 1.2),
-    ylab = list(label = ylab, cex = 1.2),
-	layout = c(1,1),
-    xlim = c(0, 1235),	
-    key=list(
-        type = "l", 
-        text = list(
-            label = c("after seasonal","loess smoothing")
-        ),  
-        lines = list(
-            lty = c(1,6), 
-            lwd = 1.5, 
-            col = col[1:2]
-        ), 
-        columns = 2
-    ),
-    scales = list(
-        y = list(relation = 'free'), 
-        x = list(at=seq(0, 1236, by=300), relation = 'same')
-    ),
-    prepanel = function(x,y,...) {
-        prepanel.loess(x,y,span=900/1236, degree=2, ...)
-    },
-    panel = function(x,y,...) {
-        panel.loess(
-            x = x,
-            y = y,
-            degree = 2, 
-            span = 900/1236, 
-            col = col[2], 
-            type = "l", lty=1, ...
-        )
-        panel.xyplot(
-            x = x,
-            y = y,
-            col = col[1], 
-            type= "p", cex=0.3, ...
-        )
-    }
-)
-print(b)
-dev.off()
-
-rm(tmp.fc)
-#####################################################
-##time series plot of trend component loess from stl2
-#####################################################
-trellis.device(
-    device = postscript, 
-    file = paste(
-        outputdir, "scatterplot_of_", dataset, 
-        "_with_stl2_fc.trend_loess_for_100_stations",
-        ".ps", sep = ""
-    ), 
-    color = TRUE, 
-    paper = "legal"
-)
-b <- xyplot( fc.trend ~ time | station.id,
-    data = tmp.trend[order(tmp.trend$time),],
-    xlab = list(label = "Month", cex = 1.2),
-    ylab = list(label = ylab, cex = 1.2),
-#   strip = strip.custom(par.strip.text= list(cex = 1.5)),
-#   par.settings = list(layout.heights = list(strip = 1.5)),
-    aspect = "xy",
-	layout = c(5,2),
-	xlim = c(0, 1235),
-    key = list(
-        type = "l", 
-        text = list(
-            label = c("loess smoothing","trend component")
-        ),  
-        lines = list(
-            lty = c(1,6), 
-            lwd = 1.5, 
-            col = col[1:2]
-        ), 
-        columns=2
-    ),
-    scales = list(
-        y = list(relation = 'free'), 
-        x = list(at=seq(0, 1236, by=300), relation = 'same')
-    ),
-	prepanel = function(x,y,...) {
-        prepanel.loess(x, y, span = 3/4, degree = 1, ...)
-    },
-    panel = function(x,y,...) {
-        panel.loess(
-            x = x,
-            y = y,
-            degree = 1, 
-            span = 3/4, 
-            col = col[1], 
-            type = "l", lty=1, ...
-        )
-		panel.xyplot(
-            x = x, 
-            y = y,
-            col = col[2], 
-            type= "l", lty = 6, ...
-        )
-    }
-)
-print(b)
-dev.off()
-
-
-##################################
-##scatter plot pf range vs mean
-##################################
-dr <- ddply(
-    .data = tmp,
-    .variables = c("station.id", "year"), 
-    .fun = summarise,
-    mean = mean(response),
-	range = max(response) - min(response)
-)
-order <- ddply(
-    .data = tmp,
-    .variables = "station.id",
-    .fun = summarise,
-    mean = mean(response)
-)
-order.st <- as.character(order[order(order$mean, decreasing=TRUE), ]$station.id)
-dr$station.id <- factor(dr$station.id, levels=order.st)
-
-trellis.device(
-    device = postscript, 
-    file = paste(
-        outputdir, 
-        "scatterplot_of_", 
-        dataset, 
-        "_range_vs_mean_for_100_stations",
-        ".ps", 
-        sep = ""
-    ), 
-    color=TRUE, 
-    paper="legal"
-)
-	a <- xyplot(mean ~ range | station.id, 
-		data = dr,
-		pch = 16,
-        xlab = list(label = "Yearly Range", cex = 1.2),
-        ylab = list(label = "Yearly Mean", cex = 1.2),
-		cex = 0.5,
-		layout =c(10,1),
-		scales = list(
-            y = list(relation = 'same'), 
-            x = list(relation = 'same')
-        )
-	)
-	print(a)
-dev.off()
-
-
-#temporal residual against spatial covariates conditional on month
-trellis.device(
-    device = postscript, 
-    file = paste(
-        "temporal remainder vs. lat",
-        ".ps", 
-        sep = ""
-    ), 
-    color=TRUE, 
-    paper="legal"
-)
-    a <- xyplot(fc.remainder ~ lat | date,
-        data = tmp,
-        pch = 16,
-        cex = 0.6,
-        layout = c(4,3)
+    tmv <- ddply(
+      .data = arrange(trendmean, year),
+      .variables = "station.id",
+      .fun = summarise,
+      mv = as.numeric(filter(mean-fc.first, rep(1/10,10), sides=2)),
+      year = year
     )
-    print(a)
-dev.off()
+    trendmean <- cbind(arrange(data, station.id, year), mv=tmv[, "mv"])
+
+    trellis.device(
+      device = postscript, 
+      file = file.path(outputdir, paste("fc", "100stations", target, "ps", sep=".")),
+      color = TRUE, 
+      paper = size
+    )
+      b <- xyplot( fc.second ~ date | station.id,
+        , data = trendmean,
+        , xlab = list(label = "Month", cex = 1.5),
+        , ylab = list(label = ylab, cex = 1.5),
+        , xlim = c(0, 1236),
+        , aspect = "xy"
+        , layout = c(4,2),
+        , key=list(
+            text = list(label=c(
+                "middle frequency component",
+                "moving average of (yearly mean-low frequency component)"
+            )),
+            lines = list(pch=16, cex=1, lwd=2, type=c("l","p"), col=col[1:2]), 
+            columns = 2
+          )
+        , scales = list(
+            y = list(relation = 'free', cex=1.2), 
+            x = list(at=seq(0,1236,480), relation = 'same', cex=1.2)
+          )
+        , prepanel = function(x,y,subscripts,...){
+            v <- trendmean[subscripts,]
+            ylim <- range(v$mv, na.rm=TRUE) 
+            ans <- prepanel.default.xyplot(v$date, v$fc.second, ...) 
+            ans$ylim <- range(c(ans$ylim, ylim), na.rm=TRUE) 
+            ans 
+          }
+        , panel = function(x, y, subscripts, ...) {
+            panel.abline(v=seq(0,1236, by=480), h=0, color="lightgrey", lty=1, lwd=0.5) 
+            v <- trendmean[subscripts, ]
+            panel.xyplot(v$date[seq(6,1236,12)], v$mv[seq(6,1236,12)], type="p", pch=16, cex=0.5, col=col[2], ...)
+            panel.xyplot(x, y, type="l", lwd=2, col=col[1], ...)        
+          }
+      )
+      print(b)
+    dev.off()
+
+  }
+
+}
 
 
-##########################################################################################
-##QQ plot of the slopes of loess of trend component, ordered stations by average of slopes
-##########################################################################################
-
-#Get the loess estimate of trend component
-#tmp.trend <- tmp[,c(1:9,15)]
-#tmp.trend$time <- rep(0:1235,100)
-#loess.trend <- ddply(.data = tmp.trend,
-#           .variables = "station.id",
-#           .fun = summarise,
-#            elev = elev,
-#            lon = lon,
-#            lat = lat,
-#            time = time,
-#            loess = loess(trend ~ time, span=0.4, degree=2)$fitted
-#)
-#
-##Since the x-axis are time with 1 unit, 
-##the difference between two loess estimate is the approximate of the slope.
-##Each station will have 1235 slope approximations.
-#slope.trend <- ddply(.data = loess.trend,
-#       .variables = "station.id",
-#       .fun = summarise,
-#        elev = elev[1:1235],
-#        lon = lon[1:1235],
-#        lat = lat[1:1235],
-#		 slope = diff(loess)
-#)
-#
-##Calculate the mean of slopes for each station, and then order the stations by mean slope.
-#mean.slope <- ddply(.data = slope.trend,
-#                .variables = "station.id",
-#                .fun = summarise,
-#		 elev = unique(elev),
-#		 lon = unique(lon),
-#		 lat = unique(lat),
-#                 mean = mean(slope)
-#)
-#mean.slope <- mean.slope[order(mean.slope$mean),]
-#station.or <- as.character(mean.slope$station.id)
-#
-##Attend to add a small map in the corner of the trend loess plot
-#us.map <- map('state', plot = FALSE, fill = TRUE)
-#
-#trellis.device(postscript, file = paste(outputdir, "QQ_plot_of_tmax_slope_of_trend_loess",".ps", sep = ""), color=TRUE, paper="legal")
-#    for(i in station.or){
-#        a <- qqmath(~ slope,
-#                data = subset(slope.trend, station.id == i),
-#                distribution = qunif,
-#                aspect = 1,
-#                pch = 16,
-#                cex = 0.5,
-##                main = list(label= paste("Station ", i, sep=""), cex=2),
-#                xlab = list(label="f-value", cex=1.2),
-#                ylab = list(label="Maximum temperature(degrees centigrade)", cex=1.2),
-##                scales = list(x = list(cex=1.5), y = list(cex=1.5)),
-#                prepanel = prepanel.qqmathline,
-#                panel = function(x, y,...) {
-#                        #panel.grid(lty=3, lwd=0.5, col="black",...)
-#                        panel.qqmath(x, y,...)
-#                }
-##        )
-#        b <- xyplot(lat ~ lon,
-#                data = subset(tmp.trend, station.id==i),
-#                xlab = NULL,
-#                ylab = NULL,
-#                pch = 16,
-#                cex = 0.4,
-#                xlim = c(-127,-65),
-#                ylim = c(23,50),
-#                col = "red",
-##               scales = list(x = list(draw=FALSE), y = list(draw=FALSE)),
-##               strip = strip.custom(par.strip.text= list(cex = 1.5)),
-##               par.settings = list(layout.heights = list(strip = 1.5)),
-#                panel = function(x,y,...) {
-#                        panel.polygon(us.map$x,us.map$y,lwd=0.2)
-#                        panel.xyplot(x,y,...)
-#                }
-#        )
-#        plot.new()
-#        title(paste("Station ", i, sep=""), cex=1.5)
-#        print(a, pos=c(0.4,0,1,1), newpage=FALSE, more=TRUE)
-#        print(b, pos=c(0,0.5,0.4,1), more=FALSE)
-#    }
-#dev.off()
-#
-##scatter plot of average slops vs spatial factor
-#trellis.device(postscript, file = paste(outputdir, "scatter_plot_of_average_slopes_tmax",".ps", sep = ""), color=TRUE, paper="legal")
-#        c <- xyplot(mean ~ log2(elev),
-#                data = mean.slope,
-#                xlab = list(label = "Elevation (meter)", cex=1.2),
-#                ylab = list(label = "Average slope of trend", cex=1.2),
-#                pch = 16,
-#                cex = 0.7,
-##               scales = list(x = list(draw=FALSE), y = list(draw=FALSE)),
-##               strip = strip.custom(par.strip.text= list(cex = 1.5)),
-##               par.settings = list(layout.heights = list(strip = 1.5)),
-#                panel = function(x,y,...) {
-#                        panel.xyplot(x,y,...)
-#                }
-#        )
-#	print(c)
-#dev.off()
