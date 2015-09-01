@@ -572,11 +572,11 @@ spatialCheck <- function(type = "same", iter = 5) {
     color = TRUE, 
     paper = "letter"
   )
-  #lapply(mod, function(r) {
-    data <- rst[[r]][[2]]
+  lapply(mod, function(r) {
+    data <- subset(rst[[r]][[2]], !is.na(tmax)&!is.na(fitted))
     data <- data.frame(cbind(
       do.call(c, with(data, list(trend, seasonal, spatial, tmax-trend-seasonal-spatial))), 
-      rep(c("trend", "seasonal", "spatial", "residual"), each=7738)
+      rep(c("trend", "seasonal", "spatial", "residual"), each=nrow(data))
     ), stringsAsFactors = FALSE)
     names(data) <- c("value", "comp")
     data$value <- as.numeric(data$value)
@@ -586,33 +586,36 @@ spatialCheck <- function(type = "same", iter = 5) {
       .fun = summarise,
       m = mean(value, na.rm = TRUE)
     )
-    data$mean <- rep(tmp[c(4,2,3,1),2], each = 7738)
+    data$mean <- rep(tmp[c(4,2,3,1),2], each = nrow(data)/4)
     b <- qqmath( ~ (value-mean) | factor(comp, levels= c("seasonal", "trend", "spatial", "residual"))
       , data = data
-      #, subset = (value-mean) > -50 & (value-mean) < 30
       , distribution = qunif
       , aspect = 2
       , layout = c(4,1)
+      , scale = list(cex=1.2)
       , sub = paste(rst[[r]][[1]][1], rst[[r]][[1]][2])
       , xlab = list(label="f-value", cex=1.5)
       , ylab = list(label="Maximum Temperature (degrees centigrade)", cex=1.5)
       , panel = function(x,...){
-          panel.abline(h=seq(-15,15,by=3),v=seq(0,1,by=0.2), lwd=0.5, lty=1, col="lightgray")
+          panel.abline(h=seq(-15,15,by=5),v=seq(0,1,by=0.2), lwd=0.5, lty=1, col="lightgray")
           panel.abline(h=0, col="black", lwd=0.5)
           panel.qqmath(x,pch=1, cex=0.4, ...)
       }
     )
-    print(b)
-  #})  
+  })  
   dev.off()
 
-
-  resid <- do.call("c", lapply(1:length(mod), function(r, data = rst) {
-    data <- with(rst[[r]][[2]], tmax-trend-seasonal-spatial)
-    data  
-  }))
-
-  data <- Qrst(resid)
+  
+  data <- ldply(1:576, function(r) {
+    Qrst(with(rst[[r]][[2]], tmax-trend-seasonal-spatial))
+  })
+  key <- data.frame(
+    matrix(unlist(lapply(rst, "[[", 1)), ncol=2, byrow=TRUE), stringsAsFactors=FALSE
+  )
+  names(key) <- c("year","month")
+  data <- cbind(
+    data, key[rep(1:nrow(key), each=98),]
+  )
 
   trellis.device(
     device = postscript, 
@@ -620,16 +623,17 @@ spatialCheck <- function(type = "same", iter = 5) {
       local.output, paste(par$dataset, "backfitting", type, "QQ.resid.by.month", "ps", sep = ".")
     ),
     color = TRUE, 
-    paper = "legal"
+    paper = "letter"
   )
-    b <- xyplot( residual ~ qnorm
+    b <- xyplot( residual ~ qnorm | factor(month)*factor(year)
       , data = data
       , pch = 1
       , cex = 0.4
       , aspect = 1
-      , main = paste("Quantiles of Components for", rst[[r]][[1]][1], rst[[r]][[1]][2])
-      , xlab = "Unit normal quantile"
-      , ylab = "Maximum Temperature"
+      , layout = c(4,3)
+      , scale = list(cex=1.2)
+      , xlab = list(label="Unit normal quantile", cex=1.5)
+      , ylab = list("Maximum Temperature (degrees centigrade)", cex=1.5)
       , panel = function(x,y,...){
           b1 <- quantile(y, probs = 0.25)
           a1 <- qnorm(0.25)
@@ -642,7 +646,6 @@ spatialCheck <- function(type = "same", iter = 5) {
     print(b)
   dev.off()
 
-  mainlab <- "Residuals vs. Latitude"
 
   trellis.device(
     device = postscript, 
@@ -650,36 +653,30 @@ spatialCheck <- function(type = "same", iter = 5) {
       local.output, paste(par$dataset, "backfitting", type, "resid.vs.lat.lon", "ps", sep = ".")
     ),
     color = TRUE, 
-    paper = "legal"
+    paper = "letter"
   )
-  #lapply(mod, function(r, data = rst) {
+  lapply(mod, function(r, data = rst) {
     b <- xyplot( (tmax - trend - seasonal - spatial) ~ lat | equal.count(lon, 20, overlap=0)
       , data = rst[[r]][[2]]
       , strip=strip.custom(var.name = "Longitude", strip.levels=rep(FALSE, 2))
       , pch = 16
       , cex = 0.3
       , scale = list(
-          y = list(
-            relation = "free", 
-            alternating = TRUE
-          ),
-          x = list(
-           relation = "free",
-            tick.number = 3
-          )
+          y = list(relation = "free", cex=1.2),
+          x = list(relation = "free", tick.number = 3, cex=1.2)
         )
-      , layout = c(10,2)
-      , xlab = "Latitude"
-      , ylab = "Residual"
-      , main = paste(mainlab, rst[[r]][[1]][1], rst[[r]][[1]][2])
+      , layout = c(5,4)
+      , xlab = list(label="Latitude", cex=1.5)
+      , ylab = list(label="Residual", cex=1.5)
+      , sub = paste(rst[[r]][[1]][1], rst[[r]][[1]][2])
       , panel = function(x,y,...) {
           panel.abline(h=0, lwd=0.5, col="black")
           panel.xyplot(x,y,...)
           panel.loess(x,y, span=0.75, degree=1, col=col[2],evaluation=100,...)
       }
     )
-    print(b)
-  #})
+    #print(b)
+  })
   dev.off()
 
   trellis.device(
@@ -688,39 +685,31 @@ spatialCheck <- function(type = "same", iter = 5) {
       local.output, paste(par$dataset, "backfitting", type, "resid.vs.lat.elev", "ps", sep = ".")
     ),
     color = TRUE, 
-    paper = "legal"
+    paper = "letter"
   )
- # lapply(mod, function(r, data = rst) {
+  lapply(mod, function(r, data = rst) {
     b <- xyplot( (tmax-trend-seasonal-spatial) ~ lat | equal.count(exp(elev2)-128, 20, overlap=0)
       , data = rst[[r]][[2]]
       , strip=strip.custom(var.name = "Elevation", strip.levels=rep(FALSE, 2))
       , pch = 16
       , cex = 0.3
       , scale = list(
-          y = list(
-            relation = "free", 
-            alternating = TRUE
-          ),
-          x = list(
-            relation = "free",
-            tick.number = 3
-          )
+          y = list(relation = "free", cex=1.2),
+          x = list(relation = "free", tick.number = 3, cex=1.2)
         )
-      , layout = c(10,2)
-      , xlab = "Latitude"
-      , ylab = "Residual"
-      , main = paste(mainlab, rst[[r]][[1]][1], rst[[r]][[1]][2])
+      , layout = c(5,4)
+      , xlab = list(label="Latitude", cex=1.5)
+      , ylab = list(label="Residual", cex=1.5)
+      , sub = paste(rst[[r]][[1]][1], rst[[r]][[1]][2])
       , panel = function(x,y,...) {
           panel.abline(h=0, lwd=0.5, col="black")
           panel.xyplot(x,y,...)
           panel.loess(x,y, span=0.75, degree=1, col=col[2],evaluation=100,...)
       }
     )
-    print(b)
- # })
+    #print(b)
+  })
   dev.off()
-
-  mainlab <- "Residuals vs. Longitude"
 
   trellis.device(
     device = postscript, 
@@ -728,7 +717,7 @@ spatialCheck <- function(type = "same", iter = 5) {
       local.output, paste(par$dataset, "backfitting", type, "resid.vs.lon.lat", "ps", sep = ".")
     ),
     color = TRUE, 
-    paper = "legal"
+    paper = "letter"
   )
   lapply(mod, function(r, data = rst) {
     b <- xyplot( (tmax-trend-seasonal-spatial) ~ lon | equal.count(lat, 20, overlap=0)
@@ -737,19 +726,13 @@ spatialCheck <- function(type = "same", iter = 5) {
       , pch = 16
       , cex = 0.3
       , scale = list(
-          y = list(
-            relation = "free", 
-            alternating = TRUE
-          ),
-          x = list(
-            relation = "free",
-            tick.number = 3
-          )
+          y = list(relation = "free", cex=1.2),
+          x = list(relation = "free", tick.number = 3, cex=1.2)
         )
-      , layout = c(10,2)
-      , xlab = "Longitude"
-      , ylab = "Residual"
-      , main = paste(mainlab, data[[r]][[1]][1], data[[r]][[1]][2])
+      , layout = c(5,4)
+      , xlab = list(label="Longitude", cex=1.5)
+      , ylab = list(label="Residual", cex=1.5)
+      , sub = paste(data[[r]][[1]][1], data[[r]][[1]][2])
       , panel = function(x,y,...) {
           panel.abline(h=0, lwd=0.5, col="black")
           panel.xyplot(x,y,...)
@@ -766,7 +749,7 @@ spatialCheck <- function(type = "same", iter = 5) {
       local.output, paste(par$dataset, "backfitting", type, "resid.vs.lon.elev", "ps", sep = ".")
     ),
     color = TRUE, 
-    paper = "legal"
+    paper = "letter"
   )
   lapply(mod, function(r, data = rst) {
     b <- xyplot( tmax-trend-seasonal-spatial ~ lon | equal.count(exp(elev2)-128, 20, overlap=0)
@@ -775,19 +758,13 @@ spatialCheck <- function(type = "same", iter = 5) {
       , pch = 16
       , cex = 0.3
       , scale = list(
-          y = list(
-            relation = "free", 
-            alternating = TRUE
-          ),
-          x = list(
-            relation = "free",
-            tick.number = 3
-          )
+          y = list(relation = "free", cex=1.2),
+          x = list(relation = "free", tick.number = 3, cex=1.2)
         )
-      , layout = c(10,2)
-      , xlab = "Longitude"
-      , ylab = "Residual"
-      , main = paste(mainlab, data[[r]][[1]][1], data[[r]][[1]][2])
+      , layout = c(5,4)
+      , xlab = list(label="Longitude", cex=1.5)
+      , ylab = list(label="Residual", cex=1.5)
+      , sub = paste(data[[r]][[1]][1], data[[r]][[1]][2])
       , panel = function(x,y,...) {
           panel.abline(h=0, lwd=0.5, col="black")
           panel.xyplot(x,y,...)
@@ -798,15 +775,13 @@ spatialCheck <- function(type = "same", iter = 5) {
   })
   dev.off()
  
-  mainlab <- "Residuals vs. Elevation"
-
   trellis.device(
     device = postscript, 
     file = file.path(
       local.output, paste(par$dataset, "backfitting", type, "resid.vs.elev.lat", "ps", sep = ".")
     ),
     color = TRUE, 
-    paper = "legal"
+    paper = "letter"
   )
   lapply(mod, function(r, data = rst) {
     b <- xyplot( tmax-trend-seasonal-spatial ~ elev2 | equal.count(lat, 20, overlap=0)
@@ -815,19 +790,13 @@ spatialCheck <- function(type = "same", iter = 5) {
       , pch = 16
       , cex = 0.3
       , scale = list(
-          y = list(
-            relation = "free", 
-            alternating = TRUE
-          ),
-          x = list(
-            relation = "free",
-            tick.number = 3
-          )
+          y = list(relation = "free", cex=1.2),
+          x = list(relation = "free", tick.number = 3, cex=1.2)
         )
-      , layout = c(10,2)
-      , xlab = "Log (Elevation + 128) (log base 2 meter)"
-      , ylab = "Residual"
-      , main = paste(mainlab, data[[r]][[1]][1], data[[r]][[1]][2])
+      , layout = c(5,4)
+      , xlab = list(label="Log (Elevation + 128) (log base 2 meter)", cex=1.5)
+      , ylab = list(label="Residual", cex=1.5)
+      , sub = paste(data[[r]][[1]][1], data[[r]][[1]][2])
       , panel = function(x,y,...) {
           panel.abline(h=0, lwd=0.5, col="black")
           panel.xyplot(x,y,...)
@@ -844,7 +813,7 @@ spatialCheck <- function(type = "same", iter = 5) {
       local.output, paste(par$dataset, "backfitting", type, "resid.vs.elev.lon", "ps", sep = ".")
     ),
     color = TRUE, 
-    paper = "legal"
+    paper = "letter"
   )
   lapply(mod, function(r, data = rst) {
     b <- xyplot( tmax-trend-seasonal-spatial ~ elev2 | equal.count(lon, 20, overlap=0)
@@ -853,19 +822,13 @@ spatialCheck <- function(type = "same", iter = 5) {
       , pch = 16
       , cex = 0.3
       , scale = list(
-          y = list(
-            relation = "free", 
-            alternating = TRUE
-          ),
-          x = list(
-            relation = "free",
-            tick.number = 3
-          )
+          y = list(relation = "free", cex=1.2),
+          x = list(relation = "free", tick.number = 3, cex=1.2)
         )
-      , layout = c(10,2)
-      , xlab = "Log (Elevation + 128) (log base 2 meter)"
-      , ylab = "Residual"
-      , main = paste(mainlab, data[[r]][[1]][1], data[[r]][[1]][2])
+      , layout = c(5,4)
+      , xlab = list(label="Log (Elevation + 128) (log base 2 meter)", cex=1.5)
+      , ylab = list(label="Residual", cex=1.5)
+      , sub = paste(data[[r]][[1]][1], data[[r]][[1]][2])
       , panel = function(x,y,...) {
           panel.abline(h=0, lwd=0.5, col="black")
           panel.xyplot(x,y,...)
