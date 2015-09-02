@@ -153,3 +153,8 @@ interpolate <- function(Elev = TRUE, sp, deg, fam) {
   job.mr <- do.call("rhwatch", job)
 
 }
+
+crossValid <- function(fam) {
+  
+  FileInput <- file.path(rh.root, par$dataset, "a1950", "bymonth.fit", fam)
+}
