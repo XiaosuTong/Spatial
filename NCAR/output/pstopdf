@@ -2,5 +2,5 @@
 
 filelist=`(find . -name \*.ps)`
 for i in $filelist; do
-	ps2pdf -sPAPERSIZE=legal $i
+	ps2pdf -sPAPERSIZE=letter $i
 done
