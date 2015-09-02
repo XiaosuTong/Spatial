@@ -69,3 +69,87 @@ job$combiner <- TRUE
 job$jobname <- file.path(rh.root, par$dataset, "a1950", "bymonth")
 job.mr <- do.call("rhwatch", job)
 
+
+interpolate <- function(Elev = TRUE, sp, deg, fam) {
+  
+  job <- list()
+  job$map <- expression({
+    lapply(seq_along(map.keys), function(r) {
+      v <- map.values[[r]]
+      if(Elev) {
+
+        v$elev2 <- log2(v$elev + 128)
+        lo.fit <- my.loess2( resp ~ lon + lat + elev2, 
+          data    = v, 
+          degree  = degree, 
+          span    = span,
+          para    = "elev2",
+          family  = family
+        )
+        fit <- my.predict.loess(
+          object = lo.fit, 
+          newdata = data.frame(
+            lon = v$lon, 
+            lat = v$lat,
+            elev2 = v$elev2
+          )
+        )
+      } else {
+
+        lo.fit <- my.loess2( resp ~ lon + lat, 
+          data    = v, 
+          degree  = degree, 
+          span    = span,
+          family  = family,
+          control = loess.control(iterations = 10)
+        )
+        fit <- my.predict.loess(
+          object = lo.fit, 
+          newdata = data.frame(
+            lon = v$lon, 
+            lat = v$lat
+          )
+        )
+
+      }
+      v$fitted <- fit
+      rhcollect(map.keys[[r]], v)
+    })
+  })
+  job$setup <- expression(
+    map = {
+      system("chmod 777 myloess2.so")
+      dyn.load("myloess2.so")
+    }
+  )
+  job$shared <- c(
+    file.path(file.path(rh.root, par$dataset, "shareRLib", "myloess2.so"))
+  )
+  job$parameters <- list(
+    Elev = Elev,
+    span = sp,
+    degree = deg,
+    family = fam,
+    my.loess2 = my.loess2,
+    my.simple2 = my.simple2,
+    my.predict.loess = my.predict.loess,
+    my.predLoess = my.predLoess
+  )
+  job$input <- rhfmt(
+    file.path(rh.root, par$dataset, "a1950", "bymonth"), 
+    type = "sequence"
+  )
+  job$output <- rhfmt(
+    file.path(rh.root, par$dataset, "a1950", "bymonth.fit", fam, paste("sp",sp, sep="")), 
+    type = "sequence"
+  )
+  job$mapred <- list(
+    mapred.reduce.tasks = 100,  #cdh3,4
+    mapreduce.job.reduces = 100  #cdh5
+  )
+  job$readback <- FALSE
+  job$combiner <- TRUE
+  job$jobname <- file.path(rh.root, par$dataset, "a1950", "bymonth.fit")
+  job.mr <- do.call("rhwatch", job)
+
+}
