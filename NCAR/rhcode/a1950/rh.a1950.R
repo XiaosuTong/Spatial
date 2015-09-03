@@ -144,8 +144,8 @@ interpolate <- function(Elev = TRUE, sp, deg, fam) {
     type = "sequence"
   )
   job$mapred <- list(
-    mapred.reduce.tasks = 100,  #cdh3,4
-    mapreduce.job.reduces = 100  #cdh5
+    mapred.reduce.tasks = 20,  #cdh3,4
+    mapreduce.job.reduces = 20  #cdh5
   )
   job$readback <- FALSE
   job$combiner <- TRUE
@@ -157,4 +157,28 @@ interpolate <- function(Elev = TRUE, sp, deg, fam) {
 crossValid <- function(fam) {
   
   FileInput <- file.path(rh.root, par$dataset, "a1950", "bymonth.fit", fam)
+  FileOutput <- file.path(rh.root, par$dataset, "a1950", "bymonth.fit", fam, "MSE")  
+
+  job <- list()
+  job$map <- expression({
+    lapply(seq_along(map.values), function(r) {
+      #v <- map.values[[r]]
+      #SS <- sum((v$resp-v$fitted)^2, na.rm=TRUE)
+      file <- Sys.getenv("mapred.input.file")
+      span <- substr(tail(strsplit(file, "/")[[1]],3)[2], 3, 6)
+      rhcollect(map.keys[[r]], span)
+    })
+  })
+  job$input <- rhfmt(FileInput, type = "sequence")
+  job$output <- rhfmt(FileOutput, type = "sequence")
+  job$mapred <- list(
+    mapred.reduce.tasks = 1,  #cdh3,4
+    mapreduce.job.reduces = 1  #cdh5 
+    #rhipe_reduce_buff_size = 10000
+  )
+  job$mon.sec <- 10
+  job$jobname <- FileOutput  
+  job$readback <- FALSE
+  job.mr <- do.call("rhwatch", job)
+
 }
