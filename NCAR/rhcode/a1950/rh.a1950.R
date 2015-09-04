@@ -162,13 +162,25 @@ crossValid <- function(fam) {
   job <- list()
   job$map <- expression({
     lapply(seq_along(map.values), function(r) {
-      #v <- map.values[[r]]
-      #SS <- sum((v$resp-v$fitted)^2, na.rm=TRUE)
+      v <- map.values[[r]]
+      SS <- sum((v$resp-v$fitted)^2, na.rm=TRUE)
       file <- Sys.getenv("mapred.input.file")
       span <- substr(tail(strsplit(file, "/")[[1]],3)[2], 3, 6)
-      rhcollect(map.keys[[r]], span)
+      value <- data.frame(span=span, SS=SS)
+      rhcollect(map.keys[[r]], value)
     })
   })
+  job$reduce <- expression(
+    pre = {
+      combine <- data.frame()
+    },
+    reduce = {
+      combine <- rbind(combine, do.call(rbind, reduce.values))
+    },
+    post = {
+      rhcollect(reduce.key, combine)
+    }
+  )
   job$input <- rhfmt(FileInput, type = "sequence")
   job$output <- rhfmt(FileOutput, type = "sequence")
   job$mapred <- list(
