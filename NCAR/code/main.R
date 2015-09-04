@@ -71,4 +71,8 @@ for(i in seq(0.01, 0.1, 0.005)) {
   interpolate(Elev = TRUE, sp=i, deg=2, fam="symmetric")
 }
 crossValid(fam="symmetric")
-rst <- rhread("/wsc/tongx/Spatial/tmp/tmax/a1950/bymonth.fit/symmetric/MSE")[[1]][[2]]
+rst <- rhread(file.path(rh.root, par$dataset, "a1950", "bymonth.fit", "symmetric", "MSE"))[[1]][[2]]
+
+
+
+

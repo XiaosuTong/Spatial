@@ -173,7 +173,7 @@ crossValid <- function(fam) {
       value <- data.frame(
         span = span, 
         mse = mse, 
-        na = sum(!is.na(v$presp-v$fitted)),
+        na = sum(!is.na(v$resp-v$fitted)),
         year = map.keys[[r]][1], 
         month = map.keys[[r]][2],
         stringsAsFactors = FALSE
