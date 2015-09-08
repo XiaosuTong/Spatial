@@ -197,7 +197,7 @@ QQ.resid <- function(type = "same") {
       , cex = 0.4
       , aspect = "xy"
       , layout = c(5,2)
-	  , scale = list(cex=1.2)
+      , scale = list(cex=1.2)
       , xlab = list(label="Unit normal quantile", cex=1.5)
       , ylab = list(label="Residuals", cex=1.5)
       , panel = function(x,y,...){

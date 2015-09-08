@@ -67,11 +67,16 @@ trendDiag(data=rst, outputdir=file.path(local.root, "output"), target="tmax", si
 #source(file.path(local.root, "rhcode", "a1950", "rh.a1950.R"))
 a1950()
 ## a1950 by month, interpolate missing obs by spatial loess
-for(i in seq(0.01, 0.1, 0.005)) {
-  interpolate(Elev = TRUE, sp=i, deg=2, fam="symmetric")
+for(k in c("interpolate","direct")) {
+  for(i in c(1,2)) {
+    for(j in seq(0.01, 0.1, 0.005)) {
+      interpolate(Elev = TRUE, sp=j, deg=2, Edeg=i, surf=k, fam="symmetric")
+    }
+    crossValid(fam="symmetric", Edeg=i)
+  }
 }
-crossValid(fam="symmetric")
-rst <- rhread(file.path(rh.root, par$dataset, "a1950", "bymonth.fit", "symmetric", "MSE"))[[1]][[2]]
+
+
 
 
 

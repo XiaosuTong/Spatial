@@ -73,7 +73,7 @@ a1950 <- function() {
 
 }
 
-interpolate <- function(Elev = TRUE, sp, deg, fam) {
+interpolate <- function(Elev = TRUE, sp, Edeg, deg=2, fam="symmetric", surf="direct") {
   
   job <- list()
   job$map <- expression({
@@ -81,14 +81,28 @@ interpolate <- function(Elev = TRUE, sp, deg, fam) {
       v <- map.values[[r]]
       if(Elev) {
 
-        v$elev2 <- log2(v$elev + 128)
-        lo.fit <- my.loess2( resp ~ lon + lat + elev2, 
-          data    = v, 
-          degree  = degree, 
-          span    = span,
-          para    = "elev2",
-          family  = family
-        )
+        if(Edeg == 2) {
+          v$elev2 <- log2(v$elev + 128)
+          lo.fit <- my.loess2( resp ~ lon + lat + elev2, 
+            data    = v, 
+            degree  = degree, 
+            span    = span,
+            para    = "elev2",
+            family  = family,
+            control = loess.control(surface = surf)
+          )
+        } else if(Edeg == 1) {
+          v$elev2 <- log2(v$elev + 128)
+          lo.fit <- my.loess2( resp ~ lon + lat + elev2, 
+            data    = v, 
+            degree  = degree, 
+            span    = span,
+            drop    = "elev2",
+            para    = "elev2",
+            family  = family,
+            control = loess.control(surface = surf)
+          )
+        }
         fit <- my.predict.loess(
           object = lo.fit, 
           newdata = data.frame(
@@ -96,15 +110,15 @@ interpolate <- function(Elev = TRUE, sp, deg, fam) {
             lat = v$lat,
             elev2 = v$elev2
           )
-        )
+        ) 
+
       } else {
 
         lo.fit <- my.loess2( resp ~ lon + lat, 
           data    = v, 
           degree  = degree, 
           span    = span,
-          family  = family,
-          control = loess.control(iterations = 10)
+          family  = family
         )
         fit <- my.predict.loess(
           object = lo.fit, 
@@ -133,6 +147,8 @@ interpolate <- function(Elev = TRUE, sp, deg, fam) {
     span = sp,
     degree = deg,
     family = fam,
+    Edeg = Edeg,
+    surf = surf,
     my.loess2 = my.loess2,
     my.simple2 = my.simple2,
     my.predict.loess = my.predict.loess,
@@ -143,7 +159,7 @@ interpolate <- function(Elev = TRUE, sp, deg, fam) {
     type = "sequence"
   )
   job$output <- rhfmt(
-    file.path(rh.root, par$dataset, "a1950", "bymonth.fit", fam, paste("sp",sp, sep="")), 
+    file.path(rh.root, par$dataset, "a1950", "bymonth.fit", fam, surf, Edeg, paste("sp",sp, sep="")), 
     type = "sequence"
   )
   job$mapred <- list(
@@ -152,17 +168,20 @@ interpolate <- function(Elev = TRUE, sp, deg, fam) {
   )
   job$readback <- FALSE
   job$combiner <- TRUE
-  job$jobname <- file.path(rh.root, par$dataset, "a1950", "bymonth.fit")
+  job$jobname <- file.path(rh.root, par$dataset, "a1950", "bymonth.fit", fam, surf, Edeg, paste("sp",sp, sep=""))
   job.mr <- do.call("rhwatch", job)
 
 }
 
-crossValid <- function(fam) {
+crossValid <- function(fam, Edeg, surf, first = FALSE) {
   
-  FileInput <- file.path(rh.root, par$dataset, "a1950", "bymonth.fit", fam)
-  FileOutput <- file.path(rh.root, par$dataset, "a1950", "bymonth.fit", fam, "MSE")  
-  rhdel(FileOutput)
+  FileInput <- file.path(rh.root, par$dataset, "a1950", "bymonth.fit", fam, surf, Edeg)
+  FileOutput <- file.path(rh.root, par$dataset, "a1950", "bymonth.fit", fam, surf, Edeg, "MSE")  
   
+  if(!first) {
+    rhdel(FileOutput)
+  }
+
   job <- list()
   job$map <- expression({
     lapply(seq_along(map.values), function(r) {
