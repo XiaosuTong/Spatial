@@ -72,7 +72,7 @@ for(k in c("interpolate","direct")) {
     for(j in seq(0.01, 0.1, 0.005)) {
       interpolate(Elev = TRUE, sp=j, deg=2, Edeg=i, surf=k, fam="symmetric")
     }
-    crossValid(fam="symmetric", Edeg=i)
+    crossValid(fam="symmetric", Edeg=i, surf=k)
   }
 }
 
