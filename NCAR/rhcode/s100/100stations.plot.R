@@ -734,7 +734,7 @@ trendDiag <- function(data=rst, outputdir, target="tmax", size = "letter", test=
   }
   
   tmean <- ddply(
-    .data = tmp,
+    .data = data,
     .variables = c("station.id","year"),
     .fun = function(r) {
       data.frame(mean = mean(r$resp))

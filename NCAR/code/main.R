@@ -18,8 +18,11 @@ if(par$dataset == "precip") {
 lattice.theme <- trellis.par.get()
 col <- lattice.theme$superpose.symbol$col
 
+############################################################################
+##                Dataset for the 100 stations with full obs              ##
+############################################################################     
 ## Rhipe job creating data.frame of 100 stations  ##
-#source(file.path(local.root, "rhcode", "s100", "rh.100stations.R"))
+s100()
 rst <- rhread(file.path(rh.root, par$dataset, "100stations", "aggregated"))[[1]][[2]]
 ## create plots for raw observations  ##
 #source(file.path(local.root, "code", "raw.visual", "100stations.plot.R"))
@@ -31,9 +34,7 @@ monthSpatial(data=rst, outputdir=file.path(local.root, "output"), target = "tmax
 monthSpatial(data=rst, outputdir=file.path(local.root, "output"), target = "tmax", vari="elev", size = "letter")
 
 ## Rhipe job running stl2 on each station of 100 stations ##
-#source(file.path(local.root, "rhcode", "s100", "rh.100stations.stl.R"))
-#source(file.path(local.root, "code", "raw.visual", "100stations.stl2.R"))
-
+#source(file.path(local.root, "rhcode", "s100", "100stations.plot.R"))
 STLfit(sw=77, sd=1, tw=495, td=2, fcw=NULL, fcd=NULL)
 rst <- rhread(file.path(rh.root, par$dataset, "100stations", "STL", "t495td2_s77sd1_ffd"))[[1]][[2]]
 fitRaw(data=rst, outputdir=file.path(local.root, "output"), target="tmax", size = "letter", test = F)
@@ -48,14 +49,14 @@ remainderDiag(data=rst, outputdir=file.path(local.root, "output"), target="tmax"
 seasonalDiag(data=rst, outputdir=file.path(local.root, "output"), target="tmax", size = "letter", test=F)
 trendDiag(data=rst, outputdir=file.path(local.root, "output"), target="tmax", size = "letter", test=F, fc = FALSE)
 
-STLfit(sw=periodic, sd=1, tw=1141, td=2, fcw=NULL, fcd=NULL)
+STLfit(sw="periodic", sd=1, tw=1141, td=2, fcw=NULL, fcd=NULL)
 rst <- rhread(file.path(rh.root, par$dataset, "100stations", "STL", "t1141td2_speriodicsd1_ffd"))[[1]][[2]]
 fitRaw(data=rst, outputdir=file.path(local.root, "output"), target="tmax", size = "letter", test = F)
 remainderDiag(data=rst, outputdir=file.path(local.root, "output"), target="tmax", size = "letter", test=F)
 seasonalDiag(data=rst, outputdir=file.path(local.root, "output"), target="tmax", size = "letter", test=F)
 trendDiag(data=rst, outputdir=file.path(local.root, "output"), target="tmax", size = "letter", test=F, fc = FALSE)
 
-STLfit(sw=periodic, sd=1, tw=1141, td=1, fcw=NULL, fcd=NULL)
+STLfit(sw="periodic", sd=1, tw=1141, td=1, fcw=NULL, fcd=NULL)
 rst <- rhread(file.path(rh.root, par$dataset, "100stations", "STL", "t1141td1_speriodicsd1_ffd"))[[1]][[2]]
 fitRaw(data=rst, outputdir=file.path(local.root, "output"), target="tmax", size = "letter", test = F)
 remainderDiag(data=rst, outputdir=file.path(local.root, "output"), target="tmax", size = "letter", test=F)
@@ -63,10 +64,13 @@ seasonalDiag(data=rst, outputdir=file.path(local.root, "output"), target="tmax",
 trendDiag(data=rst, outputdir=file.path(local.root, "output"), target="tmax", size = "letter", test=F, fc = FALSE)
 
 
+#################################################################
+##                     Dataset After 1950                      ##
+#################################################################
 ## Create a1950 by month and by station subsets from All by station subsets
 #source(file.path(local.root, "rhcode", "a1950", "rh.a1950.R"))
 a1950()
-## a1950 by month, interpolate missing obs by spatial loess
+## a1950 by month, interpolate missing obs by spatial loess, cross-validation
 for(k in c("interpolate","direct")) {
   for(i in c(1,2)) {
     for(j in seq(0.01, 0.1, 0.005)) {
