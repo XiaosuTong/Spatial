@@ -11,7 +11,7 @@ intpolat.visual <- function(outputdir=file.path(local.root, "output"), size = "l
     color=TRUE, 
     paper=size
   )
-    b <- xyplot( mse ~ as.numeric(span) | factor(month)*factor(year)
+    b <- xyplot( mse ~ as.numeric(span) | factor(month, levels=month.abb)*factor(year)
       , data = arrange(rst, span)
       , group = degree
       , xlab = list(label = "Span", cex = 1.5)
