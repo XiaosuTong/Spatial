@@ -84,6 +84,15 @@ remainderDiag(data=rst, outputdir=file.path(local.root, "output"), target="tmax"
 seasonalDiag(data=rst, outputdir=file.path(local.root, "output"), target="tmax", size = "letter", test=F)
 trendDiag(data=rst, outputdir=file.path(local.root, "output"), target="tmax", size = "letter", test=F, fc = TRUE)
 
+STLfit(sw=77, sd=2, tw=1141, td=1, fcw=NULL, fcd=NULL)
+
+
+STLfit(sw=77, sd=2, tw=1855, td=1, fcw=241, fcd=1)
+rst <- rhread(file.path(rh.root, par$dataset, "100stations", "STL", "t1855td1_s77sd2_f241fd1"))[[1]][[2]]
+fitRaw(data=rst, outputdir=file.path(local.root, "output"), target="tmax", size = "letter", test = F)
+remainderDiag(data=rst, outputdir=file.path(local.root, "output"), target="tmax", size = "letter", test=F)
+seasonalDiag(data=rst, outputdir=file.path(local.root, "output"), target="tmax", size = "letter", test=F)
+trendDiag(data=rst, outputdir=file.path(local.root, "output"), target="tmax", size = "letter", test=F, fc = TRUE)
 
 
 #################################################################
