@@ -29,9 +29,9 @@ rst <- rhread(file.path(rh.root, par$dataset, "100stations", "aggregated"))[[1]]
 scatterRaw(data=rst, outputdir=file.path(local.root, "output"), target="tmax", size = "letter", test = F)
 monthRaw(data=rst, outputdir=file.path(local.root, "output"), target = "tmax", size = "letter", test = F)
 monthQQ(data=rst, outputdir=file.path(local.root, "output"), target = "tmax", size = "letter", test = F)
-monthSpatial(data=rst, outputdir=file.path(local.root, "output"), target = "tmax", vari="lon", size = "letter")
-monthSpatial(data=rst, outputdir=file.path(local.root, "output"), target = "tmax", vari="lat", size = "letter")
-monthSpatial(data=rst, outputdir=file.path(local.root, "output"), target = "tmax", vari="elev", size = "letter")
+for (i in c("lon","lat","elev")) {
+  monthSpatial(data=rst, outputdir=file.path(local.root, "output"), target = "tmax", vari=i, size = "letter")
+}
 
 ## Rhipe job running stl2 on each station of 100 stations ##
 #source(file.path(local.root, "rhcode", "s100", "100stations.plot.R"))
@@ -62,6 +62,28 @@ fitRaw(data=rst, outputdir=file.path(local.root, "output"), target="tmax", size 
 remainderDiag(data=rst, outputdir=file.path(local.root, "output"), target="tmax", size = "letter", test=F)
 seasonalDiag(data=rst, outputdir=file.path(local.root, "output"), target="tmax", size = "letter", test=F)
 trendDiag(data=rst, outputdir=file.path(local.root, "output"), target="tmax", size = "letter", test=F, fc = FALSE)
+
+STLfit(sw="periodic", sd=1, tw=241, td=1, fcw=NULL, fcd=NULL)
+rst <- rhread(file.path(rh.root, par$dataset, "100stations", "STL", "t241td1_speriodicsd1_ffd"))[[1]][[2]]
+fitRaw(data=rst, outputdir=file.path(local.root, "output"), target="tmax", size = "letter", test = F)
+remainderDiag(data=rst, outputdir=file.path(local.root, "output"), target="tmax", size = "letter", test=F)
+seasonalDiag(data=rst, outputdir=file.path(local.root, "output"), target="tmax", size = "letter", test=F)
+trendDiag(data=rst, outputdir=file.path(local.root, "output"), target="tmax", size = "letter", test=F, fc = FALSE)
+
+STLfit(sw="periodic", sd=1, tw=1855, td=1, fcw=121, fcd=2)
+rst <- rhread(file.path(rh.root, par$dataset, "100stations", "STL", "t1855td1_speriodicsd1_f121fd2"))[[1]][[2]]
+fitRaw(data=rst, outputdir=file.path(local.root, "output"), target="tmax", size = "letter", test = F)
+remainderDiag(data=rst, outputdir=file.path(local.root, "output"), target="tmax", size = "letter", test=F)
+seasonalDiag(data=rst, outputdir=file.path(local.root, "output"), target="tmax", size = "letter", test=F)
+trendDiag(data=rst, outputdir=file.path(local.root, "output"), target="tmax", size = "letter", test=F, fc = TRUE)
+
+STLfit(sw="periodic", sd=1, tw=1855, td=1, fcw=241, fcd=1)
+rst <- rhread(file.path(rh.root, par$dataset, "100stations", "STL", "t1855td1_speriodicsd1_f241fd1"))[[1]][[2]]
+fitRaw(data=rst, outputdir=file.path(local.root, "output"), target="tmax", size = "letter", test = F)
+remainderDiag(data=rst, outputdir=file.path(local.root, "output"), target="tmax", size = "letter", test=F)
+seasonalDiag(data=rst, outputdir=file.path(local.root, "output"), target="tmax", size = "letter", test=F)
+trendDiag(data=rst, outputdir=file.path(local.root, "output"), target="tmax", size = "letter", test=F, fc = TRUE)
+
 
 
 #################################################################

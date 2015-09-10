@@ -326,7 +326,7 @@ fitRaw <- function(data=rst, outputdir, target="tmax", size = "letter", test = T
             if (!any(grepl("fc", names(rst)))) {
               panel.xyplot(sub[subscripts,]$time, (sub[subscripts,]$trend+sub[subscripts,]$seasonal), type="l", col=col[2], lwd=1, ...)            
             } else {
-              panel.xyplot(sub[subscripts,]$time, (sub[subscripts,]$data.seasonal+sub[subscripts,]$fc.trend+sub[subscripts,]$fc.second), type="l", col=col[2], lwd=1, ...)
+              panel.xyplot(sub[subscripts,]$time, (sub[subscripts,]$data.seasonal+sub[subscripts,]$fc.first+sub[subscripts,]$fc.second), type="l", col=col[2], lwd=1, ...)
             }
           }
       )
@@ -809,8 +809,8 @@ trendDiag <- function(data=rst, outputdir, target="tmax", size = "letter", test=
         , xlab = list(label = "Month", cex = 1.5),
         , ylab = list(label = ylab, cex = 1.5),
         , xlim = c(0, 1236),
-        , aspect = "xy"
-        , layout = c(4,2),
+        , layout = c(2,2),
+        , between = list(x=0.5)
         , key=list(
             text = list(label=c(
                 "middle frequency component",
@@ -820,7 +820,7 @@ trendDiag <- function(data=rst, outputdir, target="tmax", size = "letter", test=
             columns = 2
           )
         , scales = list(
-            y = list(relation = 'free', cex=1.2), 
+            y = list(relation = 'same', cex=1.2), 
             x = list(at=seq(0,1236,480), relation = 'same', cex=1.2)
           )
         , prepanel = function(x,y,subscripts,...){
