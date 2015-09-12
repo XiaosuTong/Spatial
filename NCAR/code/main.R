@@ -19,7 +19,7 @@ lattice.theme <- trellis.par.get()
 col <- lattice.theme$superpose.symbol$col
 
 ############################################################################
-##                Dataset for the 100 stations with full obs              ##
+##        Raw and stl fit for the 100 stations with full obs              ##
 ############################################################################     
 ## Rhipe job creating data.frame of 100 stations  ##
 s100()
@@ -89,7 +89,7 @@ rst <- rhread(file.path(rh.root, par$dataset, "100stations", "STL", "t1141td1_s1
 fitRaw(data=rst, outputdir=file.path(local.root, "output"), target="tmax", size = "letter", test = F)
 remainderDiag(data=rst, outputdir=file.path(local.root, "output"), target="tmax", size = "letter", test=F)
 seasonalDiag(data=rst, outputdir=file.path(local.root, "output"), target="tmax", size = "letter", test=F)
-trendDiag(data=rst, outputdir=file.path(local.root, "output"), target="tmax", size = "letter", test=F, fc = TRUE)
+trendDiag(data=rst, outputdir=file.path(local.root, "output"), target="tmax", size = "letter", test=F, fc = FALSE)
 
 
 STLfit(sw=77, sd=2, tw=1855, td=1, fcw=241, fcd=1)
@@ -99,6 +99,21 @@ remainderDiag(data=rst, outputdir=file.path(local.root, "output"), target="tmax"
 seasonalDiag(data=rst, outputdir=file.path(local.root, "output"), target="tmax", size = "letter", test=F)
 trendDiag(data=rst, outputdir=file.path(local.root, "output"), target="tmax", size = "letter", test=F, fc = TRUE)
 
+
+############################################################################
+##        STL tunning fit for the 100 stations with full obs              ##
+############################################################################ 
+stationSplit(reduce=200)
+index <- "E1"
+parameter <- expand.grid(
+  sw = c(51, 73, 93), 
+  tw = c(617, 865, 1113), 
+  td = 2, 
+  sd = 1
+)
+for(k in 1:nrow(parameter)) {
+  predict36(parameter, k, index)
+}
 
 #################################################################
 ##                     Dataset After 1950                      ##
