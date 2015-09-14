@@ -4,10 +4,10 @@ source("aa_kdtree.R")
 r = 100
 set.seed(r)
 p = 4
-n = 2^25
+n = 2^28
 x = runif(n*p)  ## unif
 x = matrix(x,ncol=p)
-nb = 2^15
+nb = 2^18
 
 ########### in C
 t2 <- system.time({res2 <- cppkdtree(x, nb)})
