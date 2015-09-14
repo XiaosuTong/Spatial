@@ -100,21 +100,34 @@ seasonalDiag(data=rst, outputdir=file.path(local.root, "output"), target="tmax",
 trendDiag(data=rst, outputdir=file.path(local.root, "output"), target="tmax", size = "letter", test=F, fc = TRUE)
 
 
-############################################################################
-##        STL tunning fit for the 100 stations with full obs              ##
-############################################################################ 
+##################################################################
+##    STL tunning fit for the 100 stations with full obs        ##
+################################################################## 
 stationSplit(reduce=200)
 index <- "E1"
 parameter <- expand.grid(
-  sw = c(51, 73, 93), 
-  tw = c(617, 865, 1113), 
-  td = 2, 
-  sd = 1
+  sw = c(51, 73, 93), tw = c(617, 865, 1113), td = 2, sd = 1
 )
 for(k in 1:nrow(parameter)) {
   predict36(parameter, k, index)
 }
+lagResidual(n=nrow(parameter), index="E1")
+lagResidQuan(index="E1")
+StdMean.group(index="E1")
+StdMean.grouplag(index="E1", parameter=parameter)
 
+index <- "E4"
+parameter <- expand.grid(
+  sw = c("periodic"), tw = c(121, 241, 361, 751, 1141), 
+  td = c(1,2), sd = 1, stringsAsFactors = FALSE
+)
+for(k in 1:nrow(parameter)) {
+  predict36(parameter, k, index)
+}
+lagResidual(n=nrow(parameter), index="E4")
+lagResidQuan(index="E4")
+StdMean.group(index="E4")
+StdMean.grouplag(index="E4", parameter=parameter)
 #################################################################
 ##                     Dataset After 1950                      ##
 #################################################################
