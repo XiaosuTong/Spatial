@@ -138,8 +138,8 @@ for(k in 1:nrow(parameter)) {
   try(predict36(parameter, k, index))
 }
 lagResidual(n=nrow(parameter), index)
-lagResidQuan(index=)
-StdMean.group(index=)
+lagResidQuan(index)
+StdMean.group(index)
 StdMean.grouplag(index, parameter)  
   
 index <- "E4"
@@ -184,6 +184,15 @@ lagResidQuan(index)
 StdMean.group(index)
 StdMean.grouplag(index, parameter)
 
+
+for(i in paste("E", 1:6, sep="")) {
+  
+  try(lagResidual(n=nrow(parameter), index=i))
+  try(lagResidQuan(index=i))
+  try(StdMean.group(index=i))
+  try(StdMean.grouplag(index=i, parameter))
+
+}
 
 #################################################################
 ##                     Dataset After 1950                      ##
