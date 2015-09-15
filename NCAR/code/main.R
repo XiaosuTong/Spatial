@@ -106,28 +106,73 @@ trendDiag(data=rst, outputdir=file.path(local.root, "output"), target="tmax", si
 stationSplit(reduce=200)
 index <- "E1"
 parameter <- expand.grid(
-  sw = c(51, 73, 93), tw = c(617, 865, 1113), td = 2, sd = 1
+  sw = c(51, 73, 93), tw = c(617, 865, 1113), td = 2, sd = 1, fc.flag = FALSE
 )
 for(k in 1:nrow(parameter)) {
-  predict36(parameter, k, index)
+  try(predict36(parameter, k, index))
 }
 lagResidual(n=nrow(parameter), index="E1")
 lagResidQuan(index="E1")
 StdMean.group(index="E1")
 StdMean.grouplag(index="E1", parameter=parameter)
 
+index <- "E2"
+parameter <- expand.grid(
+  sw = c(25, 125, "periodic"), tw = c(617, 865, 1113), td = 2, 
+  sd = 1, fc.flag = FALSE, stringsAsFactors = FALSE
+)
+for(k in 1:nrow(parameter)) {
+  try(predict36(parameter, k, index))
+}
+lagResidual(n=nrow(parameter), index="E2")
+lagResidQuan(index="E2")
+StdMean.group(index="E2")
+StdMean.grouplag(index="E2", parameter=parameter)
+
+
 index <- "E4"
 parameter <- expand.grid(
   sw = c("periodic"), tw = c(121, 241, 361, 751, 1141), 
-  td = c(1,2), sd = 1, stringsAsFactors = FALSE
+  td = c(1,2), sd = 1, fc.flag = FALSE, stringsAsFactors = FALSE
 )
 for(k in 1:nrow(parameter)) {
-  predict36(parameter, k, index)
+  try(predict36(parameter, k, index))
 }
 lagResidual(n=nrow(parameter), index="E4")
 lagResidQuan(index="E4")
 StdMean.group(index="E4")
 StdMean.grouplag(index="E4", parameter=parameter)
+
+
+index <- "E5"
+parameter <- do.call("rbind", list(
+  data.frame(sw="periodic", tw=1855, sd=1, td=1, fcw=1855, fcd=1, scw=241, scd=1, fc.flag=TRUE, stringsAsFactors=FALSE),
+  data.frame(sw="periodic", tw=241, sd=1, td=1, fcw=NA, fcd=NA, scw=NA, scd=NA, fc.flag=FALSE, stringsAsFactors=FALSE),
+  data.frame(sw="periodic", tw=1855, sd=1, td=1, fcw=1855, fcd=1, scw=121, scd=2, fc.flag=TRUE, stringsAsFactors=FALSE)
+))
+for(k in 1:nrow(parameter)) {
+  try(predict36(parameter, k, index))
+}
+lagResidual(n=nrow(parameter), index="E5")
+lagResidQuan(index="E5")
+StdMean.group(index="E5")
+StdMean.grouplag(index="E5", parameter=parameter)
+
+
+index <- "E6"
+parameter <- expand.grid(
+  sw = "periodic", tw = 1855, td = 1, sd = 1,fcw = 1855, fcd = 1, 
+  scw = c(241, 361, 751), scd = c(1, 2), fc.flag = TRUE, stringsAsFactors = FALSE
+)
+for(k in 1:nrow(parameter)) {
+  try(predict36(parameter, k, index))
+}
+lagResidual(n=nrow(parameter), index="E6")
+lagResidQuan(index="E6")
+StdMean.group(index="E6")
+StdMean.grouplag(index="E6", parameter=parameter)
+
+
 #################################################################
 ##                     Dataset After 1950                      ##
 #################################################################

@@ -36,7 +36,7 @@ stationSplit <- function(reduce=100){
 ## previous 600 observations for the 100 stations    ##
 ## predict36 did not include fc component            ##
 #######################################################
-predict36 <- function(parameter, k, index, flag=FALSE) {
+predict36 <- function(parameter, k, index) {
 
   job <- list()
   job$map <- expression({
@@ -46,15 +46,30 @@ predict36 <- function(parameter, k, index, flag=FALSE) {
       v.raw <- tail(v, 36)
       v.model <- v
       v.model[601:636, "resp"] <- NA
-      v.predict <- tail(stl2(
-        x = v.model$resp, 
-        t = v.model$time, 
-        n.p = 12, s.window = sw, s.degree = sd, t.window = tw, t.degree = td, 
-        fc.window = fcw, fc.degree = fcd, inner = inner, outer = outer)$data, 36
-      )
+      if(fc.flag) {
+        v.predict <- tail(
+          do.call("cbind", 
+            stl2(x = v.model$resp, t = v.model$time, n.p = 12, 
+              s.window = sw, s.degree = sd, t.window = tw, t.degree = td, 
+              fc.window = c(fcw, scw), fc.degree = c(fcd, scd), 
+              inner = inner, outer = outer)[c("data","fc")]), 36
+        )
+        names(v.predict)[grep("fc.fc", names(v.predict))] <- c("fc.first", "fc.second")
+      } else {
+        v.predict <- tail(stl2(
+          x = v.model$resp, 
+          t = v.model$time, 
+          n.p = 12, s.window = sw, s.degree = sd, t.window = tw, t.degree = td, 
+          inner = inner, outer = outer)$data, 36
+        )
+      }
       value <- cbind(v.raw, v.predict)
       value$lag <- c(1:36)
-      value <- subset(value, select = -c(weights, remainder, raw, sub.labels))
+      if(fc.flag) {
+        value <- subset(value, select = -c(data.weights, data.remainder, data.raw, fc.remainder, data.trend, data.sub.labels))
+      } else{
+        value <- subset(value, select = -c(weights, remainder, raw, sub.labels))
+      }
       rhcollect(key, value)
     })
   })
@@ -69,13 +84,15 @@ predict36 <- function(parameter, k, index, flag=FALSE) {
     job$parameters <- list(
       sw = as.numeric(parameter[k,"sw"]), tw = parameter[k,"tw"], sd = parameter[k,"sd"], 
       td = parameter[k,"td"], fcw = parameter[k, "fcw"], fcd = parameter[k, "fcd"],
-      inner = 10, outer = 0, group = k
+      scw = parameter[k, "scw"], scd = parameter[k, "scd"], inner = 10, outer = 0, group = k, 
+      fc.flag = parameter[k, "fc.flag"]
     )
   }else{
     job$parameters <- list(
       sw = parameter[k,"sw"], tw = parameter[k,"tw"], sd = parameter[k,"sd"], 
       td = parameter[k,"td"], fcw = parameter[k, "fcw"], fcd = parameter[k, "fcd"], 
-      inner = 10, outer = 0, group = k
+      scw = parameter[k, "scw"], scd = parameter[k, "scd"], inner = 10, outer = 0, group = k,
+      fc.flag = parameter[k, "fc.flag"]
     )
   }
   job$input <- rhfmt(
