@@ -111,10 +111,6 @@ parameter <- expand.grid(
 for(k in 1:nrow(parameter)) {
   try(predict36(parameter, k, index))
 }
-lagResidual(n=nrow(parameter), index)
-lagResidQuan(index)
-StdMean.group(index)
-StdMean.grouplag(index, parameter)
 
 index <- "E2"
 parameter <- expand.grid(
@@ -124,10 +120,6 @@ parameter <- expand.grid(
 for(k in 1:nrow(parameter)) {
   try(predict36(parameter, k, index))
 }
-lagResidual(n=nrow(parameter), index)
-lagResidQuan(index)
-StdMean.group(index)
-StdMean.grouplag(index, parameter)
 
 index <- "E3"
 parameter <- expand.grid(
@@ -137,10 +129,6 @@ parameter <- expand.grid(
 for(k in 1:nrow(parameter)) {
   try(predict36(parameter, k, index))
 }
-lagResidual(n=nrow(parameter), index)
-lagResidQuan(index)
-StdMean.group(index)
-StdMean.grouplag(index, parameter)  
   
 index <- "E4"
 parameter <- expand.grid(
@@ -150,11 +138,6 @@ parameter <- expand.grid(
 for(k in 1:nrow(parameter)) {
   try(predict36(parameter, k, index))
 }
-lagResidual(n=nrow(parameter), index)
-lagResidQuan(index)
-StdMean.group(index)
-StdMean.grouplag(index, parameter)
-
 
 index <- "E5"
 parameter <- do.call("rbind", list(
@@ -165,11 +148,6 @@ parameter <- do.call("rbind", list(
 for(k in 1:nrow(parameter)) {
   try(predict36(parameter, k, index))
 }
-lagResidual(n=nrow(parameter), index)
-lagResidQuan(index)
-StdMean.group(index)
-StdMean.grouplag(index, parameter)
-
 
 index <- "E6"
 parameter <- expand.grid(
@@ -179,10 +157,6 @@ parameter <- expand.grid(
 for(k in 1:nrow(parameter)) {
   try(predict36(parameter, k, index))
 }
-lagResidual(n=nrow(parameter), index)
-lagResidQuan(index)
-StdMean.group(index)
-StdMean.grouplag(index, parameter)
 
 
 for(i in paste("E", 1:6, sep="")) {
