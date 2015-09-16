@@ -22,11 +22,15 @@ par$degree <- 2
 par$outer <- 1
 par$loop <- "loop.longtrend" 
 par$type <- "same" # or "same", "decr"
-par$parameters <- list(
-	sw = 37,
+parameter <- list(
+	sw = "periodic",
 	tw = 425,
 	sd = 1,
 	td = 1,
+	fcw = 425,
+	fcd = 1,
+	scw = 214,
+	scd = 2,
 	inner = 1,
 	outer = 1
 ) 
@@ -206,11 +210,10 @@ backfitSTL <- function(input, output, parameter, iiter, oiter) {
         v$weight <- 1
       } 
       v.stl <- stl3(
-        x = with(v, resp - spatial), 
-        t = v$time, 
-        trend = v$trend, weight = v$weight, n.p = 12, 
-        s.window = parameters$sw, s.degree = parameters$sd, t.window = parameters$tw, t.degree = parameters$td, 
-        fc.window = c(fcw, scw), fc.degree = c(fcd, scd), inner = parameters$inner, outer = parameters$outer
+        x = with(v, resp - spatial), t = v$time, 
+        trend = v$trend, fc.first = v$fc.first, fc.second = v$fc.second, weight = v$weight, n.p = 12, 
+        s.window = parameter$sw, s.degree = parameter$sd, t.window = parameter$tw, t.degree = parameter$td, 
+        fc.window = c(parameter$fcw, parameter$scw), fc.degree = c(parameter$fcd, parameter$scd), inner = inner, outer = outer
       )$data
       if (first) {
         value <- cbind(
