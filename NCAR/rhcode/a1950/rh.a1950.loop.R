@@ -190,7 +190,7 @@ backfitSpatial <- function() {
 
 }
 
-backfitSTL <- function() {
+backfitSTL <- function(input, output, parameter, iiter=i, oiter=o) {
 
   # In each loop, the first job is STL+ at each station, output key is station.id
   job <- list()
@@ -235,7 +235,7 @@ backfitSTL <- function() {
   job$parameters <- list(
     parameters = par$parameters,
     dataset = par$dataset,
-    first = i == 1 && o == 1
+    first = iiter == 1 && oiter == 1
   )
   job$setup <- expression(
     map = {
@@ -245,11 +245,11 @@ backfitSTL <- function() {
       library(stl3)
     }
   )
-  job$input <- rhfmt(FileInput , type = "sequence")
-  job$output <- rhfmt(FileOutput, type = "sequence")
+  job$input <- rhfmt(input , type = "sequence")
+  job$output <- rhfmt(output, type = "sequence")
   job$mapred <- list(mapred.reduce.tasks = 72)
-  job$mon.sec <- 5
-  job$jobname <- FileOutput  
+  job$mon.sec <- 10
+  job$jobname <- output  
   job$readback <- FALSE  
 
   job.mr <- do.call("rhwatch", job)
@@ -336,72 +336,69 @@ backfitAll <- function(span, family, type, parameter) {
     rh.root, par$dataset, "a1950", "bymonth.fit", family, type, degree, paste("sp", span[1], sep="")
   )
 
-
-for(o in 1:par$outer) {
+  for(o in 1:par$outer) {
+    for(i in 1:length(par$span)) {
+      
+      FileOutput <- file.path(
+        rh.root, par$dataset, "a1950", "spatial", par$family, paste("sp", par$span[1], sep=""), 
+        paste(par$loess, par$loop, par$type, sep="."), "STL"
+      )  
   
-  for(i in 1:length(par$span)) {
-    
-    FileOutput <- file.path(
-      rh.root, par$dataset, "a1950", "spatial", par$family, paste("sp", par$span[1], sep=""), 
-      paste(par$loess, par$loop, par$type, sep="."), "STL"
-    )  
-
-    backfitSTL()
-    
-    # The output from job is the input to job2
-    FileInput <- FileOutput
-    
-    # Second job output is the spatial fitting, output key is month and year
-    FileOutput <- file.path(
-      rh.root, par$dataset, "a1950", "spatial", par$family, paste("sp", par$span[1], sep=""), 
-      paste(par$loess, par$loop, par$type, sep="."), "byMonth"
-    )  
-
-    backfitSwap.month()
- 
-    # The output from job21 is the input to job22
-    FileInput <- FileOutput  
-
-    FileOutput <- file.path(
-      rh.root, par$dataset, "a1950", "spatial", par$family, paste("sp", par$span[1], sep=""), 
-      paste(par$loess, par$loop, par$type, sep="."), paste("Spatial", i, sep="")
-    )  
-
-    arg <- list(degree = par$degree, span = par$span[i], family = "gaussian")
-
-
-
-    # The output from job22 is the input to job3
-    FileInput <- FileOutput  
-
-    FileOutput <- file.path(
-      rh.root, par$dataset, "a1950", "spatial", par$family, paste("sp", par$span[1], sep=""), 
-      paste(par$loess, par$loop, par$type, sep="."), paste("Spatial", ".bystation", sep="")
-    )    
-
-    backfitSwap.station()
-
-    FileInput <- FileOutput  
-
-  }
-
-  #outer that calculate the weights
+      backfitSTL()
+      
+      # The output from job is the input to job2
+      FileInput <- FileOutput
+      
+      # Second job output is the spatial fitting, output key is month and year
+      FileOutput <- file.path(
+        rh.root, par$dataset, "a1950", "spatial", par$family, paste("sp", par$span[1], sep=""), 
+        paste(par$loess, par$loop, par$type, sep="."), "byMonth"
+      )  
   
-  if(par$outer > 1) {
+      backfitSwap.month()
+   
+      # The output from job21 is the input to job22
+      FileInput <- FileOutput  
+  
+      FileOutput <- file.path(
+        rh.root, par$dataset, "a1950", "spatial", par$family, paste("sp", par$span[1], sep=""), 
+        paste(par$loess, par$loop, par$type, sep="."), paste("Spatial", i, sep="")
+      )  
+  
+      arg <- list(degree = par$degree, span = par$span[i], family = "gaussian")
+  
+  
+  
+      # The output from job22 is the input to job3
+      FileInput <- FileOutput  
+  
+      FileOutput <- file.path(
+        rh.root, par$dataset, "a1950", "spatial", par$family, paste("sp", par$span[1], sep=""), 
+        paste(par$loess, par$loop, par$type, sep="."), paste("Spatial", ".bystation", sep="")
+      )    
+  
+      backfitSwap.station()
+  
+      FileInput <- FileOutput  
+  
+    }
+  
+    #outer that calculate the weights
     
-    w <- backfitWeights()
-
-    FileOutput <- file.path(
-      rh.root, par$dataset, "a1950", "spatial", par$family, paste("sp", par$span[1], sep=""), 
-      paste(par$loess, par$loop, par$type, sep="."), paste("Outer", o, ".bystation", sep="")
-    )
-    
-    backfitRobust(weight = w)
-    
-    FileInput <- FileOutput
-
+    if(par$outer > 1) {
+      
+      w <- backfitWeights()
+  
+      FileOutput <- file.path(
+        rh.root, par$dataset, "a1950", "spatial", par$family, paste("sp", par$span[1], sep=""), 
+        paste(par$loess, par$loop, par$type, sep="."), paste("Outer", o, ".bystation", sep="")
+      )
+      
+      backfitRobust(weight = w)
+      
+      FileInput <- FileOutput
+  
+    }
+  
   }
-
-}
-
 }
