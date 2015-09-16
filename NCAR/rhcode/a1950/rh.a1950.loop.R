@@ -190,7 +190,7 @@ backfitSpatial <- function() {
 
 }
 
-backfitSTL <- function(input, output, parameter, iiter=i, oiter=o) {
+backfitSTL <- function(input, output, parameter, iiter, oiter) {
 
   # In each loop, the first job is STL+ at each station, output key is station.id
   job <- list()
@@ -201,21 +201,16 @@ backfitSTL <- function(input, output, parameter, iiter=i, oiter=o) {
         Index <- which(is.na(v$resp))
         v$resp[Index] <- v$fitted[Index]
         v$spatial <- 0
-        v$trend <- 0
+        v$fc.first <- 0
+        v$fc.second <- 0
         v$weight <- 1
       } 
       v.stl <- stl3(
         x = with(v, resp - spatial), 
         t = v$time, 
-        trend = v$trend,
-        weight = v$weight, 
-        n.p = 12, 
-        s.window = parameters$sw, 
-        s.degree = parameters$sd, 
-        t.window = parameters$tw, 
-        t.degree = parameters$td, 
-        inner = parameters$inner, 
-        outer = parameters$outer
+        trend = v$trend, weight = v$weight, n.p = 12, 
+        s.window = parameters$sw, s.degree = parameters$sd, t.window = parameters$tw, t.degree = parameters$td, 
+        fc.window = c(fcw, scw), fc.degree = c(fcd, scd), inner = parameters$inner, outer = parameters$outer
       )$data
       if (first) {
         value <- cbind(
@@ -233,9 +228,9 @@ backfitSTL <- function(input, output, parameter, iiter=i, oiter=o) {
     })
   })
   job$parameters <- list(
-    parameters = par$parameters,
-    dataset = par$dataset,
-    first = iiter == 1 && oiter == 1
+    sw = parameter$sw, tw = parameter$tw, sd = parameter$sd, td = parameter$td, fcw = parameter$fcw, 
+    fcd = parameter$fcd, scw = parameter$scw, scd = parameter$scd, inner = 1, outer = 1,
+    fc.flag = parameter$fc.flag, first = iiter == 1 && oiter == 1
   )
   job$setup <- expression(
     map = {
