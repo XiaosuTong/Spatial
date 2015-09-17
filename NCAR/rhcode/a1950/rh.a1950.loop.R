@@ -217,9 +217,12 @@ backfitSTL <- function(input, output, parameter, iiter, oiter) {
         Index <- which(is.na(v$resp))
         v$resp[Index] <- v$fitted[Index]
         v$spatial <- 0
-        v$trend <- 0
-        v$fc.first <- 0
-        v$fc.second <- 0
+        if(!fc.flag) {
+          v$trend <- 0
+        } else {
+          v$fc.first <- 0
+          v$fc.second <- 0
+        }
         v$weight <- 1
       } 
       if (!fc.flag) {
@@ -252,7 +255,7 @@ backfitSTL <- function(input, output, parameter, iiter, oiter) {
         v <- subset(v, select = -c(elev))  
       }
       value <- cbind(v, v.stl)
-      attr(value, "location") <- c(v[1, c("lon", "lat", "elev2", "station.id")])
+      attr(value, "location") <- c(value[1, c("lon", "lat", "elev2", "station.id")])
       value <- subset(value, select = -c(station.id, lon, lat, elev2))
       rhcollect(map.keys[[r]], value)
     })
