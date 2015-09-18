@@ -255,8 +255,9 @@ backfitSTL <- function(input, output, parameter, iiter, oiter) {
         v <- subset(v, select = -c(elev))  
       }
       value <- cbind(v, v.stl)
-      attr(value, "location") <- c(value[1, c("lon", "lat", "elev2", "station.id")])
+      location <- c(value[1, c("lon", "lat", "elev2", "station.id")])
       value <- subset(value, select = -c(station.id, lon, lat, elev2))
+      attr(value, "location") <- location
       rhcollect(map.keys[[r]], value)
     })
   })
