@@ -8,6 +8,9 @@ par <- list()
 par$dataset <- "tmax"
 par$Machine <- "rossmann"
 source("~/Projects/Spatial/NCAR/rhcode/rh.setup.R")
+source("~/Projects/Spatial/NCAR/myloess/my.loess02.R")
+source("~/Projects/Spatial/NCAR/myloess/my.predloess.R")
+
 
 if(par$dataset == "precip") {
   Nstations <- 11918
@@ -185,7 +188,9 @@ for(k in c("interpolate","direct")) {
 }
 
 
-
-
-
-
+paramt <- data.frame(
+  sw = "periodic", tw = 425, sd = 1, td = 1, fcw = 425, fcd = 1,
+  scw = 214, scd = 2, fc.flag = TRUE, stringsAsFactors=FALSE
+) 
+backfitStart(span=0.015, family="symmetric", type="interpolate", degree=2)
+backfitAll(span=0.015, family="symmetric", type="interpolate", parameter=paramt, index="E1", degree=2, inner=5, outer=1)

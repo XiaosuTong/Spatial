@@ -1,52 +1,4 @@
-##################
-##
-##  loopnew is the current version of backfitting, inner=5, outer=5
-##
-##  loopout1 is inner=40, outer=1
-##
-##  loop.periodic is inner= 40, outer=1, sw="periodic", tw=109, td=2, elev.degree=2
-##
-##  looptest is change the spatial loess to be tmax-trend ~ lon + lat + elev WRONG!!!!!backfitting is substract out all other
-##  component when fit one
-##  sw = "periodic", tw = 109, td = 2
-##
-##  loop.nonperiodic is inner = 40, outer=1, sw = 37, sd =1, tw = 109, td=1
-##
-##  loop.longtrend is inner = 20, outer=1, sw = 37, sd = 1, td=1, tw=425
-##
-##################
-par$modified <- TRUE
-par$loess <- "loess04" # loess04 is w/ elevation
-par$family <- "symmetric"
-par$degree <- 2
-par$outer <- 1
-par$loop <- "loop.longtrend" 
-par$type <- "same" # or "same", "decr"
-parameter <- data.frame(
-	sw = "periodic",
-	tw = 425,
-	sd = 1,
-	td = 1,
-	fcw = 425,
-	fcd = 1,
-	scw = 214,
-	scd = 2,
-  fc.flag = TRUE,
-  stringsAsFactors=FALSE
-) 
-if (par$type == "same") {
-  par$span <- rep(0.035, 40)
-} else if (par$type == "incr") {
-  par$span <- c(seq(0.03, 0.05, by=0.005))
-} else {
-  par$span <- c(seq(0.05, 0.03, by=-0.005))
-}
-source("~/Projects/Spatial/NCAR/rhcode/rh.setup.R")
-source("~/Projects/Spatial/NCAR/myloess/my.loess02.R")
-source("~/Projects/Spatial/NCAR/myloess/my.predloess.R")
 
-# The first input file is the loess04.bystation.all which imputed all NA
-# Key is the station.id
 
 backfitSwap.station <- function(input, output) {
 
@@ -364,22 +316,28 @@ backfitRobust <- function(input, output, weight, fc.flag) {
 
 }
 
-backfitAll <- function(span, family, type, parameter, index, degree) {
+backfitStart <- function(span, family, type, degree) {
 
   FileInput <- file.path(
     rh.root, par$dataset, "a1950", "bymonth.fit", family, type, degree, paste("sp", span[1], sep="")
   )
 
   FileOutput <- file.path(
-    rh.root, par$dataset, "a1950", "backfitting", family, type, degree, paste("sp", span[1], sep=""), "startbymonth"
+    rh.root, par$dataset, "a1950", "backfitting", family, type, degree, paste("sp", span[1], sep=""), "startbystation"
   )
   
   try(backfitSwap.station(input=FileInput, output=FileOutput))
 
-  FileInput <- FileOutput
+}
 
-  for(o in 1:1) {
-    for(i in 1:3) {
+backfitAll <- function(span, family, type, parameter, index, degree, inner, outer) {
+
+  FileInput <- file.path(
+    rh.root, par$dataset, "a1950", "backfitting", family, type, degree, paste("sp", span[1], sep=""), "startbystation"
+  )
+
+  for(o in 1:outer) {
+    for(i in 1:inner) {
       
       FileOutput <- file.path(
         rh.root, par$dataset, "a1950", "backfitting", family, type, degree, paste("sp", span[1], sep=""), index, "STL"
@@ -423,15 +381,16 @@ backfitAll <- function(span, family, type, parameter, index, degree) {
   
     #outer that calculate the weights
     
-    if(par$outer > 0) {
+    if(outer > 0) {
       
       FileOutput <- file.path(
-        rh.root, par$dataset, "a1950", "backfitting", family, type, degree, paste("sp", span[1], sep=""), "residual"
+        rh.root, par$dataset, "a1950", "backfitting", family, type, degree, paste("sp", span[1], sep=""), index, "residual"
       )  
+
       try(w <- backfitWeights(input = FileInput, output = FileOutput, fc.flag=TRUE))
   
       FileOutput <- file.path(
-        rh.root, par$dataset, "a1950", "backfitting", family, type, degree, paste("sp", span[1], sep=""), 
+        rh.root, par$dataset, "a1950", "backfitting", family, type, degree, paste("sp", span[1], sep=""), index,
         paste("Outer", o, ".bystation", sep="")
       )
       
@@ -442,4 +401,52 @@ backfitAll <- function(span, family, type, parameter, index, degree) {
     }
   
   }
+}
+
+backfitConverge <- function(span, family, type, index, degree, fc.flag) {
+
+  input <- rhls(
+    file.path(rh.root, par$dataset, "a1950", "backfitting", family, type, degree, paste("sp", span[1], sep=""), index)
+  )$file
+  
+  files <- input[grep("spatial[0-9]", input)]
+
+  job <- list()
+  job$map <- expression({
+    lapply(seq_along(map.values), function(r) {
+      file <- Sys.getenv("mapred.input.file")
+      #key <- substr(unlist(strsplit(tail(strsplit(file, "/")[[1]],3)[2], "[.]")), 8, 9)
+      #value <- with(map.values[[r]], (resp - spatial - trend - seasonal)^2)
+      #rhcollect(as.numeric(key), value)
+      rhcollect(map.keys[[r]],file)
+    })
+  })
+  job$reduce <- expression(
+    pre= {
+      combine <- vector()
+    },
+    reduce = {
+      combine <- c(combine, unlist(reduce.values))
+    },
+    post = {
+      rhcollect(reduce.key, combine)
+      #rhcollect(reduce.key, mean(combine, na.rm = TRUE))
+    }
+  )
+  job$input <- rhfmt(files, type = "sequence")
+  job$output <- rhfmt(
+    file.path(rh.root, par$dataset, "a1950", "backfitting", family, type, degree,
+      paste("sp", par$span[1], sep=""), index, "residuals"
+    ), 
+    type = "sequence"
+  )
+  job$mapred <- list(mapred.reduce.tasks = 8)
+  job$mon.sec <- 10
+  job$jobname <- file.path(
+    rh.root, par$dataset, "a1950", "backfitting", family, type, degree,
+    paste("sp", par$span[1], sep=""), index, "residuals"
+  )
+  job$readback <- FALSE
+  job.mr <- do.call("rhwatch", job)
+
 }
