@@ -370,7 +370,7 @@ backfitAll <- function(span, family, type, parameter, index, degree, inner, oute
       FileInput <- FileOutput  
   
       FileOutput <- file.path(
-        rh.root, par$dataset, "a1950", "backfitting", family, type, degree, paste("sp", span[1], sep=""), index, "spatial.bystation"
+        rh.root, par$dataset, "a1950", "backfitting", family, type, degree, paste("sp", span[1], sep=""), index, paste("spatial",i,".bystation",sep="")
       )    
   
       try(backfitSwap.station(input=FileInput, output=FileOutput))
@@ -415,10 +415,13 @@ backfitConverge <- function(span, family, type, index, degree, fc.flag) {
   job$map <- expression({
     lapply(seq_along(map.values), function(r) {
       file <- Sys.getenv("mapred.input.file")
-      #key <- substr(unlist(strsplit(tail(strsplit(file, "/")[[1]],3)[2], "[.]")), 8, 9)
-      #value <- with(map.values[[r]], (resp - spatial - trend - seasonal)^2)
-      #rhcollect(as.numeric(key), value)
-      rhcollect(map.keys[[r]],file)
+      key <- substr(unlist(strsplit(tail(strsplit(file, "/")[[1]],3)[2], "[.]")), 8, 9)
+      if(fc.flag) {
+        value <- with(map.values[[r]], (resp - spatial - fc.first - fc.second - data.seasonal)^2)
+      } else {
+        value <- with(map.values[[r]], (resp - spatial - trend - seasonal)^2)
+      }
+      rhcollect(as.numeric(key), value)
     })
   })
   job$reduce <- expression(
@@ -429,14 +432,14 @@ backfitConverge <- function(span, family, type, index, degree, fc.flag) {
       combine <- c(combine, unlist(reduce.values))
     },
     post = {
-      rhcollect(reduce.key, combine)
-      #rhcollect(reduce.key, mean(combine, na.rm = TRUE))
+      rhcollect(reduce.key, mean(combine, na.rm = TRUE))
     }
   )
+  job$parameters <- list(fc.flag=fc.flag)
   job$input <- rhfmt(files, type = "sequence")
   job$output <- rhfmt(
     file.path(rh.root, par$dataset, "a1950", "backfitting", family, type, degree,
-      paste("sp", par$span[1], sep=""), index, "residuals"
+      paste("sp", span[1], sep=""), index, "converge"
     ), 
     type = "sequence"
   )
@@ -444,9 +447,26 @@ backfitConverge <- function(span, family, type, index, degree, fc.flag) {
   job$mon.sec <- 10
   job$jobname <- file.path(
     rh.root, par$dataset, "a1950", "backfitting", family, type, degree,
-    paste("sp", par$span[1], sep=""), index, "residuals"
+    paste("sp", span[1], sep=""), index, "converge"
   )
   job$readback <- FALSE
   job.mr <- do.call("rhwatch", job)
+
+}
+
+
+backfitTwoResid <- function(by, family, type, degree, span, index) {
+
+  if(by == "station") {
+    input <- rhls(
+      file.path(rh.root, par$dataset, "a1950", "backfitting", family, type, degree, paste("sp", span[1], sep=""), index)
+    )$file
+    files <- input[grep("spatial[0-9].", unlist(lapply(strsplit(input, "/"), "[[",14)))]
+  } else {
+    input <- rhls(
+      file.path(rh.root, par$dataset, "a1950", "backfitting", family, type, degree, paste("sp", span[1], sep=""), index)
+    )$file
+    files <- input[grep("^spatial[0-9]$", unlist(lapply(strsplit(input, "/"), "[[",14)))]
+  }
 
 }

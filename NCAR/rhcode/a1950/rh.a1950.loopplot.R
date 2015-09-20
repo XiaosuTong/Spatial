@@ -33,47 +33,7 @@ source("~/Projects/Spatial/NCAR/myloess/my.predloess.R")
 ##############################################
 ## check the convergence of findal residuals##
 ##############################################
-job4 <- list()
-job4$map <- expression({
-  lapply(seq_along(map.values), function(r) {
-    file <- Sys.getenv("mapred.input.file")
-    key <- substr(unlist(strsplit(tail(strsplit(file, "/")[[1]],3)[2], "[.]")), 8, 9)
-    value <- with(map.values[[r]], (tmax - spatial - trend - seasonal)^2)
-    rhcollect(as.numeric(key), value)
-  })
-})
-job4$reduce <- expression(
-  pre= {
-    combine <- vector()
-  },
-  reduce = {
-    combine <- c(combine, unlist(reduce.values))
-  },
-  post = {
-    rhcollect(reduce.key, mean(combine, na.rm = TRUE))
-  }
-)
-job4$input <- rhfmt(
-  file.path(
-    rh.datadir, par$dataset, "spatial", "a1950", par$family, 
-    paste("sp", par$span[1], sep=""), paste(par$loess, par$loop, par$type, sep="."), paste("Spatial",1:length(par$span), sep="")
-  ), 
-  type = "sequence"
-)
-job4$output <- rhfmt(
-  file.path(rh.datadir, par$dataset, "spatial", "a1950", par$family, 
-    paste("sp", par$span[1], sep=""), paste(par$loess, par$loop, par$type, sep="."), "residuals"
-  ), 
-  type = "sequence"
-)
-job4$mapred <- list(mapred.reduce.tasks = 8)
-job4$mon.sec <- 10
-job4$jobname <- file.path(
-  rh.datadir, par$dataset, "spatial", "a1950", par$family, 
-  paste("sp", par$span[1], sep=""), paste(par$loess, par$loop, par$type, sep="."), "residuals"
-)  
-job4$readback <- FALSE
-job.mr <- do.call("rhwatch", job4)
+
 
 MSE <- function(type = "same") {
   

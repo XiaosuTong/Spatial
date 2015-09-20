@@ -21,6 +21,14 @@ if(par$dataset == "precip") {
 lattice.theme <- trellis.par.get()
 col <- lattice.theme$superpose.symbol$col
 
+if(par$dataset == "tmax") {
+    ylab <-  "Maximum Temperature (degrees centigrade)"
+}else if(par$dataset == "tmin") {
+    ylab <- "Minimum Temperature (degrees centigrade)"
+}else {
+    ylab <- "Precipitation (millimeters)"
+}
+
 ############################################################################
 ##        Raw and stl fit for the 100 stations with full obs              ##
 ############################################################################     
@@ -161,7 +169,6 @@ for(k in 1:nrow(parameter)) {
   try(predict36(parameter, k, index))
 }
 
-
 for(i in paste("E", 1:6, sep="")) {
   
   try(lagResidual(n=nrow(parameter), index=i))
@@ -170,6 +177,7 @@ for(i in paste("E", 1:6, sep="")) {
   try(StdMean.grouplag(index=i, parameter))
 
 }
+
 
 #################################################################
 ##                     Dataset After 1950                      ##
