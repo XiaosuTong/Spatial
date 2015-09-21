@@ -1,30 +1,30 @@
-
-stationSplit <- function(reduce=100){
+##for a1950 valid=270
+stationSplit <- function(reduce=100, type="100stations", tn=1236, valid=600){
   
   job <- list()
   job$map <- expression({
     lapply(seq_along(map.values), function(r) {
       v <- map.values[[r]]
-      v$time <- 0:1235
-      lapply(1:601, function(i) {
-        v <- v[i:(600 + i - 1 + 36),]
+      v$time <- 0:(tn-1)
+      lapply(1:(valid+1), function(i) {
+        v <- v[i:(valid + i - 1 + 36),]
         rhcollect(c(map.keys[[r]], i), v)
       })
     })
   })
   job$input <- rhfmt(
-    file.path(rh.root, par$dataset, "100stations", "bystation"),
+    file.path(rh.root, par$dataset, type, "bystation"),
     type = "sequence"
   )
   job$output <- rhfmt(
-    file.path(rh.root, par$dataset, "100stations", "bystationSplit"), 
+    file.path(rh.root, par$dataset, type, "bystationSplit"), 
     type = "sequence"
   )
   job$mapred <- list(
     mapred.reduce.tasks = reduce,  #cdh3,4
     mapreduce.job.reduces = reduce #cdh5
   )
-  job$jobname <- file.path(rh.root, par$dataset, "100stations", "bystationSplit")
+  job$jobname <- file.path(rh.root, par$dataset, type, "bystationSplit")
   job$mon.sec <- 10
   job$readback <- FALSE
   job.mr <- do.call("rhwatch", job)

@@ -467,7 +467,7 @@ Qrst <- function(x, n) {
   )
 }
 
-backfitResidcomp <- function(by, family, type, degree, span, index, fc.flag, comp) {
+backfitComp <- function(by="month", family, type, degree, span, index, fc.flag, comp) {
 
   input <- rhls(
     file.path(rh.root, par$dataset, "a1950", "backfitting", family, type, degree, paste("sp", span[1], sep=""), index)
@@ -484,11 +484,19 @@ backfitResidcomp <- function(by, family, type, degree, span, index, fc.flag, com
     lapply(seq_along(map.keys), function(r) {
       file <- Sys.getenv("mapred.input.file")
       index <- substr(unlist(strsplit(tail(strsplit(file, "/")[[1]],3)[2], "[.]")), 8, 9)
-      if (comp == "resid") {
+	  if (comp == "resid") {
         if (fc.flag) {
-          value <- data.frame(target=with(map.values[[r]], resp - fc.first - fc.second - data.seasonal))
+          value <- data.frame(
+		    target = with(map.values[[r]], resp - fc.first - fc.second - data.seasonal), 
+			station.id = map.values[[r]]$station.id,
+			stringsAsFactors = FALSE
+		  )
         } else {
-          value <- data.frame(target=with(map.values[[r]], resp - seasonal - trend))
+          value <- data.frame(
+		    target = with(map.values[[r]], resp - seasonal - trend), 
+			station.id = map.values[[r]]$station.id,
+			stringsAsFactors = FALSE
+		  )
         }
       } else if(comp == "residfit") {
         if (fc.flag) {
@@ -503,9 +511,14 @@ backfitResidcomp <- function(by, family, type, degree, span, index, fc.flag, com
           )
         }
       } else {
-        value <- data.frame(target=with(map.values[[r]], get(comp)))
+        value <- data.frame(
+		  target = with(map.values[[r]], get(comp)), 
+		  station.id = map.values[[r]]$station.id,
+		  stringsAsFactors = FALSE
+		)
       }
-      rhcollect(index, value)
+	  value$iter <- index
+      rhcollect(map.keys[[r]], value)
     })
   })
   job$reduce <- expression(
@@ -519,6 +532,11 @@ backfitResidcomp <- function(by, family, type, degree, span, index, fc.flag, com
       rhcollect(reduce.key, combine)
     }
   )
+  job$setup <- expression(
+    map = {
+      library(plyr)
+    }
+  )
   job$input <- rhfmt(files, type = "sequence")
   job$output <- rhfmt(
     file.path(rh.root, par$dataset, "a1950", "backfitting", family, type, degree,
@@ -526,7 +544,7 @@ backfitResidcomp <- function(by, family, type, degree, span, index, fc.flag, com
     ), 
     type = "sequence"
   ) 
-  job$parameters <- list(fc.flag=fc.flag, comp=comp)
+  job$parameters <- list(fc.flag=fc.flag, comp=comp, by=by)
   job$mapred <- list(mapred.reduce.tasks = 10)
   job$mon.sec <- 10
   job$jobname <- file.path(
@@ -534,7 +552,6 @@ backfitResidcomp <- function(by, family, type, degree, span, index, fc.flag, com
     paste("sp", span[1], sep=""), index, paste(comp,"compare", sep="")
   )
   job$readback <- FALSE
-  job$combiner <- TRUE
   job.mr <- do.call("rhwatch", job)
 
 }

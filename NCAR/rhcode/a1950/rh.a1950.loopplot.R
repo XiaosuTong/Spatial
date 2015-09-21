@@ -1,39 +1,55 @@
-
 ##############################################
 ## check the convergence of findal residuals##
 ##############################################
+Qrst <- function(x, n) {
+  x <- x[!is.na(x)]
+  a <- sort(x)
+  idx <- round(seq(1, length(x), length.out = n))
+  f.value <- (idx - 0.5) / length(a)
+  qnorm <- qnorm(f.value)
+  value <- data.frame(
+    residual = a[idx[2:(n-1)]], 
+    qnorm = qnorm[2:(n-1)], 
+    fv = f.value[2:(n-1)]
+  )
+}
 
 
-MSE <- function() {
+compare <- function(comp = "resid", family, type, degree, span, index) {
   
   rst <- rhread(file.path(
     rh.root, par$dataset, "a1950", "backfitting", family, type, degree,
-    paste("sp", span[1], sep=""), index, "residcompare"
+    paste("sp", span[1], sep=""), index, paste(comp, "compare", sep="")
   ))
-
-  result <- data.frame(
-    iter = unlist(lapply(rst, "[[", 1)), 
-    MSE  = unlist(lapply(rst, "[[", 2))
-  )
 
   trellis.device(
     device = postscript, 
     file = file.path(
-      local.output, paste(par$dataset, "backfitting", type, "MSE", "ps", sep = ".")
+      local.root, "output", paste(par$dataset, "backfitting", comp,"compare", "ps", sep = ".")
     ),
     color = TRUE, 
     paper = "letter"
   )
   for(i in 1:576) {
-  b <- xyplot(MSE ~ iter
-    , data = arrange(result, iter)
-    , auto.key = TRUE
-    , type = "b"
-    , xlab = "Iteration time"
-    , ylab = "Mean Squared Error"
-    , scale = list(x = list(at=seq(0,40,5)))
-  )
-  print(b)
+    tmp <- ddply(.data=rst[[i]][[2]], .vari="iter", .fun = function(r) {Qrst(r$target, n=1000)})
+
+    b <- xyplot(residual ~ residual | iter 
+      , data = subset(tmp, as.numeric(iter) <5)
+      , xlab = list(label="Residual from i+1th iteration", cex=1.5)
+      , ylab = list(label="Residual from ith iteration", cex=1.5)
+      , scale = list(cex=1.2)
+      , aspect = 1
+      , sub = paste(rst[[i]][[1]][1], rst[[i]][[1]][2])
+      , panel = function(x,y,subscripts,...) {
+          index <- as.numeric(unique(tmp[subscripts, "iter"]))
+          sub1 <- subset(tmp, as.numeric(iter) == index)
+          sub2 <- subset(tmp, as.numeric(iter) == (index+1))
+          panel.xyplot(y=sub1$residual, x=sub2$residual, pch=1)
+          panel.abline(a=c(0,1))
+      }
+    )
+    print(b)
+  }
   dev.off()
 
 }
