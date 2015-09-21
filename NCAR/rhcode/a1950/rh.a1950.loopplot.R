@@ -1,47 +1,15 @@
-source("~/Rhipe/rhinitial.R")
-par <- list()
-par$modified <- TRUE
-par$machine <- "gacrux"
-par$dataset <- "tmax"
-par$N <- 576
-par$loess <- "loess04" # loess04 is w/ elevation
-par$family <- "symmetric"
-par$degree <- 2
-par$outer <- 1
-par$loop <- "loop.periodic"
-par$type <- "same" # or "same", "decr"
-par$parameters <- list(
-  sw = "periodic",
-  tw = 109,
-  sd = 1,
-  td = 2,
-  inner = 1,
-  outer = 1
-) 
-if (par$type == "same") {
-  par$span <- rep(0.038, 40)
-} else if (par$type == "incr") {
-  par$span <- c(seq(0.03, 0.05, by=0.005))
-} else {
-  par$span <- c(seq(0.05, 0.03, by=-0.005))
-}
-source("~/Projects/Spatial/NCAR/rhcode/rh.setup.R")
-source("~/Projects/Spatial/NCAR/myloess/my.loess02.R")
-source("~/Projects/Spatial/NCAR/myloess/my.predloess.R")
-
 
 ##############################################
 ## check the convergence of findal residuals##
 ##############################################
 
 
-MSE <- function(type = "same") {
+MSE <- function() {
   
-  rst <- rhread(
-    file.path(rh.datadir, par$dataset, "spatial", "a1950", par$family, 
-      paste("sp", par$span[1], sep=""), paste(par$loess, par$loop, type, sep="."), "residuals"
-    )
-  )
+  rst <- rhread(file.path(
+    rh.root, par$dataset, "a1950", "backfitting", family, type, degree,
+    paste("sp", span[1], sep=""), index, "residcompare"
+  ))
 
   result <- data.frame(
     iter = unlist(lapply(rst, "[[", 1)), 
@@ -56,6 +24,7 @@ MSE <- function(type = "same") {
     color = TRUE, 
     paper = "letter"
   )
+  for(i in 1:576) {
   b <- xyplot(MSE ~ iter
     , data = arrange(result, iter)
     , auto.key = TRUE

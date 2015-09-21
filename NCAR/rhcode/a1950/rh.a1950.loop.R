@@ -2,9 +2,9 @@
 
 backfitSwap.station <- function(input, output) {
 
-    # job3 is just changing the key from month and year to station.id from job22
-    job3 <- list()
-    job3$map <- expression({
+    # job is just changing the key from month and year to station.id from job22
+    job <- list()
+    job$map <- expression({
       lapply(seq_along(map.values), function(r) {
         map.values[[r]]$year <- map.keys[[r]][1]
         map.values[[r]]$month <- map.keys[[r]][2]
@@ -14,7 +14,7 @@ backfitSwap.station <- function(input, output) {
         })
       })
     })
-    job3$reduce <- expression(
+    job$reduce <- expression(
       pre = {
         combine <- data.frame()
       },
@@ -25,15 +25,15 @@ backfitSwap.station <- function(input, output) {
         rhcollect(reduce.key, combine)
       }
     )
-    job3$combiner <- TRUE
-    job3$input <- rhfmt(input , type = "sequence")
-    job3$output <- rhfmt(output, type = "sequence")
-    job3$mapred <- list(mapred.reduce.tasks = 72)
-    job3$mon.sec <- 10
-    job3$jobname <- output  
-    job3$readback <- FALSE  
+    job$combiner <- TRUE
+    job$input <- rhfmt(input , type = "sequence")
+    job$output <- rhfmt(output, type = "sequence")
+    job$mapred <- list(mapred.reduce.tasks = 72)
+    job$mon.sec <- 10
+    job$jobname <- output  
+    job$readback <- FALSE  
 
-    job.mr <- do.call("rhwatch", job3)
+    job.mr <- do.call("rhwatch", job)
 
 }
 
@@ -366,7 +366,7 @@ backfitAll <- function(span, family, type, parameter, index, degree, inner, oute
   
       try(backfitSpatial(input=FileInput, output=FileOutput, argumt=arg, fc.flag=TRUE))
   
-      # The output from job22 is the input to job3
+      # The output from job22 is the input to job
       FileInput <- FileOutput  
   
       FileOutput <- file.path(
@@ -454,19 +454,87 @@ backfitConverge <- function(span, family, type, index, degree, fc.flag) {
 
 }
 
+Qrst <- function(x, n) {
+  x <- x[!is.na(x)]
+  a <- sort(x)
+  idx <- round(seq(1, length(x), length.out = n))
+  f.value <- (idx - 0.5) / length(a)
+  qnorm <- qnorm(f.value)
+  value <- data.frame(
+    residual = a[idx[2:(n-1)]], 
+    qnorm = qnorm[2:(n-1)], 
+    fv = f.value[2:(n-1)]
+  )
+}
 
-backfitTwoResid <- function(by, family, type, degree, span, index) {
+backfitResidcomp <- function(by, family, type, degree, span, index, fc.flag, comp) {
+
+  input <- rhls(
+    file.path(rh.root, par$dataset, "a1950", "backfitting", family, type, degree, paste("sp", span[1], sep=""), index)
+  )$file
 
   if(by == "station") {
-    input <- rhls(
-      file.path(rh.root, par$dataset, "a1950", "backfitting", family, type, degree, paste("sp", span[1], sep=""), index)
-    )$file
     files <- input[grep("spatial[0-9].", unlist(lapply(strsplit(input, "/"), "[[",14)))]
   } else {
-    input <- rhls(
-      file.path(rh.root, par$dataset, "a1950", "backfitting", family, type, degree, paste("sp", span[1], sep=""), index)
-    )$file
     files <- input[grep("^spatial[0-9]$", unlist(lapply(strsplit(input, "/"), "[[",14)))]
   }
+
+  job <- list()
+  job$map <- expression({
+    lapply(seq_along(map.keys), function(r) {
+      file <- Sys.getenv("mapred.input.file")
+      index <- substr(unlist(strsplit(tail(strsplit(file, "/")[[1]],3)[2], "[.]")), 8, 9)
+      if (comp == "resid") {
+        if (fc.flag) {
+          value <- data.frame(target=with(map.values[[r]], resp - fc.first - fc.second - data.seasonal))
+        } else {
+          value <- data.frame(target=with(map.values[[r]], resp - seasonal - trend))
+        }
+      } else if(comp == "residfit") {
+        if (fc.flag) {
+          value <- data.frame(
+            fit=with(map.values[[r]], fc.first + fc.second + data.seasonal), 
+            resid=with(map.values[[r]], resp - fc.first - fc.second - data.seasonal)
+          )
+        } else {
+          value <- data.frame(
+            fit=with(map.values[[r]], seasonal + trend),
+            resid=with(map.values[[r]], resp - trend - seasonal)
+          )
+        }
+      } else {
+        value <- data.frame(target=with(map.values[[r]], get(comp)))
+      }
+      rhcollect(index, value)
+    })
+  })
+  job$reduce <- expression(
+    pre = {
+      combine <- data.frame()
+    },
+    reduce = {
+      combine <- rbind(combine, do.call(rbind, reduce.values))
+    },
+    post = {
+      rhcollect(reduce.key, combine)
+    }
+  )
+  job$input <- rhfmt(files, type = "sequence")
+  job$output <- rhfmt(
+    file.path(rh.root, par$dataset, "a1950", "backfitting", family, type, degree,
+      paste("sp", span[1], sep=""), index, paste(comp,"compare", sep="")
+    ), 
+    type = "sequence"
+  ) 
+  job$parameters <- list(fc.flag=fc.flag, comp=comp)
+  job$mapred <- list(mapred.reduce.tasks = 10)
+  job$mon.sec <- 10
+  job$jobname <- file.path(
+    rh.root, par$dataset, "a1950", "backfitting", family, type, degree,
+    paste("sp", span[1], sep=""), index, paste(comp,"compare", sep="")
+  )
+  job$readback <- FALSE
+  job$combiner <- TRUE
+  job.mr <- do.call("rhwatch", job)
 
 }
