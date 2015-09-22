@@ -21,7 +21,11 @@ compare <- function(comp = "resid", family, type, degree, span, index) {
     rh.root, par$dataset, "a1950", "backfitting", family, type, degree,
     paste("sp", span[1], sep=""), index, paste(comp, "compare", sep="")
   ))
-
+  
+  times <- arrange(
+    data.frame(do.call("rbind", lapply(rst, "[[", 1)), stringsAsFactors=FALSE),
+	X1, match(X2, month.abb)
+  )
   trellis.device(
     device = postscript, 
     file = file.path(
