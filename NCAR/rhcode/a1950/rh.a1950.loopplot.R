@@ -22,10 +22,10 @@ compare <- function(comp = "resid", family, type, degree, span, index) {
     paste("sp", span[1], sep=""), index, paste(comp, "compare", sep="")
   ))
   
-  times <- arrange(
-    data.frame(do.call("rbind", lapply(rst, "[[", 1)), stringsAsFactors=FALSE),
-	X1, match(X2, month.abb)
-  )
+  times <- data.frame(do.call("rbind", lapply(rst, "[[", 1)), stringsAsFactors=FALSE)
+  times$rowid <- as.numeric(row.names(times))
+  times <- arrange(times, X1, match(X2, month.abb))  
+
   trellis.device(
     device = postscript, 
     file = file.path(
@@ -34,7 +34,7 @@ compare <- function(comp = "resid", family, type, degree, span, index) {
     color = TRUE, 
     paper = "letter"
   )
-  for(i in 1:576) {
+  for(i in times$rowid) {
     tmp <- ddply(.data=rst[[i]][[2]], .vari="iter", .fun = function(r) {Qrst(r$target, n=1000)})
 
     b <- xyplot(residual ~ residual | iter 
@@ -57,6 +57,17 @@ compare <- function(comp = "resid", family, type, degree, span, index) {
   dev.off()
 
 }
+
+
+residfit <- function(comp = "residfit", family, type, degree, span, index) {
+
+  rst <- rhread(file.path(
+    rh.root, par$dataset, "a1950", "backfitting", family, type, degree,
+    paste("sp", span[1], sep=""), index, paste(comp, "compare", sep="")
+  ))
+
+}
+
 
 
 #########################################
