@@ -66,6 +66,22 @@ residfit <- function(comp = "residfit", family, type, degree, span, index) {
     paste("sp", span[1], sep=""), index, paste(comp, "compare", sep="")
   ))
 
+  trellis.device(
+    device = postscript, 
+    file = file.path(
+      local.root, "output", paste(par$dataset, "backfitting", comp, "ps", sep = ".")
+    ),
+    color = TRUE, 
+    paper = "letter"
+  )
+  xyplot(resid~fit | iter
+    , data=rst[[1]][[2]]
+    , subset = !is.na(resid)
+    , pch=16
+    , cex=0.5
+  )
+  dev.off()
+
 }
 
 
