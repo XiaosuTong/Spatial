@@ -202,3 +202,8 @@ paramt <- data.frame(
 ) 
 backfitStart(span=0.015, family="symmetric", type="interpolate", degree=2)
 backfitAll(span=0.015, family="symmetric", type="interpolate", parameter=paramt, index="E1", degree=2, inner=5, outer=1)
+
+backfitComp(family="symmetric", type="interpolate", degree=2, span=0.015, index="E1", fc.flag=T, comp="resid")
+
+backfitComp(family="symmetric", type="interpolate", degree=2, span=0.015, index="E1", fc.flag=T, comp="residfit")
+

@@ -454,19 +454,6 @@ backfitConverge <- function(span, family, type, index, degree, fc.flag) {
 
 }
 
-Qrst <- function(x, n) {
-  x <- x[!is.na(x)]
-  a <- sort(x)
-  idx <- round(seq(1, length(x), length.out = n))
-  f.value <- (idx - 0.5) / length(a)
-  qnorm <- qnorm(f.value)
-  value <- data.frame(
-    residual = a[idx[2:(n-1)]], 
-    qnorm = qnorm[2:(n-1)], 
-    fv = f.value[2:(n-1)]
-  )
-}
-
 backfitComp <- function(by="month", family, type, degree, span, index, fc.flag, comp) {
 
   input <- rhls(
@@ -484,19 +471,11 @@ backfitComp <- function(by="month", family, type, degree, span, index, fc.flag, 
     lapply(seq_along(map.keys), function(r) {
       file <- Sys.getenv("mapred.input.file")
       index <- substr(unlist(strsplit(tail(strsplit(file, "/")[[1]],3)[2], "[.]")), 8, 9)
-	  if (comp == "resid") {
+      if (comp == "resid") {
         if (fc.flag) {
-          value <- data.frame(
-		    target = with(map.values[[r]], resp - fc.first - fc.second - data.seasonal), 
-			station.id = map.values[[r]]$station.id,
-			stringsAsFactors = FALSE
-		  )
+          value <- with(map.values[[r]], resp - fc.first - fc.second - data.seasonal)
         } else {
-          value <- data.frame(
-		    target = with(map.values[[r]], resp - seasonal - trend), 
-			station.id = map.values[[r]]$station.id,
-			stringsAsFactors = FALSE
-		  )
+          value <- with(map.values[[r]], resp - seasonal - trend)
         }
       } else if(comp == "residfit") {
         if (fc.flag) {
@@ -511,27 +490,36 @@ backfitComp <- function(by="month", family, type, degree, span, index, fc.flag, 
           )
         }
       } else {
-        value <- data.frame(
-		  target = with(map.values[[r]], get(comp)), 
-		  station.id = map.values[[r]]$station.id,
-		  stringsAsFactors = FALSE
-		)
+        value <- with(map.values[[r]], get(comp))
       }
-	  value$iter <- index
-      rhcollect(map.keys[[r]], value)
+      rhcollect(c(index, map.keys[[r]]), value)
     })
   })
-  job$reduce <- expression(
-    pre = {
-      combine <- data.frame()
-    },
-    reduce = {
-      combine <- rbind(combine, do.call(rbind, reduce.values))
-    },
-    post = {
-      rhcollect(reduce.key, combine)
-    }
-  )
+  if (comp == "residfit") {
+    job$reduce <- expression(
+      pre = {
+        combine <- data.frame()
+      },
+      reduce = {
+        combine <- rbind(combine, do.call(rbind, reduce.values))
+      },
+      post = {
+        rhcollect(reduce.key, combine)
+      }
+    )
+  } else {
+    job$reduce <- expression(
+      pre = {
+        combine <- numeric()
+      },
+      reduce = {
+        combine <- c(combine, unlist(reduce.values))
+      },
+      post = {
+        rhcollect(reduce.key, combine)
+      }
+    )
+  }
   job$setup <- expression(
     map = {
       library(plyr)

@@ -21,41 +21,60 @@ compare <- function(comp = "resid", family, type, degree, span, index) {
     rh.root, par$dataset, "a1950", "backfitting", family, type, degree,
     paste("sp", span[1], sep=""), index, paste(comp, "compare", sep="")
   ))
+  if(comp == "residfit"){
+    
+  } else {
+    Rst <- data.frame(target = do.call("c", lapply(rst, "[[", 2)))
+    Rst$iter <- rep(do.call("c", lapply(rst, function(r){r[[1]][1]})), each = 7738)
+    visualRst <- ddply(.data = Rst, .vari = "iter", .fun = function(r) {Qrst(r$target, n=1000)})
+  }
   
-  times <- data.frame(do.call("rbind", lapply(rst, "[[", 1)), stringsAsFactors=FALSE)
-  times$rowid <- as.numeric(row.names(times))
-  times <- arrange(times, X1, match(X2, month.abb))  
-
   trellis.device(
     device = postscript, 
-    file = file.path(
-      local.root, "output", paste(par$dataset, "backfitting", comp,"compare", "ps", sep = ".")
-    ),
+    file = file.path(local.root, "output", paste(par$dataset, "backfitting", comp,"compare", "ps", sep = ".")),
     color = TRUE, 
     paper = "letter"
   )
-  for(i in times$rowid) {
-    tmp <- ddply(.data=rst[[i]][[2]], .vari="iter", .fun = function(r) {Qrst(r$target, n=1000)})
-
     b <- xyplot(residual ~ residual | iter 
-      , data = subset(tmp, as.numeric(iter) <5)
+      , data = subset(visualRst, as.numeric(iter) <5)
       , xlab = list(label="Residual from i+1th iteration", cex=1.5)
       , ylab = list(label="Residual from ith iteration", cex=1.5)
       , scale = list(cex=1.2)
       , aspect = 1
-      , sub = paste(rst[[i]][[1]][1], rst[[i]][[1]][2])
       , panel = function(x,y,subscripts,...) {
-          index <- as.numeric(unique(tmp[subscripts, "iter"]))
-          sub1 <- subset(tmp, as.numeric(iter) == index)
-          sub2 <- subset(tmp, as.numeric(iter) == (index+1))
+          index <- as.numeric(unique(visualRst[subscripts, "iter"]))
+          sub1 <- subset(visualRst, as.numeric(iter) == index)
+          sub2 <- subset(visualRst, as.numeric(iter) == (index+1))
+          panel.abline(h=seq(-5,5,5), v=seq(-5,5,5), col = "lightgrey")
           panel.xyplot(y=sub1$residual, x=sub2$residual, pch=1)
           panel.abline(a=c(0,1))
       }
     )
     print(b)
-  }
   dev.off()
-
+  
+  trellis.device(
+    device = postscript, 
+    file = file.path(local.root, "output", paste(par$dataset, "backfitting", comp, "ps", sep = ".")),
+    color = TRUE, 
+    paper = "letter"
+  )
+    b <- xyplot(residual ~ qnorm | iter 
+      , data = subset(visualRst, as.numeric(iter) <5)
+      , xlab = list(label="Normal quantile", cex=1.5)
+      , ylab = list(label="Residual", cex=1.5)
+      , scale = list(cex=1.2)
+      , aspect = 1
+      , panel = function(x,y,subscripts,...) {
+          panel.abline(h=seq(-5,5,5), v=seq(-2,2,2), col = "lightgrey")
+          panel.xyplot(x,y, pch=1)
+          
+          panel.abline(a=c(intercept, slop))
+      }
+    )
+    print(b)
+  dev.off()
+  
 }
 
 
