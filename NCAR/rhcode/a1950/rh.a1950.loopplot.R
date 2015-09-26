@@ -60,7 +60,7 @@ compare <- function(comp = "resid", family, type, degree, span, index) {
     paper = "letter"
   )
     b <- xyplot(residual ~ qnorm | iter 
-      , data = subset(visualRst, as.numeric(iter) <5)
+      , data = visualRst
       , xlab = list(label="Normal quantile", cex=1.5)
       , ylab = list(label="Residual", cex=1.5)
       , scale = list(cex=1.2)
@@ -68,13 +68,45 @@ compare <- function(comp = "resid", family, type, degree, span, index) {
       , panel = function(x,y,subscripts,...) {
           panel.abline(h=seq(-5,5,5), v=seq(-2,2,2), col = "lightgrey")
           panel.xyplot(x,y, pch=1)
-          
+          y1 <- subset(visualRst[subscripts,], round(fv, 3) == 0.250)$residual
+          x1 <- subset(visualRst[subscripts,], round(fv, 3) == 0.250)$qnorm
+          y2 <- subset(visualRst[subscripts,], round(fv, 3) == 0.750)$residual
+          x2 <- subset(visualRst[subscripts,], round(fv, 3) == 0.750)$qnorm
+          intercept <- y1 - ((y2-y1)/(x2-x1))*x1
+          slop <- (y2-y1)/(x2-x1)
           panel.abline(a=c(intercept, slop))
       }
     )
     print(b)
   dev.off()
-  
+
+  trellis.device(
+    device = postscript, 
+    file = file.path(local.root, "output", paste(par$dataset, "backfitting", comp, "center", "ps", sep = ".")),
+    color = TRUE, 
+    paper = "letter"
+  )
+    b <- xyplot(residual ~ qnorm | iter 
+      , data = subset(visualRst, fv <= 0.95 & fv >= 0.05)
+      , xlab = list(label="Normal quantile", cex=1.5)
+      , ylab = list(label="Residual", cex=1.5)
+      , scale = list(cex=1.2)
+      , aspect = 1
+      , panel = function(x,y,subscripts,...) {
+          panel.abline(h=seq(-2,2,2), v=seq(-1,1,1), col = "lightgrey")
+          panel.xyplot(x,y, pch=16, cex=0.5)
+          y1 <- subset(visualRst[subscripts,], round(fv, 3) == 0.250)$residual
+          x1 <- subset(visualRst[subscripts,], round(fv, 3) == 0.250)$qnorm
+          y2 <- subset(visualRst[subscripts,], round(fv, 3) == 0.750)$residual
+          x2 <- subset(visualRst[subscripts,], round(fv, 3) == 0.750)$qnorm
+          intercept <- y1 - ((y2-y1)/(x2-x1))*x1
+          slop <- (y2-y1)/(x2-x1)
+          panel.abline(a=c(intercept, slop))
+      }
+    )
+    print(b)
+  dev.off()
+
 }
 
 
