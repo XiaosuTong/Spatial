@@ -1,23 +1,8 @@
-source("~/Rhipe/ross.initial.R")
-
-Machine <- "rossmann"
-source("~/Projects/Spatial/NCAR/rhcode/rh.setup.R")
-
-par <- list()
-par$dataset <- "tmax"
-
-if (Machine == "adhara") {
-  root <- "/ln/tongx/Spatial/tmp"
-} else if (Machine == "rossmann") {
-  root <- "/wsc/tongx/Spatial/tmp"
-}
-if(par$dataset == "precip") {
-  Nstations <- 11918
-} else {
-  Nstations <- 8125
-}
-
-
+###############################################################
+##  Create division by station which includes all full obs   ##
+##  Then create the 100stations.RData which contain the 100  ##
+##  stations.id  saved on HDFS                               ##
+###############################################################
 job <- list()
 job$map <- expression({
   lapply(seq_along(map.keys), function(r) {
@@ -46,11 +31,11 @@ job$reduce <- expression(
   }
 )
 job$input <- rhfmt(
-  file.path(root, par$dataset, "All", "bystation"), 
+  file.path(rh.root, par$dataset, "All", "bystation"), 
   type = "sequence"
 )
 job$output <- rhfmt(
-  file.path(root, par$dataset, "All", "fullobs.station"), 
+  file.path(rh.root, par$dataset, "All", "fullobs.station"), 
   type = "sequence"
 )
 job$mapred <- list(
@@ -59,33 +44,76 @@ job$mapred <- list(
 )
 job$readback <- FALSE
 job$combiner <- TRUE
-job$jobname <- file.path(root, par$dataset, "All", "fullobs.station")
+job$jobname <- file.path(rh.root, par$dataset, "All", "fullobs.station")
 job.mr <- do.call("rhwatch", job)
 
-rst <- rhread(file.path(root, par$dataset, "All", "fullobs.station"))[[1]][[2]]
+rst <- rhread(file.path(rh.root, par$dataset, "All", "fullobs.station"))[[1]][[2]]
 
 set.seed(100)
 stations100 <- sample(rst$station.id, 100)
 
-rhsave(stations100, file = file.path(root, par$dataset, "100stations", "Rdata", "100stations.RData"))
+rhsave(stations100, file = file.path(rh.root, par$dataset, "100stations", "Rdata", "100stations.RData"))
 
+####################################################################
+##  Create divition by station which includes all a1950 stations  ##
+##  Then save create the a1950.RData which contain the a1950      ##
+##  stations.id  saved on HDFS                                    ##
+####################################################################
+job <- list()
+job$map <- expression({
+  lapply(seq_along(map.keys), function(r) {
+    sub <- subset(map.values[[r]], year >= 1950)
+    if(sum(is.na(sub$resp)) < 576) {
+      rhcollect(1, map.keys[[r]])
+    }
+  })
+})
+job$reduce <- expression(
+  pre = {
+    combine <- character()
+  },
+  reduce = {
+    combine <- c(combine, unlist(reduce.values))
+  },
+  post = {
+    rhcollect(reduce.key, combine)
+  }
+)
+job$input <- rhfmt(
+  file.path(rh.root, par$dataset, "All", "bystation"), 
+  type = "sequence"
+)
+job$output <- rhfmt(
+  file.path(rh.root, par$dataset, "All", "a1950.station"), 
+  type = "sequence"
+)
+job$mapred <- list(
+  mapred.reduce.tasks = 1,  #cdh3,4
+  mapreduce.job.reduces = 1  #cdh5
+)
+job$readback <- FALSE
+job$combiner <- TRUE
+job$jobname <- file.path(rh.root, par$dataset, "All", "a1950.station")
+job.mr <- do.call("rhwatch", job)
+## It is a character vector with length 7738
+stations.a1950 <- rhread(file.path(rh.root, par$dataset, "All", "a1950.station"))[[1]][[2]]
 
+rhsave(stations.a1950, file = file.path(rh.root, par$dataset, "a1950", "Rdata", "a1950stations.RData"))
 
-
-#######################################################
-##
-##
-#######################################################
+############################################################
+##  spatial map of station location for fullobs stations  ##
+##  and 100 stations                                      ##
+############################################################
 
 library(maps)
 us.map <- map('state', plot = FALSE, fill = TRUE)
 
-rhload(file.path(root, par$dataset, "100stations", "Rdata", "100stations.RData"))
-rst <- rhread(file.path(root, par$dataset, "All", "fullobs.station"))[[1]][[2]]
+rhload(file.path(rh.root, par$dataset, "100stations", "Rdata", "100stations.RData"))
+rst <- rhread(file.path(rh.root, par$dataset, "All", "fullobs.station"))[[1]][[2]]
 
 trellis.device(
   device = postscript, 
-  file = file.path(local.output, "fullobs.station.ps"), 
+  file = file.path(local.root, "output", "fullobs.station.ps"), 
   color = TRUE, 
   paper = "letter"
 )
@@ -113,7 +141,7 @@ dev.off()
 
 trellis.device(
   device = postscript, 
-  file = file.path(local.output, "100stations.ps"), 
+  file = file.path(local.root, "output", "100stations.ps"), 
   color = TRUE, 
   paper = "letter"
 )
@@ -140,14 +168,48 @@ trellis.device(
   print(b)
 dev.off()
 
+#############################################################
+##  Spatial map of station location for station after1950  ##
+#############################################################
+rhload(file.path(rh.root, "stationinfo", "USinfo.RData"))
+rhload(file.path(rh.root, par$dataset, "a1950", "Rdata", "a1950stations.RData"))
 
-#################################################################
-##
-#################################################################
+if(par$dataset == "precip") {
+  info <- USpinfo
+} else {
+  info <- UStinfo
+}
+trellis.device(
+  device = postscript, 
+  file = file.path(local.root, "output", "a1950stations.ps"), 
+  color = TRUE, 
+  paper = "letter"
+)
+  b <- xyplot( lat ~ lon
+    , data = info
+	, subset = station.id %in% a1950.stations
+    , xlab = list(label="Longitude", cex = 1.5)
+    , ylab = list(label="Latitude", cex = 1.5)
+    , pch = 16
+    , cex = 0.4
+    , col = "red"
+    , scales = list(
+        y = list(cex = 1.2),x = list(cex = 1.2)
+      )
+    , panel = function(x,y,...) {
+        panel.polygon(us.map$x,us.map$y)   
+        panel.xyplot(x,y,...)
+      }
+  )
+  print(b)
+dev.off()
 
+##########################################################
+##  spatial map of station location for all stations.   ##
+##  conditional on elevation                            ##   
+##########################################################
 library(plyr)
-
-rhload(file.path(root, "stationinfo", "USinfo.RData"))
+rhload(file.path(rh.root, "stationinfo", "USinfo.RData"))
 if(par$dataset == "precip") {
   info <- USpinfo
   group <- c(rep(1:7, each = 1490), rep(8,1488))
@@ -168,7 +230,7 @@ label <- ddply(
 
 trellis.device(
   device = postscript, 
-  file = file.path(local.output, "allstations.ps"), 
+  file = file.path(local.root, "output", "allstations.ps"), 
   color = TRUE, 
   paper = "letter"
 )
@@ -195,15 +257,13 @@ trellis.device(
 dev.off()
 
 
-####################################################################
-##
-####################################################################
-library(lattice)
-library(plyr)
+################################################
+##  diagnostic for elevation of all stations  ## 
+################################################
 lattice.theme <- trellis.par.get()
 col <- lattice.theme$superpose.symbol$col
 
-rhload(file.path(root, "stationinfo", "USinfo.RData"))
+rhload(file.path(rh.root, "stationinfo", "USinfo.RData"))
 if(par$dataset == "precip") {
   info <- USpinfo
   group <- c(rep(1:7, each = 1490), rep(8,1488))
@@ -211,7 +271,6 @@ if(par$dataset == "precip") {
   info <- UStinfo
   group <- c(rep(1:7, each = 1015), rep(8, 1020))
 }
-
 info <- arrange(info, elev)
 info$group <- group
 
@@ -226,7 +285,7 @@ rg <- ddply(
 
 trellis.device(
   device = postscript, 
-  file = file.path(local.output, "elevrange.ps"),, 
+  file = file.path(local.root, "output", "elevrange.ps"),, 
   color=TRUE, 
   paper="letter"
 )
@@ -256,7 +315,7 @@ dev.off()
 
 trellis.device(
   device = postscript, 
-  file = file.path(local.output, "QQelevation.ps"), 
+  file = file.path(local.root, "output", "QQelevation.ps"), 
   color=TRUE, 
   paper="letter"
 )
@@ -283,7 +342,7 @@ dev.off()
 
 trellis.device(
   device = postscript, 
-  file = file.path(local.output, "QQelevation.log.ps"), 
+  file = file.path(local.root, "output", "QQelevation.log.ps"), 
   color=TRUE, 
   paper="letter"
 )

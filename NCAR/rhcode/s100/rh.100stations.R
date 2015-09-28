@@ -7,7 +7,7 @@
 s100 <- function() {
 
   rhload(
-    file.path(root, par$dataset, "100stations", "Rdata", "100stations.RData")
+    file.path(rh.root, par$dataset, "100stations", "Rdata", "100stations.RData")
   )
   
   job <- list()

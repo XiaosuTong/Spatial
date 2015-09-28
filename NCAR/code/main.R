@@ -37,13 +37,13 @@ if(par$dataset == "tmax") {
 USpinfo <- read.table(
   file = file.path(local.root, "Raw", "NCAR_pinfill", "METAinfo"), 
   sep = "", skip = 1,
-  col.names = c("station.id", "lon","lat", "elev"),
+  col.names = c("station.id", "elev","lon", "lat"),
   stringsAsFactors = FALSE
 )
 UStinfo <- read.table(
   file = file.path(local.root, "Raw", "NCAR_tinfill", "METAinfo"), 
   sep = "", skip = 1,
-  col.names = c("station.id", "lon","lat", "elev"),
+  col.names = c("station.id", "elev","lon", "lat"),
   stringsAsFactors = FALSE
 )
 rhsave(list=c("UStinfo","USpinfo"), file = file.path(rh.root, "stationinfo", "USinfo.RData"))
