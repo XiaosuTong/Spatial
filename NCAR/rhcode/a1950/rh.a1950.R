@@ -224,3 +224,86 @@ crossValid <- function(fam, Edeg, surf, first = FALSE) {
   job.mr <- do.call("rhwatch", job)
 
 }
+
+STLfit <- function(type, reduce, sw, sd, tw, td, fcw=NULL, fcd=NULL) {
+
+  tuning <- list(sw=sw, sd=sd, tw=tw, td=td, fcw=fcw, fcd=fcd)
+
+  job <- list()
+  job$map <- expression({
+    lapply(seq_along(map.keys), function(r) {
+      value <- map.values[[r]]
+      value$station.id <- map.keys[[r]]
+      value$date <- 1:1236
+      if (is.null(par$fcw)) {
+        
+        fit <- stl2(
+          x=value$resp, t=value$date, n.p=12, s.window=par$sw, s.degree=par$sd, 
+          t.window=par$tw, t.degree=par$td, inner=10, outer=0
+        )$data
+        value <- cbind(value, subset(fit, select = c(seasonal, trend, remainder)))
+
+      } else {
+
+        fit <- do.call("cbind", stl2(
+          x=value$resp, t=value$date, n.p=12, s.window=par$sw, s.degree=par$sd, t.window=par$tw, 
+          t.degree=par$td, fc.window=c(par$tw,par$fcw), fc.degree=c(par$td,par$fcd), inner=10, outer=0
+        )[c("data","fc")])
+        value <- cbind(value, subset(fit, select = -c(data.raw, data.trend, data.remainder, data.weights, data.sub.labels)))
+        names(value)[grep("fc.fc", names(value))] <- c("fc.first", "fc.second")
+
+      }
+      if(type == "100stations") {
+        rhcollect(1, value)
+      } else if (type == "a1950") {
+        rhcollect(map.keys[[r]], value)
+      }
+    })
+  })
+  job$reduce <- expression(
+    pre = {
+      combined <- data.frame()
+    },
+    reduce = {
+      combined <- rbind(combined, do.call("rbind", reduce.values))
+    },
+    post = { 
+      rhcollect(reduce.key, combined)
+    }
+  )
+  job$parameters <- list(
+    par = tuning,
+    type = type
+  )
+  job$setup <- expression(
+    map = {
+      suppressMessages(library(stl2))
+    }
+  )
+  job$input <- rhfmt(
+    file.path(rh.root, par$dataset, type, "bystation"), 
+    type = "sequence"
+  )
+  job$output <- rhfmt(
+    file.path(rh.root, par$dataset, type, "STL", paste("t",tuning$tw, "td", tuning$td, "_s", tuning$sw, "sd", tuning$sd, "_f", tuning$fcw, "fd", tuning$fcd, sep="")), 
+    type = "sequence"
+  )
+  job$mapred <- list(
+    mapred.reduce.tasks = reduce,  #cdh3,4
+    mapreduce.job.reduces = reduce  #cdh5
+  )
+  job$readback <- FALSE
+  job$jobname <- file.path(rh.root, par$dataset, type, "STL", paste("t",tuning$tw, "td", tuning$td, "_s", tuning$sw, "sd", tuning$sd, "_f", tuning$fcw, "fd", tuning$fcd, sep=""))
+  
+  job.mr <- do.call("rhwatch", job)
+
+  if(typ == "a1950") {
+    
+    job <- list()
+    job$map <- expression({
+      lapply(seq_along(map.keys), function(r){
+        
+      })
+    })
+
+}

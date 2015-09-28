@@ -2,40 +2,20 @@
 ##Copy raw text file to HDFS, 
 ##and create division by month, division by station
 ##################################################
-source("~/Rhipe/rhinitial.R")
-
-Machine <- "rossmann"
-source("~/Projects/Spatial/NCAR/rhcode/rh.setup.R")
-
-par <- list()
-par$dataset <- "tmax"
-
-#par$machine <- "adhara"
-if (Machine == "adhara") {
-  root <- "/ln/tongx/Spatial/tmp"
-} else if (Machine == "rossmann") {
-  root <- "/wsc/tongx/Spatial/tmp"
-}
-if(par$dataset == "precip") {
-  Nstations <- 11918
-} else {
-  Nstations <- 8125
-}
-
 for(x in formatC(1:103, width = 3, flag = "0")) {
   rhput(
     paste(local.raw,"/NCAR_pinfill/ppt.complete.Y", x, sep = ""), 
-    paste(rh.datadir,"/Raw/precip/ppt.complete.Y", x, sep = "")
+    paste(rh.root,"/Raw/precip/ppt.complete.Y", x, sep = "")
   )
 }
 for(x in formatC(1:103, width = 3, flag = "0")) {
   rhput(
     paste(local.raw, "/NCAR_tinfill/tmax.complete.Y", x, sep = ""), 
-    paste(root,"/Raw/tmax/tmax.complete.Y", x, sep = "")
+    paste(rh.root,"/Raw/tmax/tmax.complete.Y", x, sep = "")
   )
   rhput(
     paste(local.raw,"/NCAR_tinfill/tmin.complete.Y", x, sep = ""), 
-    paste(root,"/Raw/tmin/tmin.complete.Y", x, sep="")
+    paste(rh.root,"/Raw/tmin/tmin.complete.Y", x, sep="")
   )
 }
 
@@ -89,24 +69,16 @@ job$map <- expression({
   )
   
 })
-job$shared <- file.path(root, "stationinfo/USinfo.RData")
+job$shared <- file.path(rh.root, "stationinfo", "USinfo.RData")
 job$setup <- expression(
   map = {
     load("USinfo.RData")
     library(plyr)
   }
 )
-job$parameters <- list(
-  par = par
-)
-job$input <- rhfmt(
-  file.path(root, "Raw", par$dataset),
-  type = "text"
-)
-job$output <- rhfmt(
-  file.path(root, par$dataset, "All", "bymonth"), 
-  type = "sequence"
-)
+job$parameters <- list(par = par)
+job$input <- rhfmt(file.path(root, "Raw", par$dataset), type = "text")
+job$output <- rhfmt(file.path(root, par$dataset, "All", "bymonth"), type = "sequence")
 job$mapred <- list( 
   mapred.reduce.tasks = 100, #cdh3,4
   mapreduce.job.reduces = 100,  #cdh5

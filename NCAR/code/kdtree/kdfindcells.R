@@ -4,32 +4,15 @@
 
 ## build a kdt-tree using the 7,738 stations after 1950
 ## randomly sample one station from each cell
-
-library(plyr)
-library(maps)
-par <- list()
-par$machine <- "gacrux"
-par$dataset <- "tmax"
-par$family <- "symmetric"
-par$span <- 0.05
-par$loess <- "loess04.bystation.all.10pc"
 source("~/Projects/Spatial/NCAR/myloess/kdtree.R")
-source("~/Rhipe/rhinitial.R")
-source("~/Projects/Spatial/NCAR/rhcode/rh.setup.R")
-load("~/Projects/Spatial/NCAR/RData/info.RData")
 dyn.load("~/Projects/Spatial/NCAR/myloess/src/cppkdtree.so")
 source("~/Projects/Spatial/NCAR/code/spatial/mykdtree.R")
-
+source("~/Projects/Spatial/NCAR/myloess/src/aa_kdtree.R")
 ## to get total stations after 1950
 ## there are 7,738 stations
-rst <- rhread(
-	file.path(
-		rh.datadir, par$dataset, "spatial", "a1950", 
-		par$family, paste("sp", par$span, sep=""), par$loess
-	)
-)
-result <- do.call("rbind", lapply(rst, "[[", 2))
-stations.a1950.tmax <- as.character(unique(result$station.id))
+rst <- rhread(file.path(rh.root, par$dataset, "a1950", "bystation"))
+
+a1950.stations <- do.call("c", lapply(rst, "[[", 1))
 ## use c++ kdtree code to get the index of each obs in each cell
 ## locs is all stations in a1950
 locs <- UStinfo[UStinfo$station.id %in% stations.a1950.tmax, ]

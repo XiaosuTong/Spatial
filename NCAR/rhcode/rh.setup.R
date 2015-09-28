@@ -4,6 +4,7 @@ library(plyr)
 if(par$Machine == "rossmann"){
 	local.root <- "/home/tongx/Projects/Spatial/NCAR"
 	rh.root <- "/wsc/tongx/Spatial/tmp"
+	local.raw <- "/home/tongx/Projects/Spatial/NCAR/Raw"
 	#The output directory for saving plots should have all permission since the plots are written to 
     #the output directory by a user related to hadoop.
 	#In the reduce step, the permission for the plots should be changed to be all +wrx.

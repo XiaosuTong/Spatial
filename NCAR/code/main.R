@@ -1,6 +1,7 @@
 #Set up the directory and load the data.
 library(lattice)
 library(plyr)
+library(hexbin)
 
 source("~/Rhipe/ross.initial.R")
 
@@ -28,6 +29,27 @@ if(par$dataset == "tmax") {
 }else {
     ylab <- "Precipitation (millimeters)"
 }
+
+#########################################
+##    Copy raw data files to HDFS      ##
+#########################################
+## first copy the station information on to HDFS
+USpinfo <- read.table(
+  file = file.path(local.root, "Raw", "NCAR_pinfill", "METAinfo"), 
+  sep = "", skip = 1,
+  col.names = c("station.id", "lon","lat", "elev"),
+  stringsAsFactors = FALSE
+)
+UStinfo <- read.table(
+  file = file.path(local.root, "Raw", "NCAR_tinfill", "METAinfo"), 
+  sep = "", skip = 1,
+  col.names = c("station.id", "lon","lat", "elev"),
+  stringsAsFactors = FALSE
+)
+rhsave(list=c("UStinfo","USpinfo"), file = file.path(rh.root, "stationinfo", "USinfo.RData"))
+
+##then copy the raw data file to HDFS
+source("~/Projects/Spatial/NCAR/rhcode/All/RawtoHDFS.R")
 
 ############################################################################
 ##        Raw and stl fit for the 100 stations with full obs              ##
@@ -185,6 +207,13 @@ for(i in paste("E", 1:6, sep="")) {
 ## Create a1950 by month and by station subsets from All by station subsets
 #source(file.path(local.root, "rhcode", "a1950", "rh.a1950.R"))
 a1950()
+
+##tunning the STL+ parameter for stations a1950
+
+
+
+
+
 ## a1950 by month, interpolate missing obs by spatial loess, cross-validation
 for(k in c("interpolate","direct")) {
   for(i in c(1,2)) {
@@ -207,3 +236,4 @@ backfitComp(family="symmetric", type="interpolate", degree=2, span=0.015, index=
 
 backfitComp(family="symmetric", type="interpolate", degree=2, span=0.015, index="E1", fc.flag=T, comp="residfit")
 
+residfit(comp = "residfit", family="symmetric", type="interpolate", degree=2, span=0.015, index="E1")

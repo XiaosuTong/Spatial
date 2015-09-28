@@ -1,4 +1,4 @@
-source("~/Rhipe/rhinitial.R")
+source("~/Rhipe/ross.initial.R")
 
 Machine <- "rossmann"
 source("~/Projects/Spatial/NCAR/rhcode/rh.setup.R")

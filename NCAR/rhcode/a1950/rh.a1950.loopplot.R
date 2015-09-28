@@ -15,7 +15,7 @@ Qrst <- function(x, n) {
 }
 
 
-compare <- function(comp = "resid", family, type, degree, span, index) {
+resid <- function(comp = "resid", family, type, degree, span, index) {
   
   rst <- rhread(file.path(
     rh.root, par$dataset, "a1950", "backfitting", family, type, degree,
@@ -95,10 +95,11 @@ compare <- function(comp = "resid", family, type, degree, span, index) {
       , panel = function(x,y,subscripts,...) {
           panel.abline(h=seq(-2,2,2), v=seq(-1,1,1), col = "lightgrey")
           panel.xyplot(x,y, pch=16, cex=0.5)
-          y1 <- subset(visualRst[subscripts,], round(fv, 3) == 0.250)$residual
-          x1 <- subset(visualRst[subscripts,], round(fv, 3) == 0.250)$qnorm
-          y2 <- subset(visualRst[subscripts,], round(fv, 3) == 0.750)$residual
-          x2 <- subset(visualRst[subscripts,], round(fv, 3) == 0.750)$qnorm
+          sub <- subset(visualRst, fv <= 0.95 & fv >= 0.05)
+          y1 <- subset(sub[subscripts,], round(fv, 3) == 0.250)$residual
+          x1 <- subset(sub[subscripts,], round(fv, 3) == 0.250)$qnorm
+          y2 <- subset(sub[subscripts,], round(fv, 3) == 0.750)$residual
+          x2 <- subset(sub[subscripts,], round(fv, 3) == 0.750)$qnorm
           intercept <- y1 - ((y2-y1)/(x2-x1))*x1
           slop <- (y2-y1)/(x2-x1)
           panel.abline(a=c(intercept, slop))
@@ -116,7 +117,8 @@ residfit <- function(comp = "residfit", family, type, degree, span, index) {
     rh.root, par$dataset, "a1950", "backfitting", family, type, degree,
     paste("sp", span[1], sep=""), index, paste(comp, "compare", sep="")
   ))
-
+  
+  Rst <- do.call("rbind", lapply(rst, "[[", 2))
   trellis.device(
     device = postscript, 
     file = file.path(
@@ -125,12 +127,17 @@ residfit <- function(comp = "residfit", family, type, degree, span, index) {
     color = TRUE, 
     paper = "letter"
   )
-  xyplot(resid~fit | iter
-    , data=rst[[1]][[2]]
-    , subset = !is.na(resid)
-    , pch=16
-    , cex=0.5
-  )
+    b <- hexbinplot(resid ~ fit | iter
+      , data = Rst
+      , subset = !(is.na(resid))
+      , aspect = 1,
+      , border = FALSE
+      , colramp = function(n){BTC(n, beg=10, end=256)}
+      , xlab = list(label= "Fitted value", cex=1.5)
+      , ylab = list(label= "Residual", cex=1.5)
+      , scale = list(cex=1.2)
+    )
+    print(b)
   dev.off()
 
 }
@@ -140,19 +147,6 @@ residfit <- function(comp = "residfit", family, type, degree, span, index) {
 #########################################
 ##  Normality checking of the residual ##
 #########################################
-Qrst <- function(x) {
-  x <- x[!is.na(x)]
-  a <- sort(x)
-  idx <- round(seq(1, length(x), length.out = 100))
-  f.value <- (idx - 0.5) / length(a)
-  qnorm <- qnorm(f.value)
-  value <- data.frame(
-    residual = a[idx[2:99]], 
-    qnorm = qnorm[2:99], 
-    fv = f.value[2:99]
-  )
-}
-
 job5 <- list()
 job5$map <- expression({
   lapply(seq_along(map.values), function(r) {

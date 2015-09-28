@@ -9,7 +9,7 @@
 ## 3. "aa_kdtree.R" is a wrapper in R
 ## 4. run "aa_auto_compile", then dynamic load the .so file
 
-dyn.load("cppkdtree.so")
+#dyn.load("cppkdtree.so")
 
 cppkdtree <- function(data, nb)  ## data matrix, no.of.leaves
 {
