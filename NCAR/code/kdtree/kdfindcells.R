@@ -46,44 +46,36 @@ trellis.device(
   color=TRUE, 
   paper="letter"
 )
-a <- xyplot( lat ~ lon,
-  data  = vert[[1]],
-  xlab  = list(label = "Longitude"),
-  ylab  = list(label = "Latitude"),
-  main  = list(label = "Stations from kdtree"),
-  key=list(
+a <- xyplot( lat ~ lon
+  , data  = vert[[1]]
+  , xlab  = list(label = "Longitude", cex=1.5)
+  , ylab  = list(label = "Latitude", cex=1.5)
+  , key=list(
     text = list(label=c("station location", "kdtree cell boundry")),
     lines = list(pch = 16, cex = 0.7, lwd = 1, lty = 2, type = c("p","l"), col = c("blue", "red")), 
     columns = 2
-  ),
-  panel = function(x, y, ...) {
-    panel.xyplot(x = places$lon, y = places$lat, cex = 0.7, col = "blue", 
-      pch = 16, type = "p", ...
     )
-    for(k in 1:nrow(places)){
-      panel.text(
-        places$lon[k], places$lat[k], tmax.sample.a1950$leaf[k], 
-        adj = c(0,0), col = col[1]
+  , scale = list(cex=1.2)
+  , panel = function(x, y, ...) {
+      panel.xyplot(x = places$lon, y = places$lat, cex = 0.7, col = "blue", 
+        pch = 16, type = "p", ...
       )
-    }
-		for(i in seq(1, nrow(vert[[1]]), by = 2)){
-			panel.segments(
-				x[i], y[i], x[i+1], y[i+1], col = "red", lty = 2, lwd = 0.7
-			)
-		}
-		panel.segments(
-			c(x[1], x[2]), c(y[1], y[2]), 
-			c(x[3], x[4]), c(y[3], y[4]), 
-			col="red", lty=2, lwd = 0.7
-		)
-	  panel.polygon(us.map$x,us.map$y)	
-	  panel.xyplot(
-	  	x = x, 
-	  	y = y, 
-	  	col = "red", type = "p", 
-	  	pch = 16, cex = 0.3, ...
-	  )
-	}
+      for(k in 1:nrow(places)){
+        panel.text(
+          places$lon[k], places$lat[k], tmax.sample.a1950$leaf[k], 
+          adj = c(0,0), col = col[1]
+        )
+      }
+		  for(i in seq(1, nrow(vert[[1]]), by = 2)){
+			  panel.segments(x[i], y[i], x[i+1], y[i+1], col = "red", lty = 2, lwd = 0.7)
+		  }
+		  panel.segments(
+			  c(x[1], x[2]), c(y[1], y[2]), c(x[3], x[4]), c(y[3], y[4]), 
+			  col="red", lty=2, lwd = 0.7
+		  )
+	    panel.polygon(us.map$x,us.map$y)	
+	    panel.xyplot(x = x, y = y, col = "red", type = "p", pch = 16, cex = 0.3, ...)
+	  }
 )
 print(a)
 dev.off()
@@ -91,26 +83,26 @@ dev.off()
 ## quantile plot of elevation in each cell of kdt-tree
 locs$leaf <- rst$leaf[order(rst$idx)]
 trellis.device(
-	device = postscript, 
-	file = paste(local.output, "/elev.dist.bycell.", par$dataset, ".ps", sep = ""), 
-	color=TRUE, 
-	paper="legal"
+  device = postscript, 
+  file = file.path(local.root, "output", "elev.dist.bycell.ps"), 
+  color=TRUE, 
+  paper="letter"
 )
-a <- qqmath(~ log2(elev+128) | factor(leaf),
-	data = locs, 
-	distribution = qunif,
-	layout = c(5,3),
-#  par.settings = list(layout.heights = list(strip = 1.5)),
-	pch  = 16,
-	aspect = 1,
-	cex  = 0.5,
-	xlab = list(label = "f-value"),
-	ylab = list(label = "Log base 2 elevation"),
-	prepanel = prepanel.qqmathline,
-	panel = function(x, y,...) {
-		panel.grid()
-		panel.qqmath(x, y, ...)
-	}
+a <- qqmath(~ log2(elev+128) | factor(leaf)
+  , data = locs
+  , distribution = qunif
+  , layout = c(5,3)
+  , pch  = 16
+  , aspect = 1
+  , scale = list(cex=1.2)
+  , cex  = 0.5
+  , xlab = list(label = "f-value", cex=1.5)
+  , ylab = list(label = "Log base 2 elevation", cex=1.5)
+  , prepanel = prepanel.qqmathline
+  , panel = function(x, y,...) {
+      panel.grid()
+      panel.qqmath(x, y, ...)
+    }
 )
 print(a)
 dev.off()

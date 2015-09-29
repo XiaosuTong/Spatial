@@ -173,6 +173,18 @@ interpolate <- function(Elev = TRUE, sp, Edeg, deg=2, fam="symmetric", surf="dir
 
 }
 
+
+interpolateStation <- function(Elev = TRUE, sp, Edeg, deg=2, fam="symmetric", surf="direct"){
+
+  FileInput <- file.path(rh.root, par$dataset, "a1950", "bymonth.fit", fam, surf, Edeg, paste("sp",sp, sep=""))
+
+  job <- list()
+
+} 
+
+
+
+
 crossValid <- function(fam, Edeg, surf, first = FALSE) {
   
   FileInput <- file.path(rh.root, par$dataset, "a1950", "bymonth.fit", fam, surf, Edeg)
@@ -234,7 +246,7 @@ STLfit <- function(type, reduce, sw, sd, tw, td, fcw=NULL, fcd=NULL) {
     lapply(seq_along(map.keys), function(r) {
       value <- map.values[[r]]
       value$station.id <- map.keys[[r]]
-      value$date <- 1:1236
+      value$date <- 1:nrow(value)
       if (is.null(par$fcw)) {
         
         fit <- stl2(
@@ -285,7 +297,10 @@ STLfit <- function(type, reduce, sw, sd, tw, td, fcw=NULL, fcd=NULL) {
     type = "sequence"
   )
   job$output <- rhfmt(
-    file.path(rh.root, par$dataset, type, "STL", paste("t",tuning$tw, "td", tuning$td, "_s", tuning$sw, "sd", tuning$sd, "_f", tuning$fcw, "fd", tuning$fcd, sep="")), 
+    file.path(
+      rh.root, par$dataset, type, "STL", paste("t",tuning$tw, "td", tuning$td, "_s", tuning$sw, 
+      "sd", tuning$sd, "_f", tuning$fcw, "fd", tuning$fcd, sep="")
+    ), 
     type = "sequence"
   )
   job$mapred <- list(
@@ -293,17 +308,52 @@ STLfit <- function(type, reduce, sw, sd, tw, td, fcw=NULL, fcd=NULL) {
     mapreduce.job.reduces = reduce  #cdh5
   )
   job$readback <- FALSE
-  job$jobname <- file.path(rh.root, par$dataset, type, "STL", paste("t",tuning$tw, "td", tuning$td, "_s", tuning$sw, "sd", tuning$sd, "_f", tuning$fcw, "fd", tuning$fcd, sep=""))
+  job$jobname <- file.path(
+    rh.root, par$dataset, type, "STL", paste("t",tuning$tw, "td", tuning$td, "_s", 
+    tuning$sw, "sd", tuning$sd, "_f", tuning$fcw, "fd", tuning$fcd, sep="")
+  )
   
   job.mr <- do.call("rhwatch", job)
 
-  if(typ == "a1950") {
-    
+  if(type == "a1950") {
+
     job <- list()
     job$map <- expression({
       lapply(seq_along(map.keys), function(r){
-        
+        if(map.keys[[r]] %in% sample.a1950$station.id) {
+          rhcollect(1, map.values[[r]])
+        }
       })
     })
+    job$reduce <- expression(
+      pre = {
+        combine <- data.frame()
+      },
+      reduce = {
+        combine <- rbind(combine, do.call("rbind", reduce.values))
+      },
+      post = {
+        rhcollect(reduce.key, combine)
+      }
+    )
+    job$shared <- file.path(rh.root, par$dataset, "a1950", "Rdata", "sample.a1950.RData")
+    job$setup <- expression(
+      map = {load("sample.a1950.RData")}
+    )
+    job$input <- rhfmt(
+      file.path(
+        rh.root, par$dataset, type, "STL", paste("t",tuning$tw, "td", tuning$td, "_s", tuning$sw, 
+        "sd", tuning$sd, "_f", tuning$fcw, "fd", tuning$fcd, sep="")
+      ), 
+      type = "sequence"
+    )
+    job$output <- rhfmt(
+      file.path(
+        rh.root, par$dataset, type, "STL.plot", paste("t",tuning$tw, "td", tuning$td, "_s", tuning$sw, 
+        "sd", tuning$sd, "_f", tuning$fcw, "fd", tuning$fcd, sep="")
+      ), 
+      type = "sequence"
+    )
+  }
 
 }

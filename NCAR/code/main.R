@@ -51,6 +51,8 @@ rhsave(list=c("UStinfo","USpinfo"), file = file.path(rh.root, "stationinfo", "US
 ##then copy the raw data file to HDFS
 source("~/Projects/Spatial/NCAR/rhcode/All/RawtoHDFS.R")
 
+
+
 ############################################################################
 ##        Raw and stl fit for the 100 stations with full obs              ##
 ############################################################################     
@@ -208,11 +210,6 @@ for(i in paste("E", 1:6, sep="")) {
 #source(file.path(local.root, "rhcode", "a1950", "rh.a1950.R"))
 a1950()
 
-##tunning the STL+ parameter for stations a1950
-
-
-
-
 
 ## a1950 by month, interpolate missing obs by spatial loess, cross-validation
 for(k in c("interpolate","direct")) {
@@ -224,7 +221,17 @@ for(k in c("interpolate","direct")) {
   }
 }
 
+## After found the best interpolation parameter
+## switch the key from bymonth to by station
+interpolateStation()
 
+## tunning the STL+ parameter for stations a1950
+## first sample the 128 stations from a1950 for demonstration 
+source("~/Projects/Spatial/NCAR/code/kdtree/kdfindcells.R")
+
+
+
+## backfitting iteration for three components
 paramt <- data.frame(
   sw = "periodic", tw = 425, sd = 1, td = 1, fcw = 425, fcd = 1,
   scw = 214, scd = 2, fc.flag = TRUE, stringsAsFactors=FALSE
