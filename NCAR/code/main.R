@@ -214,9 +214,9 @@ a1950()
 ## a1950 by month, interpolate missing obs by spatial loess, cross-validation
 for(k in c("interpolate","direct")) {
   for(i in c(1,2)) {
-    #for(j in seq(0.01, 0.1, 0.005)) {
-    #  try(interpolate(Elev = TRUE, sp=j, deg=2, Edeg=i, surf=k, fam="symmetric"))
-    #}
+    for(j in seq(0.01, 0.1, 0.005)) {
+      try(interpolate(Elev = TRUE, sp=j, deg=2, Edeg=i, surf=k, fam="symmetric"))
+    }
     for(j in seq(0.005, 0.009, 0.001)){
       try(interpolate(Elev = TRUE, sp=j, deg=2, Edeg=i, surf=k, fam="symmetric"))
     }

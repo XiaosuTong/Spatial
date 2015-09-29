@@ -1,4 +1,4 @@
-intpolat.visual <- function(outputdir=file.path(local.root, "output"), size = "letter", surf) {
+intpolat.visual <- function(size = "letter", surf) {
   
   rst1 <- rhread(file.path(rh.root, par$dataset, "a1950", "bymonth.fit", "symmetric", surf, "1", "MSE"))[[1]][[2]]
   rst2 <- rhread(file.path(rh.root, par$dataset, "a1950", "bymonth.fit", "symmetric", surf, "2", "MSE"))[[1]][[2]]
@@ -7,7 +7,7 @@ intpolat.visual <- function(outputdir=file.path(local.root, "output"), size = "l
 
   trellis.device(
     device = postscript, 
-    file = file.path(outputdir, paste("Spatial.crossVald", "a1950", par$dataset, surf, "ps", sep=".")), 
+    file = file.path(local.root, "output", paste("Spatial.crossVald", "a1950", par$dataset, surf, "ps", sep=".")), 
     color=TRUE, 
     paper=size
   )
