@@ -1,4 +1,4 @@
-intpolat.visual <- function(size = "letter", surf) {
+intpolat.visual <- function(size = "letter", surf, lim=0) {
   
   rst1 <- rhread(file.path(rh.root, par$dataset, "a1950", "bymonth.fit", "symmetric", surf, "1", "MSE"))[[1]][[2]]
   rst2 <- rhread(file.path(rh.root, par$dataset, "a1950", "bymonth.fit", "symmetric", surf, "2", "MSE"))[[1]][[2]]
@@ -13,6 +13,7 @@ intpolat.visual <- function(size = "letter", surf) {
   )
     b <- xyplot( mse ~ as.numeric(span) | factor(month, levels=month.abb)*factor(year)
       , data = arrange(rst, span)
+      , subset = as.numeric(span) >= lim
       , group = degree
       , xlab = list(label = "Span", cex = 1.5)
       , ylab = list(label = "MSE", cex = 1.5)

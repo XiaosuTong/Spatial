@@ -210,19 +210,21 @@ for(i in paste("E", 1:6, sep="")) {
 #source(file.path(local.root, "rhcode", "a1950", "rh.a1950.R"))
 a1950()
 
-
 ## a1950 by month, interpolate missing obs by spatial loess, cross-validation
-for(k in c("interpolate","direct")) {
+for(k in c("direct","interpolate")) {
   for(i in c(1,2)) {
     for(j in seq(0.01, 0.1, 0.005)) {
       try(interpolate(Elev = TRUE, sp=j, deg=2, Edeg=i, surf=k, fam="symmetric"))
     }
-    for(j in seq(0.005, 0.009, 0.001)){
+    for(j in seq(0.001, 0.009, 0.001)){
       try(interpolate(Elev = TRUE, sp=j, deg=2, Edeg=i, surf=k, fam="symmetric"))
     }
-    try(crossValid(fam="symmetric", Edeg=i, surf=k, span = c(seq(0.005, 0.009, 0.001),seq(0.01, 0.1, 0.005))))
+    try(crossValid(fam="symmetric", Edeg=i, surf=k, span = c(seq(0.001, 0.009, 0.001),seq(0.01, 0.1, 0.005))))
   }
 }
+
+intpolat.visual(surf="direct", lim=0)
+intpolat.visual(surf="interpolate", lim=0.003)
 
 ## After found the best interpolation parameter
 ## switch the key from bymonth to by station
