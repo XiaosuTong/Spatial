@@ -30,5 +30,44 @@ intpolat.visual <- function(size = "letter", surf, lim=0) {
     )
     print(b)
   dev.off()
+
+  sub <- subset(rst, span %in% c(0.005, 0.008,0.01,0.015, 0.025))
+  
+  trellis.device(
+    device = postscript, 
+    file = file.path(local.root, "output", paste("QuanMSE", "a1950", par$dataset, "span" ,"ps", sep=".")), 
+    color=TRUE, 
+    paper=size
+  )
+  b <- qqmath(~mse|as.factor(span)
+    , data = sub
+    , group = degree
+    , subset = mse<=20
+    , dist = qunif
+    , cex = 0.5
+    , auto.key = T
+    , layout = c(5, 1)
+    , scale = list(y=list(relation="free"))
+  )
+  print(b)
+  dev.off()
+  
+  trellis.device(
+    device = postscript, 
+    file = file.path(local.root, "output", paste("QuanMSE", "a1950", par$dataset, "degree" ,"ps", sep=".")), 
+    color=TRUE, 
+    paper=size
+  )
+  b <- qqmath(~mse|as.factor(degree)
+    , data = sub
+    , group = span
+    , subset = mse<=20& span!=0.005
+    , dist = qunif
+    , cex = 0.5
+    , auto.key = T
+    , layout = c(2, 1)
+  )
+  print(b)
+  dev.off()
   
 }
