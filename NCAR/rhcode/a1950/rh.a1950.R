@@ -281,10 +281,13 @@ a1950.STLfit <- function(input, reduce, sw, sd, tw, td, fcw=NULL, fcd=NULL) {
       value <- map.values[[r]]
       value$station.id <- map.keys[[r]]
       value$date <- 1:nrow(value)
+      Index <- which(is.na(value$resp))
+      Resp <- value$resp
+      Resp[Index] <- value$fitted[Index]
       if (is.null(par$fcw)) {
         
         fit <- stl2(
-          x=value$resp, t=value$date, n.p=12, s.window=par$sw, s.degree=par$sd, 
+          x=Resp, t=value$date, n.p=12, s.window=par$sw, s.degree=par$sd, 
           t.window=par$tw, t.degree=par$td, inner=10, outer=0
         )$data
         value <- cbind(value, subset(fit, select = c(seasonal, trend, remainder)))
@@ -292,7 +295,7 @@ a1950.STLfit <- function(input, reduce, sw, sd, tw, td, fcw=NULL, fcd=NULL) {
       } else {
 
         fit <- do.call("cbind", stl2(
-          x=value$resp, t=value$date, n.p=12, s.window=par$sw, s.degree=par$sd, t.window=par$tw, 
+          x=Resp, t=value$date, n.p=12, s.window=par$sw, s.degree=par$sd, t.window=par$tw, 
           t.degree=par$td, fc.window=c(par$tw,par$fcw), fc.degree=c(par$td,par$fcd), inner=10, outer=0
         )[c("data","fc")])
         value <- cbind(value, subset(fit, select = -c(data.raw, data.trend, data.remainder, data.weights, data.sub.labels)))
@@ -379,4 +382,16 @@ a1950.STLfit <- function(input, reduce, sw, sd, tw, td, fcw=NULL, fcd=NULL) {
     type = "sequence"
   )
 
+  job$mapred <- list(
+    mapred.reduce.tasks = 1,  #cdh3,4
+    mapreduce.job.reduces = 1  #cdh5
+  )
+  job$readback <- FALSE
+  job$jobname <- file.path(
+    rh.root, par$dataset, "a1950", "STL.plot", paste("t",tuning$tw, "td", tuning$td, "_s", 
+    tuning$sw, "sd", tuning$sd, "_f", tuning$fcw, "fd", tuning$fcd, sep="")
+  )
+  
+  job.mr <- do.call("rhwatch", job)
+  
 }
