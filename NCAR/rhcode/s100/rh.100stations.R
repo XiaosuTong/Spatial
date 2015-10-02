@@ -87,7 +87,7 @@ s100 <- function() {
 }
 
 
-STLfit <- function(sw, sd, tw, td, fcw=NULL, fcd=NULL) {
+s100.STLfit <- function(sw, sd, tw, td, fcw=NULL, fcd=NULL) {
 
   tuning <- list(sw=sw, sd=sd, tw=tw, td=td, fcw=fcw, fcd=fcd)
 

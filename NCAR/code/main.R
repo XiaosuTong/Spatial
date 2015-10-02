@@ -223,18 +223,22 @@ for(k in c("direct","interpolate")) {
   }
 }
 
-intpolat.visual(surf="direct", lim=0)
-intpolat.visual(surf="interpolate", lim=0.003)
+#intpolat.visual(surf="direct")
+intpolat.visual(surf="interpolate", SPsize="median")
+intpolat.visual(surf="interpolate", SPsize="large")
+intpolat.visual(surf="interpolate", SPsize="small")
+intpolat.visual(surf="interpolate", SPsize=NULL, check=list(c(0.008, 1), c(0.015, 2)))
+
 
 ## After found the best interpolation parameter
 ## switch the key from bymonth to by station
-interpolateStation(sp, Edeg, deg=2, fam="symmetric", surf="direct")
+FileInput <- try(interpolateStation(sp=0.015, Edeg=2, deg=2, fam="symmetric", surf="interpolate"))
 
 ## tunning the STL+ parameter for stations a1950
 ## first sample the 128 stations from a1950 for demonstration 
 source("~/Projects/Spatial/NCAR/code/kdtree/kdfindcells.R")
 
-
+a1950.STLfit(input=FileInput, reduce=100, sw=35, sd=1, tw=231, td=2, fcw=NULL, fcd=NULL)
 
 ## backfitting iteration for three components
 paramt <- data.frame(

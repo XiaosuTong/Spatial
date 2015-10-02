@@ -271,7 +271,7 @@ crossValid <- function(fam, Edeg, surf, first = FALSE, span) {
 
 }
 
-STLfit <- function(type, reduce, sw, sd, tw, td, fcw=NULL, fcd=NULL) {
+a1950.STLfit <- function(input, reduce, sw, sd, tw, td, fcw=NULL, fcd=NULL) {
 
   tuning <- list(sw=sw, sd=sd, tw=tw, td=td, fcw=fcw, fcd=fcd)
 
@@ -299,11 +299,7 @@ STLfit <- function(type, reduce, sw, sd, tw, td, fcw=NULL, fcd=NULL) {
         names(value)[grep("fc.fc", names(value))] <- c("fc.first", "fc.second")
 
       }
-      if(type == "100stations") {
-        rhcollect(1, value)
-      } else if (type == "a1950") {
-        rhcollect(map.keys[[r]], value)
-      }
+      rhcollect(map.keys[[r]], value)
     })
   })
   job$reduce <- expression(
@@ -318,21 +314,17 @@ STLfit <- function(type, reduce, sw, sd, tw, td, fcw=NULL, fcd=NULL) {
     }
   )
   job$parameters <- list(
-    par = tuning,
-    type = type
+    par = tuning
   )
   job$setup <- expression(
     map = {
       suppressMessages(library(stl2))
     }
   )
-  job$input <- rhfmt(
-    file.path(rh.root, par$dataset, type, "bystation"), 
-    type = "sequence"
-  )
+  job$input <- rhfmt(input, type = "sequence")
   job$output <- rhfmt(
     file.path(
-      rh.root, par$dataset, type, "STL", paste("t",tuning$tw, "td", tuning$td, "_s", tuning$sw, 
+      rh.root, par$dataset, "a1950", "STL", paste("t",tuning$tw, "td", tuning$td, "_s", tuning$sw, 
       "sd", tuning$sd, "_f", tuning$fcw, "fd", tuning$fcd, sep="")
     ), 
     type = "sequence"
@@ -343,51 +335,48 @@ STLfit <- function(type, reduce, sw, sd, tw, td, fcw=NULL, fcd=NULL) {
   )
   job$readback <- FALSE
   job$jobname <- file.path(
-    rh.root, par$dataset, type, "STL", paste("t",tuning$tw, "td", tuning$td, "_s", 
+    rh.root, par$dataset, "a1950", "STL", paste("t",tuning$tw, "td", tuning$td, "_s", 
     tuning$sw, "sd", tuning$sd, "_f", tuning$fcw, "fd", tuning$fcd, sep="")
   )
   
   job.mr <- do.call("rhwatch", job)
 
-  if(type == "a1950") {
-
-    job <- list()
-    job$map <- expression({
-      lapply(seq_along(map.keys), function(r){
-        if(map.keys[[r]] %in% sample.a1950$station.id) {
-          rhcollect(1, map.values[[r]])
-        }
-      })
-    })
-    job$reduce <- expression(
-      pre = {
-        combine <- data.frame()
-      },
-      reduce = {
-        combine <- rbind(combine, do.call("rbind", reduce.values))
-      },
-      post = {
-        rhcollect(reduce.key, combine)
+  job <- list()
+  job$map <- expression({
+    lapply(seq_along(map.keys), function(r){
+      if(map.keys[[r]] %in% sample.a1950$station.id) {
+        rhcollect(1, map.values[[r]])
       }
-    )
-    job$shared <- file.path(rh.root, par$dataset, "a1950", "Rdata", "sample.a1950.RData")
-    job$setup <- expression(
-      map = {load("sample.a1950.RData")}
-    )
-    job$input <- rhfmt(
-      file.path(
-        rh.root, par$dataset, type, "STL", paste("t",tuning$tw, "td", tuning$td, "_s", tuning$sw, 
-        "sd", tuning$sd, "_f", tuning$fcw, "fd", tuning$fcd, sep="")
-      ), 
-      type = "sequence"
-    )
-    job$output <- rhfmt(
-      file.path(
-        rh.root, par$dataset, type, "STL.plot", paste("t",tuning$tw, "td", tuning$td, "_s", tuning$sw, 
-        "sd", tuning$sd, "_f", tuning$fcw, "fd", tuning$fcd, sep="")
-      ), 
-      type = "sequence"
-    )
-  }
+    })
+  })
+  job$reduce <- expression(
+    pre = {
+      combine <- data.frame()
+    },
+    reduce = {
+      combine <- rbind(combine, do.call("rbind", reduce.values))
+    },
+    post = {
+      rhcollect(reduce.key, combine)
+    }
+  )
+  job$shared <- file.path(rh.root, par$dataset, "a1950", "Rdata", "sample.a1950.RData")
+  job$setup <- expression(
+    map = {load("sample.a1950.RData")}
+  )
+  job$input <- rhfmt(
+    file.path(
+      rh.root, par$dataset, "a1950", "STL", paste("t",tuning$tw, "td", tuning$td, "_s", tuning$sw, 
+      "sd", tuning$sd, "_f", tuning$fcw, "fd", tuning$fcd, sep="")
+    ), 
+    type = "sequence"
+  )
+  job$output <- rhfmt(
+    file.path(
+      rh.root, par$dataset, "a1950", "STL.plot", paste("t",tuning$tw, "td", tuning$td, "_s", tuning$sw, 
+      "sd", tuning$sd, "_f", tuning$fcw, "fd", tuning$fcd, sep="")
+    ), 
+    type = "sequence"
+  )
 
 }
