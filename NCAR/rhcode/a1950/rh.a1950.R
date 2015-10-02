@@ -278,7 +278,7 @@ a1950.STLfit <- function(input, reduce, sw, sd, tw, td, fcw=NULL, fcd=NULL) {
   job <- list()
   job$map <- expression({
     lapply(seq_along(map.keys), function(r) {
-      value <- map.values[[r]]
+      value <- arrange(map.values[[r]], year, match(month, month.abb))
       value$station.id <- map.keys[[r]]
       value$date <- 1:nrow(value)
       Index <- which(is.na(value$resp))
@@ -322,6 +322,7 @@ a1950.STLfit <- function(input, reduce, sw, sd, tw, td, fcw=NULL, fcd=NULL) {
   job$setup <- expression(
     map = {
       suppressMessages(library(stl2))
+      library(plyr)
     }
   )
   job$input <- rhfmt(input, type = "sequence")
