@@ -283,6 +283,8 @@ a1950.STLfit <- function(input, reduce, sw, sd, tw, td, fcw=NULL, fcd=NULL) {
       value$date <- 1:nrow(value)
       Index <- which(is.na(value$resp))
       Resp <- value$resp
+	  value$flag <- 1
+	  value$flag[Index] <- 0
       Resp[Index] <- value$fitted[Index]
       if (is.null(par$fcw)) {
         

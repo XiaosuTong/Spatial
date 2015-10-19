@@ -114,13 +114,13 @@ intpolat.visual <- function(size = "letter", surf, SPsize, check=NULL) {
 #########################################
 ##  fitted value and obs against time  ##
 #########################################
-a1950.fitRaw <- function(data=rst, outputdir, target="tmax", size = "letter", Stnum = 128, test = TRUE){
+a1950.fitRaw <- function(data=rst, outputdir, target="tmax", size = "letter", St.num = 128, test = TRUE){
 
   data$factor <- factor(
-    x = rep(rep(paste("Period", 1:4), rep(144,4)), times=Stnum),
-    levels = paste("Period", c(9:1))
+    x = rep( rep(paste("Period", 1:6), c(rep(108,5), 36)), times=St.num),
+    levels = paste("Period", c(6:1))
   )
-  data$time <- c(rep(0:143,8), 0:83) 
+  data$time <- c(rep(0:107, times = 5), 0:35) 
 
   stations <- unique(data$station.id)
 
@@ -138,7 +138,7 @@ a1950.fitRaw <- function(data=rst, outputdir, target="tmax", size = "letter", St
 
   trellis.device(
     device = postscript, 
-    file = file.path(outputdir, paste("fitted.time", "100stations", target, "ps", sep=".")),
+    file = file.path(outputdir, paste("fitted.time", "a1950", target, "ps", sep=".")),
     color = TRUE, 
     paper = size
   )
@@ -149,22 +149,24 @@ a1950.fitRaw <- function(data=rst, outputdir, target="tmax", size = "letter", St
         , xlab = list(label = "Month", cex = 1.5)
         , ylab = list(label = ylab, cex = 1.5)
         , main = list(label=paste("Station ", i, sep=""), cex=1)
-        , layout = c(1,9)
-        , aspect= "xy"
+        , layout = c(1,6)
         , strip = FALSE,
-        , xlim = c(0, 143)
+        , xlim = c(0, 107)
         , key=list(
-          text = list(label=c("raw","fitted")), 
-          lines = list(pch=16, cex=0.7, lwd=1.5, type=c("p","l"), col=col[1:2]),
-          columns=2
+          text = list(label=c("raw", "interpolate", "fitted")), 
+          lines = list(pch=16, cex=0.7, lwd=1.5, type=c("p","p","l"), col=col[c(1,3,2)]),
+          columns=3
         )
         , scales = list(
             y = list(tick.number=4), 
-            x = list(at=seq(0, 143, by=12), relation='same')
+            x = list(at=seq(0, 107, by=12), relation='same')
           )
         , panel = function(x,y,subscripts,...) {
-            panel.abline(v=seq(0,145, by=12), color="lightgrey", lty=3, lwd=0.5)
-            panel.xyplot(x, y, type="p", col=col[1], pch=16, cex=0.5, ...)
+            panel.abline(v=seq(0,108, by=12), color="lightgrey", lty=3, lwd=0.5)
+			fit <- subset(sub[subscripts,], flag == 0)
+			obs <- subset(sub[subscripts,], flag == 1)
+			panel.xyplot(obs$time, obs$resp, type="p", col=col[1], pch=16, cex=0.5, ...)
+            panel.xyplot(fit$time, fit$fitted, type="p", col=col[3], pch=16, cex=0.5, ...)
             if (!any(grepl("fc", names(rst)))) {
               panel.xyplot(sub[subscripts,]$time, (sub[subscripts,]$trend+sub[subscripts,]$seasonal), type="l", col=col[2], lwd=1, ...)            
             } else {

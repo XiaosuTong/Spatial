@@ -241,6 +241,7 @@ source("~/Projects/Spatial/NCAR/code/kdtree/kdfindcells.R")
 
 rst <- try(a1950.STLfit(input=FileInput, reduce=100, sw=35, sd=1, tw=231, td=2, fcw=NULL, fcd=NULL))[[1]][[2]]
 
+a1950.fitRaw(data=rst, outputdir=file.path(local.root, "output"), target="tmax", size = "letter", St.num = 128, test = TRUE)
 
 
 
