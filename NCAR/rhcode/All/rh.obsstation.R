@@ -25,11 +25,11 @@ job$reduce <- expression(
   }
 )
 job$input <- rhfmt(
-  file.path(root, par$dataset, "All", "bystation"), 
+  file.path(rh.root, par$dataset, "All", "bystation"), 
   type = "sequence"
 )
 job$output <- rhfmt(
-  file.path(root, par$dataset, "All", "stationcount"), 
+  file.path(rh.root, par$dataset, "All", "stationcount"), 
   type = "sequence"
 )
 job$mapred <- list(
@@ -38,13 +38,11 @@ job$mapred <- list(
 )
 job$readback <- FALSE
 job$combiner <- TRUE
-job$jobname <- file.path(root, par$dataset, "All", "stationcount")
+job$jobname <- file.path(rh.root, par$dataset, "All", "stationcount")
 job.mr <- do.call("rhwatch", job)
 
 rst <- rhread(file.path(root, par$dataset, "All", "stationcount"))[[1]][[2]]
 
-library(plyr)
-library(lattice)
 
 
 trellis.device(
