@@ -77,14 +77,14 @@ job$setup <- expression(
   }
 )
 job$parameters <- list(par = par)
-job$input <- rhfmt(file.path(root, "Raw", par$dataset), type = "text")
-job$output <- rhfmt(file.path(root, par$dataset, "All", "bymonth"), type = "sequence")
+job$input <- rhfmt(file.path(rh.root, "Raw", par$dataset), type = "text")
+job$output <- rhfmt(file.path(rh.root, par$dataset, "All", "bymonth"), type = "sequence")
 job$mapred <- list( 
   mapred.reduce.tasks = 100, #cdh3,4
   mapreduce.job.reduces = 100,  #cdh5
   rhipe_map_buff_size = Nstations #total number of stations
 )
-job$jobname <- file.path(root, par$dataset, "All", "bymonth")
+job$jobname <- file.path(rh.root, par$dataset, "All", "bymonth")
 job$readback <- FALSE
 job.mr <- do.call("rhwatch", job)
 
@@ -121,11 +121,11 @@ job$reduce <- expression(
   }
 )
 job$input <- rhfmt(
-  file.path(root, par$dataset, "All", "bymonth"), 
+  file.path(rh.root, par$dataset, "All", "bymonth"), 
   type = "sequence"
 )
 job$output <- rhfmt(
-  file.path(root, par$dataset, "All", "bystation"), 
+  file.path(rh.root, par$dataset, "All", "bystation"), 
   type = "sequence"
 )
 job$mapred <- list(
@@ -133,6 +133,6 @@ job$mapred <- list(
   mapreduce.job.reduces = 100  #cdh5
 )
 job$readback <- FALSE
-job$jobname <- file.path(root, par$dataset, "All", "bystation")
+job$jobname <- file.path(rh.root, par$dataset, "All", "bystation")
 job.mr <- do.call("rhwatch", job)
 

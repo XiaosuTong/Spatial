@@ -387,12 +387,14 @@ a1950.STLfit <- function(input, reduce, sw, sd, tw, td, fcw=NULL, fcd=NULL) {
     mapred.reduce.tasks = 1,  #cdh3,4
     mapreduce.job.reduces = 1  #cdh5
   )
-  job$readback <- FALSE
+  job$readback <- TRUE
   job$jobname <- file.path(
     rh.root, par$dataset, "a1950", "STL.plot", paste("t",tuning$tw, "td", tuning$td, "_s", 
     tuning$sw, "sd", tuning$sd, "_f", tuning$fcw, "fd", tuning$fcd, sep="")
   )
   
   job.mr <- do.call("rhwatch", job)
+
+  return(job.mr)
   
 }

@@ -1,22 +1,3 @@
-source("~/Rhipe/ross.initial.R")
-
-Machine <- "rossmann"
-source("~/Projects/Spatial/NCAR/rhcode/rh.setup.R")
-
-par <- list()
-par$dataset <- "tmax"
-
-if (Machine == "adhara") {
-  root <- "/ln/tongx/Spatial/tmp"
-} else if (Machine == "rossmann") {
-  root <- "/wsc/tongx/Spatial/tmp"
-}
-if(par$dataset == "precip") {
-  Nstations <- 11918
-} else {
-  Nstations <- 8125
-}
-
 job <- list()
 job$map <- expression({
   lapply(seq_along(map.keys), function(r) {

@@ -3,11 +3,12 @@ library(lattice)
 library(plyr)
 library(hexbin)
 
-source("~/Rhipe/ross.initial.R")
+#source("~/Rhipe/ross.initial.R")
+source("~/Rhipe/rhinitial.R")
 
 par <- list()
 par$dataset <- "tmax"
-par$Machine <- "rossmann"
+par$Machine <- "adhara"
 source("~/Projects/Spatial/NCAR/rhcode/rh.setup.R")
 source("~/Projects/Spatial/NCAR/myloess/my.loess02.R")
 source("~/Projects/Spatial/NCAR/myloess/my.predloess.R")
@@ -238,7 +239,15 @@ FileInput <- try(interpolateStation(sp=0.015, Edeg=2, deg=2, fam="symmetric", su
 ## first sample the 128 stations from a1950 for demonstration 
 source("~/Projects/Spatial/NCAR/code/kdtree/kdfindcells.R")
 
-a1950.STLfit(input=FileInput, reduce=100, sw=35, sd=1, tw=231, td=2, fcw=NULL, fcd=NULL)
+rst <- try(a1950.STLfit(input=FileInput, reduce=100, sw=35, sd=1, tw=231, td=2, fcw=NULL, fcd=NULL))[[1]][[2]]
+
+
+
+
+
+##########################################
+##      Backfitting for a1950           ##
+##########################################
 
 ## backfitting iteration for three components
 paramt <- data.frame(

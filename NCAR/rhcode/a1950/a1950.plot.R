@@ -107,3 +107,73 @@ intpolat.visual <- function(size = "letter", surf, SPsize, check=NULL) {
   } 
   
 }
+
+#########################################################
+##  Diagnostic plots for components from stl2 fitting  ## 
+#########################################################
+#########################################
+##  fitted value and obs against time  ##
+#########################################
+a1950.fitRaw <- function(data=rst, outputdir, target="tmax", size = "letter", Stnum = 128, test = TRUE){
+
+  data$factor <- factor(
+    x = rep(rep(paste("Period", 1:4), rep(144,4)), times=Stnum),
+    levels = paste("Period", c(9:1))
+  )
+  data$time <- c(rep(0:143,8), 0:83) 
+
+  stations <- unique(data$station.id)
+
+  if(test) {
+    stations <- stations[1]
+  }
+
+  if (target == "tmax") {
+    ylab <- "Maximum Temperature (degrees centigrade)"
+  } else if (target == "tmin") {
+    ylab <- "Minimum Temperature (degrees centigrade)"
+  } else {
+    ylab <- "Precipitation (millimeters)"
+  }
+
+  trellis.device(
+    device = postscript, 
+    file = file.path(outputdir, paste("fitted.time", "100stations", target, "ps", sep=".")),
+    color = TRUE, 
+    paper = size
+  )
+    for(i in stations){
+      sub <- subset(data, station.id==i)
+      b <- xyplot( resp ~ time | factor,
+        , data = sub
+        , xlab = list(label = "Month", cex = 1.5)
+        , ylab = list(label = ylab, cex = 1.5)
+        , main = list(label=paste("Station ", i, sep=""), cex=1)
+        , layout = c(1,9)
+        , aspect= "xy"
+        , strip = FALSE,
+        , xlim = c(0, 143)
+        , key=list(
+          text = list(label=c("raw","fitted")), 
+          lines = list(pch=16, cex=0.7, lwd=1.5, type=c("p","l"), col=col[1:2]),
+          columns=2
+        )
+        , scales = list(
+            y = list(tick.number=4), 
+            x = list(at=seq(0, 143, by=12), relation='same')
+          )
+        , panel = function(x,y,subscripts,...) {
+            panel.abline(v=seq(0,145, by=12), color="lightgrey", lty=3, lwd=0.5)
+            panel.xyplot(x, y, type="p", col=col[1], pch=16, cex=0.5, ...)
+            if (!any(grepl("fc", names(rst)))) {
+              panel.xyplot(sub[subscripts,]$time, (sub[subscripts,]$trend+sub[subscripts,]$seasonal), type="l", col=col[2], lwd=1, ...)            
+            } else {
+              panel.xyplot(sub[subscripts,]$time, (sub[subscripts,]$data.seasonal+sub[subscripts,]$fc.first+sub[subscripts,]$fc.second), type="l", col=col[2], lwd=1, ...)
+            }
+          }
+      )
+      print(b)
+    }
+  dev.off()
+
+}
