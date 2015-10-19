@@ -152,6 +152,7 @@ a1950.fitRaw <- function(data=rst, outputdir, target="tmax", size = "letter", St
         , layout = c(1,6)
         , strip = FALSE,
         , xlim = c(0, 107)
+		, ylim = c(min(c(sub$resp, sub$fitted), na.rm=TRUE), max(c(sub$resp, sub$fitted), na.rm=TRUE))
         , key=list(
           text = list(label=c("raw", "interpolate", "fitted")), 
           lines = list(pch=16, cex=0.7, lwd=1.5, type=c("p","p","l"), col=col[c(1,3,2)]),
