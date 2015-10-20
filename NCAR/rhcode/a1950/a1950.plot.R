@@ -30,9 +30,9 @@ intpolat.visual <- function(size = "letter", surf, SPsize, check=NULL) {
       , xlab = list(label="f-value", cex=1.5)
       , ylab = list(label="Mean Square Error", cex=1.5)
       , key=list(
-        text = list(label=c("degree=1","degree=2")),
-        lines = list(pch=1, cex=1, type="p", col=col[1:2]), 
-        columns = 2
+          text = list(label=c("degree=1","degree=2")),
+          lines = list(pch=1, cex=1, type="p", col=col[1:2]), 
+          columns = 2
         )
       , layout = c(length(unique(sub$span)), 1)
       , scale = list(cex=1.2)
@@ -59,9 +59,9 @@ intpolat.visual <- function(size = "letter", surf, SPsize, check=NULL) {
       , xlab = list(label="f-value", cex=1.5)
       , ylab = list(label="Mean Square Error", cex=1.5)
       , key=list(
-        text = list(label=paste("span=", sort(unique(sub$span)), sep="")),
-        lines = list(pch=1, cex=1, type="p", col=col[1:length(unique(sub$span))]), 
-        columns = length(unique(sub$span))
+          text = list(label=paste("span=", sort(unique(sub$span)), sep="")),
+          lines = list(pch=1, cex=1, type="p", col=col[1:length(unique(sub$span))]), 
+          columns = length(unique(sub$span))
         )
       , layout = c(2, 1)
       , scale = list(cex=1.2)
@@ -91,9 +91,9 @@ intpolat.visual <- function(size = "letter", surf, SPsize, check=NULL) {
       , xlab = list(label="f-value", cex=1.5)
       , ylab = list(label="Mean Square Error", cex=1.5)
       , key=list(
-        text = list(label=c("degree=1, span=0.008","degree=2, span=0.015")),
-        lines = list(pch=1, cex=1, type="p", col=col[1:2]), 
-        columns = 2
+          text = list(label=c("degree=1, span=0.008","degree=2, span=0.015")),
+          lines = list(pch=1, cex=1, type="p", col=col[1:2]), 
+          columns = length(unique(sub$span))
         )
       , scale = list(cex=1.2)
       , panel = function(x,...) {

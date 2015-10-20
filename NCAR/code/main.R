@@ -243,6 +243,18 @@ rst <- try(a1950.STLfit(input=FileInput, reduce=100, sw=35, sd=1, tw=231, td=2, 
 
 a1950.fitRaw(data=rst, outputdir=file.path(local.root, "output"), target="tmax", size = "letter", St.num = 128, test = TRUE)
 
+#####################################################
+##   STL experiment for tunning parameters a1950   ##
+#####################################################
+stationSplit(reduce=200, type="a1950", tn=576, valid=270)
+## Experiment E1
+index <- "E1"
+parameter <- expand.grid(
+  sw = c(21, 30, 39), 
+  tw = c(231, 313, 451), 
+  td = 2, 
+  sd = 1
+)
 
 
 

@@ -12,6 +12,10 @@ stationSplit <- function(reduce=100, type="100stations", tn=1236, valid=600){
       })
     })
   })
+  job$parameters <- list(
+    tn = tn,
+    valid = valid
+  )
   job$input <- rhfmt(
     file.path(rh.root, par$dataset, type, "bystation"),
     type = "sequence"
