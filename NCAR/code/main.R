@@ -2,6 +2,7 @@
 library(lattice)
 library(plyr)
 library(hexbin)
+options(stringsAsFactors=FALSE)
 
 #source("~/Rhipe/ross.initial.R")
 source("~/Rhipe/rhinitial.R")
@@ -139,13 +140,15 @@ trendDiag(data=rst, outputdir=file.path(local.root, "output"), target="tmax", si
 ##################################################################
 ##    STL tunning fit for the 100 stations with full obs        ##
 ################################################################## 
-stationSplit(reduce=200)
+FileInput <- file.path(rh.root, par$dataset, "100stations", "bystation")
+stationSplit(reduce=200, input=FileInput)
+type <- "100stations"
 index <- "E1"
 parameter <- expand.grid(
   sw = c(51, 73, 93), tw = c(617, 865, 1113), td = 2, sd = 1, fc.flag = FALSE
 )
 for(k in 1:nrow(parameter)) {
-  try(predict36(parameter, k, index))
+  try(predict36(type, parameter, k, index, valid=600))
 }
 
 index <- "E2"
@@ -154,7 +157,7 @@ parameter <- expand.grid(
   sd = 1, fc.flag = FALSE, stringsAsFactors = FALSE
 )
 for(k in 1:nrow(parameter)) {
-  try(predict36(parameter, k, index))
+  try(predict36(type, parameter, k, index))
 }
 
 index <- "E3"
@@ -163,7 +166,7 @@ parameter <- expand.grid(
   td = 2, sd = 1, fc.flag=FALSE, stringsAsFactors=FALSE
 )
 for(k in 1:nrow(parameter)) {
-  try(predict36(parameter, k, index))
+  try(predict36(type, parameter, k, index))
 }
   
 index <- "E4"
@@ -172,26 +175,26 @@ parameter <- expand.grid(
   td = c(1,2), sd = 1, fc.flag = FALSE, stringsAsFactors = FALSE
 )
 for(k in 1:nrow(parameter)) {
-  try(predict36(parameter, k, index))
+  try(predict36(type, parameter, k, index))
 }
 
 index <- "E5"
 parameter <- do.call("rbind", list(
-  data.frame(sw="periodic", tw=1855, sd=1, td=1, fcw=1855, fcd=1, scw=241, scd=1, fc.flag=TRUE, stringsAsFactors=FALSE),
-  data.frame(sw="periodic", tw=241, sd=1, td=1, fcw=NA, fcd=NA, scw=NA, scd=NA, fc.flag=FALSE, stringsAsFactors=FALSE),
-  data.frame(sw="periodic", tw=1855, sd=1, td=1, fcw=1855, fcd=1, scw=121, scd=2, fc.flag=TRUE, stringsAsFactors=FALSE)
+  data.frame(sw="periodic", tw=1855, sd=1, td=1, fcw=1855, fcd=1, scw=241, scd=1, fc.flag=TRUE),
+  data.frame(sw="periodic", tw=241, sd=1, td=1, fcw=NA, fcd=NA, scw=NA, scd=NA, fc.flag=FALSE),
+  data.frame(sw="periodic", tw=1855, sd=1, td=1, fcw=1855, fcd=1, scw=121, scd=2, fc.flag=TRUE)
 ))
 for(k in 1:nrow(parameter)) {
-  try(predict36(parameter, k, index))
+  try(predict36(type, parameter, k, index))
 }
 
 index <- "E6"
 parameter <- expand.grid(
   sw = "periodic", tw = 1855, td = 1, sd = 1,fcw = 1855, fcd = 1, 
-  scw = c(241, 361, 751), scd = c(1, 2), fc.flag = TRUE, stringsAsFactors = FALSE
+  scw = c(241, 361, 751), scd = c(1, 2), fc.flag = TRUE
 )
 for(k in 1:nrow(parameter)) {
-  try(predict36(parameter, k, index))
+  try(predict36(type, parameter, k, index))
 }
 
 for(i in paste("E", 1:6, sep="")) {
@@ -232,8 +235,11 @@ intpolat.visual(surf="interpolate", SPsize=NULL, check=list(c(0.008, 1), c(0.015
 
 
 ## After found the best interpolation parameter
+best <- data.frame(sp=0.015, Edeg=2, deg=2, fam="symmetric", surf="direct")
 ## switch the key from bymonth to by station
-FileInput <- try(interpolateStation(sp=0.015, Edeg=2, deg=2, fam="symmetric", surf="interpolate"))
+FileInput <- try(
+  interpolateStation(sp=best$sp, Edeg=best$Edeg, deg=best$deg, fam=best$fam, surf=best$surf)
+)
 
 ## tunning the STL+ parameter for stations a1950
 ## first sample the 128 stations from a1950 for demonstration 
@@ -246,15 +252,22 @@ a1950.fitRaw(data=rst, outputdir=file.path(local.root, "output"), target="tmax",
 #####################################################
 ##   STL experiment for tunning parameters a1950   ##
 #####################################################
-stationSplit(reduce=200, type="a1950", tn=576, valid=270)
+## Use the previous FileInput which is the bystation division of best spatial
+## interpolation model.
+type <- "a1950"
+stationSplit(reduce=200, input=FileInput, type=type, tn=576, valid=270)
 ## Experiment E1
 index <- "E1"
 parameter <- expand.grid(
   sw = c(21, 30, 39), 
   tw = c(231, 313, 451), 
   td = 2, 
-  sd = 1
+  sd = 1,
+  fc.flag = FALSE
 )
+for(k in 1:nrow(parameter)) {
+  try(predict36(type, parameter, k, index, valid=270))
+}
 
 
 
@@ -264,8 +277,7 @@ parameter <- expand.grid(
 
 ## backfitting iteration for three components
 paramt <- data.frame(
-  sw = "periodic", tw = 425, sd = 1, td = 1, fcw = 425, fcd = 1,
-  scw = 214, scd = 2, fc.flag = TRUE, stringsAsFactors=FALSE
+  sw = "periodic", tw = 425, sd = 1, td = 1, fcw = 425, fcd = 1, scw = 214, scd = 2, fc.flag = TRUE
 ) 
 backfitStart(span=0.015, family="symmetric", type="interpolate", degree=2)
 backfitAll(span=0.015, family="symmetric", type="interpolate", parameter=paramt, index="E1", degree=2, inner=5, outer=1)

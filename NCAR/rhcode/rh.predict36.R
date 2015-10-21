@@ -1,10 +1,11 @@
 ##for a1950 valid=270
-stationSplit <- function(reduce=100, type="100stations", tn=1236, valid=600){
+stationSplit <- function(reduce=100, input, type="100stations", tn=1236, valid=600){
   
   job <- list()
   job$map <- expression({
     lapply(seq_along(map.values), function(r) {
       v <- map.values[[r]]
+      v <- arrange(v, year, match(month, month.abb))
       v$time <- 0:(tn-1)
       lapply(1:(valid+1), function(i) {
         v <- v[i:(valid + i - 1 + 36),]
@@ -16,10 +17,12 @@ stationSplit <- function(reduce=100, type="100stations", tn=1236, valid=600){
     tn = tn,
     valid = valid
   )
-  job$input <- rhfmt(
-    file.path(rh.root, par$dataset, type, "bystation"),
-    type = "sequence"
+  job$setup <- expression(
+    map = {
+      library(plyr)
+    }
   )
+  job$input <- rhfmt(input, type = "sequence")
   job$output <- rhfmt(
     file.path(rh.root, par$dataset, type, "bystationSplit"), 
     type = "sequence"
@@ -40,16 +43,20 @@ stationSplit <- function(reduce=100, type="100stations", tn=1236, valid=600){
 ## previous 600 observations for the 100 stations    ##
 ## predict36 did not include fc component            ##
 #######################################################
-predict36 <- function(parameter, k, index) {
+predict36 <- function(type, parameter, k, index, valid) {
 
   job <- list()
   job$map <- expression({
     lapply(seq_along(map.values), function(r) {
       key <- c(map.keys[[r]][1], group)
       v <- map.values[[r]]
+      if(type == "a1950") {
+        Index <- which(is.na(v$resp))
+        v$resp[Index] <- v$fitted[Index]
+      }
       v.raw <- tail(v, 36)
       v.model <- v
-      v.model[601:636, "resp"] <- NA
+      v.model[valid+(1:36), "resp"] <- NA
       if(fc.flag) {
         v.predict <- tail(
           do.call("cbind", 
@@ -86,6 +93,7 @@ predict36 <- function(parameter, k, index) {
     })
   if (parameter[k,"sw"] != "periodic"){
     job$parameters <- list(
+      valid = valid, type = type,
       sw = as.numeric(parameter[k,"sw"]), tw = parameter[k,"tw"], sd = parameter[k,"sd"], 
       td = parameter[k,"td"], fcw = parameter[k, "fcw"], fcd = parameter[k, "fcd"],
       scw = parameter[k, "scw"], scd = parameter[k, "scd"], inner = 10, outer = 0, group = k, 
@@ -93,6 +101,7 @@ predict36 <- function(parameter, k, index) {
     )
   }else{
     job$parameters <- list(
+      valid = valid, type = type,
       sw = parameter[k,"sw"], tw = parameter[k,"tw"], sd = parameter[k,"sd"], 
       td = parameter[k,"td"], fcw = parameter[k, "fcw"], fcd = parameter[k, "fcd"], 
       scw = parameter[k, "scw"], scd = parameter[k, "scd"], inner = 10, outer = 0, group = k,
@@ -100,11 +109,11 @@ predict36 <- function(parameter, k, index) {
     )
   }
   job$input <- rhfmt(
-    file.path(rh.root, par$dataset, "100stations", "bystationSplit"),
+    file.path(rh.root, par$dataset, type, "bystationSplit"),
     type = "sequence"
   )
   job$output <- rhfmt(
-    file.path(rh.root, par$dataset, "100stations", "STLtuning", index, paste("run", k, sep="")), 
+    file.path(rh.root, par$dataset, type, "STLtuning", index, paste("run", k, sep="")), 
     type = "sequence"
   )
   job$mapred <- list(
@@ -112,7 +121,7 @@ predict36 <- function(parameter, k, index) {
     mapreduce.job.reduces = 50,  #cdh5
     rhipe_reduce_buff_size = 10000
   )
-  job$jobname <- paste(par$dataset, index, "predict", k)
+  job$jobname <- file.path(rh.root, par$dataset, type, "STLtuning", index, paste("run", k, sep=""))
   job$mon.sec <- 10
   job$readback <- FALSE
   job.mr <- do.call("rhwatch", job)
