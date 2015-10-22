@@ -15,5 +15,23 @@ database.
 
 1.2.2 Summary Statistics
   some initial plots and summary
+  I will look at the data trends and show how they are cyclical in nature and show little long time trends.
   
 1.3 Division by station
+
+About conditionally parametric
+
+A nonparametric surface is conditionally
+parametric if we can divide the factors up into two disjoint subsets
+A and ? with the following property: given the values of the factors in A,
+the surface is a member of a parametric class as a function of the the factors
+in B. We say that the surface is conditionally parametric in A.
+It makes sense to specify a regression surface to be conditionally parametric
+in one or more variables if exploration of the data or a priori information
+suggests that the underlying pattern of the data is globally a very smooth
+function of the variables. Making such a specification when it is valid can
+result in a more parsimonious fit.
+An exceedingly simple modification of loess fitting yields a conditionally
+parametric surface. We simply ignore the conditionally parametric factors
+in computing the Euclidean distances that are used in the definition of the
+neighborhood weights, Wi(x).
