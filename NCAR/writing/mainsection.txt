@@ -1,0 +1,16 @@
+1.1 Introduction
+
+1.2 Initial Analysis: Data and Statistics
+
+  In this section, we describe the procedures of our data collection and initial processing, 
+followed by summary statistics of the obtained monthly maximum temperature. Further processing 
+of the data into multiple databases of various structures are discussed in details in the 
+following sections along with the corresponding analyses enabled and facilitated by each 
+database.
+
+1.2.1 Data Collection and Initial Processing
+
+1.2.2 Summary Statistics
+  some initial plots and summary
+  
+1.3 Division by station
