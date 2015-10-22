@@ -1,4 +1,7 @@
 1.1 Introduction
+There are approximately 8000 stations reporting monthly average maximum daily temperatures 
+at some time in this period. However, the maximum number of stations with data on any given 
+month is substantially less reaching a maximum of around 6000. 
 
 1.2 Initial Analysis: Data and Statistics
 
