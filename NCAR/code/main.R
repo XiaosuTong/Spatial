@@ -154,7 +154,7 @@ for(k in 1:nrow(parameter)) {
 index <- "E2"
 parameter <- expand.grid(
   sw = c(25, 125, "periodic"), tw = c(617, 865, 1113), td = 2, 
-  sd = 1, fc.flag = FALSE, stringsAsFactors = FALSE
+  sd = 1, fc.flag = FALSE,stringsAsFactors=FALSE
 )
 for(k in 1:nrow(parameter)) {
   try(predict36(type, parameter, k, index))
@@ -264,6 +264,15 @@ parameter <- expand.grid(
   td = 2, 
   sd = 1,
   fc.flag = FALSE
+)
+for(k in 1:nrow(parameter)) {
+  try(predict36(type, parameter, k, index, valid=270))
+}
+
+index <- "E2"
+parameter <- expand.grid(
+  sw = c(21, 41, "periodic"), tw = c(123, 313, 451), td = 2, 
+  sd = 1, fc.flag = FALSE, stringsAsFactors=FALSE
 )
 for(k in 1:nrow(parameter)) {
   try(predict36(type, parameter, k, index, valid=270))
