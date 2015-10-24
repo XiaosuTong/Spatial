@@ -35,3 +35,14 @@ An exceedingly simple modification of loess fitting yields a conditionally
 parametric surface. We simply ignore the conditionally parametric factors
 in computing the Euclidean distances that are used in the definition of the
 neighborhood weights, Wi(x).
+
+The method for making a loess fit conditionally parametric in a proper subset of predictors is simple.
+The subset is ignored in computing the Euclidean distances that are used in the definition of the
+neighborhood weights, $\omega_i(x)$. Let us use an example to explain why this produces a conditionally 
+parametric surface. Suppose that there are two predictors, $\mu$ and $\nu$, and $\lambda=2$. Suppose
+we specify $\mu$ to be a conditionally parametric predictor. Since the weight function ignores the 
+variable $\mu$ the $i$th weight, $\omega_i(\mu, \nu)$ for the fit at $(\mu, \nu)$, is the same as the
+$i$th weight, $\omega_i(\mu+t, \nu)$, for the fit at $(\mu+t, \nu)$. Thus the quadratic polynomial 
+that is fitted locally for the fit at $(\mu, \nu)$ is the same as the quadratic polynomial that is 
+fitted locally for the fit at $(\mu+t, \nu)$, whatever the value of $t$. So for the fixed value
+of $\nu$, the surface is exactly this quadratic as a function of the first predictor.
