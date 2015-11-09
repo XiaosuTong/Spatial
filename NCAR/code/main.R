@@ -3,6 +3,7 @@ library(lattice)
 library(plyr)
 library(hexbin)
 options(stringsAsFactors=FALSE)
+options(java.parameters = "-Xmx1000m")
 
 #source("~/Rhipe/ross.initial.R")
 source("~/Rhipe/rhinitial.R")
@@ -21,9 +22,9 @@ if(par$dataset == "precip") {
   Nstations <- 8125
 }
 
-lattice.theme <- trellis.par.get()
-col <- lattice.theme$superpose.symbol$col
-
+#lattice.theme <- trellis.par.get()
+#col <- lattice.theme$superpose.symbol$col
+col <- c("#0080ff", "#ff00ff", "darkgreen", "#ff0000", "orange", "#00ff00", "brown") 
 if(par$dataset == "tmax") {
     ylab <-  "Maximum Temperature (degrees centigrade)"
 }else if(par$dataset == "tmin") {
@@ -199,10 +200,10 @@ for(k in 1:nrow(parameter)) {
 
 for(i in paste("E", 1:6, sep="")) {
   
-  try(lagResidual(n=nrow(parameter), index=i))
-  try(lagResidQuan(index=i))
-  try(StdMean.group(index=i))
-  try(StdMean.grouplag(index=i, parameter))
+  try(lagResidual(n=nrow(parameter), index=i, type="100stations"))
+  try(lagResidQuan(index=i, type="100stations"))
+  try(StdMean.group(index=i, type="100stations"))
+  try(StdMean.grouplag(index=i, parameter, type="100stations"))
 
 }
 
@@ -278,7 +279,12 @@ for(k in 1:nrow(parameter)) {
   try(predict36(type, parameter, k, index, valid=270))
 }
 
-
+for(i in paste("E", 2, sep="")) {
+  try(lagResidual(n=nrow(parameter), index=i, type="a1950"))
+  try(lagResidQuan(index=i, type="a1950", reduce=10))
+  try(StdMean.group(index=i, type="a1950", num=36))
+  try(StdMean.grouplag(index=i, parameter, type="a1950"))
+}
 
 ##########################################
 ##      Backfitting for a1950           ##

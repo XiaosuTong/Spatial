@@ -134,7 +134,7 @@ predict36 <- function(type, parameter, k, index, valid) {
 ## dataframe which has residual and rest of columns. The value from reduce function
 ## is the dataframe including all 601 replicates for one c(station.id, group, lap).
 ################################################################################# 
-lagResidual <- function( n, index){
+lagResidual <- function(n, index, type){
 
   job<- list()
   job$map <- expression({
@@ -165,18 +165,19 @@ lagResidual <- function( n, index){
 
   files <- unlist(
     lapply(1:n, function(r) {
-      file.path(rh.root, par$dataset, "100stations", "STLtuning", index, paste("run", r, sep=""))
+      file.path(rh.root, par$dataset, type, "STLtuning", index, paste("run", r, sep=""))
     })
   )
   job$input <- rhfmt(files, type = "sequence")
   job$output <- rhfmt(
-    file.path(rh.root, par$dataset, "100stations", "STLtuning", index, "by.stgrouplag"), 
+    file.path(rh.root, par$dataset, type, "STLtuning", index, "by.stagrouplag"), 
     type = "sequence"
   )
   job$mapred <- list(
+    mapreduce.job.reduces = 100,  #cdh5
     mapred.reduce.tasks = 100
   )
-  job$jobname <- file.path(rh.root, par$dataset, "100stations", "STLtuning", index, "by.stgrouplag")
+  job$jobname <- file.path(rh.root, par$dataset, type, "STLtuning", index, "by.stagrouplag")
   job$combiner <- TRUE
   job$readback <- FALSE
   job$mon.sec <- 10
@@ -189,7 +190,7 @@ lagResidual <- function( n, index){
 ##  of 601 replicates. Output key is 1 which is meaningless, output value
 ##  is the data.frame include 5 quantiles of each c(station.id, group, lag)
 ############################################################################
-lagResidQuan <- function(index) {
+lagResidQuan <- function(index, type, reduce=1) {
 
   job <- list()
   job$map <- expression({
@@ -205,7 +206,11 @@ lagResidQuan <- function(index) {
       value$station.id <- map.keys[[r]][1]
       value$group <- map.keys[[r]][2]
       value$lag <- map.keys[[r]][3]
-      rhcollect(1, value)
+      if(reduce == 1) {
+        rhcollect(1, value)
+      } else {
+        rhcollect(map.keys[[r]][1], value)
+      }
     })
   })  
   job$reduce <- expression(
@@ -224,20 +229,21 @@ lagResidQuan <- function(index) {
       library(plyr)
   })
   job$parameters <- list(
-    parameter = parameter
+    parameter = parameter,
+    reduce = reduce
   )
   job$input <- rhfmt(
-    file.path(rh.root, par$dataset, "100stations", "STLtuning", index, "by.stgrouplag"),
+    file.path(rh.root, par$dataset, type, "STLtuning", index, "by.stagrouplag"),
     type = "sequence"
   )
   job$output <- rhfmt(
-    file.path(rh.root, par$dataset, "100stations", "STLtuning", index, "residquant"), 
+    file.path(rh.root, par$dataset, type, "STLtuning", index, "residquant"), 
     type = "sequence"
   )
   job$mapred <- list(
-    mapred.reduce.tasks = 1
+    mapred.reduce.tasks = reduce
   )
-  job$jobname <- file.path(rh.root, par$dataset, "100stations", "STLtuning", index, "residquant")
+  job$jobname <- file.path(rh.root, par$dataset, type, "STLtuning", index, "residquant")
   job$readback <- FALSE
   job$combiner <- TRUE
   job$mon.sec <- 10
@@ -256,7 +262,7 @@ lagResidQuan <- function(index) {
 ##  the standard deviation of residual over 601 for each station.
 ##
 ############################################################################
-StdMean.group <- function(index) {
+StdMean.group <- function(index, type, num) {
 
   job <- list()
   job$map <- expression({
@@ -278,26 +284,27 @@ StdMean.group <- function(index) {
       combined <- rbind(combined, do.call("rbind", reduce.values))
     },
     post = {
-      overmean <- sum(combined$means)/36
-      overstd <- sum(combined$std)/36
+      overmean <- sum(combined$means)/num
+      overstd <- sum(combined$std)/num
       rhcollect(reduce.key, c(overmean, overstd))
     }
   )
   job$parameters <- list(
-    parameter = parameter
+    parameter = parameter,
+    num = num
   )
   job$input <- rhfmt(
-    file.path(rh.root, par$dataset, "100stations", "STLtuning", index, "by.stgrouplag"), 
+    file.path(rh.root, par$dataset, type, "STLtuning", index, "by.stagrouplag"), 
     type = "sequence"
   )
   job$output <- rhfmt(
-    file.path(rh.root, par$dataset, "100stations", "STLtuning", index, "group.absmeanstd"),
+    file.path(rh.root, par$dataset, type, "STLtuning", index, "group.absmeanstd"),
     type = "sequence"
   )
   job$mapred <- list(
     mapred.reduce.tasks = 10
   )
-  job$jobname <- file.path(rh.root, par$dataset, "100stations", "STLtuning", index, "group.absmeanstd")
+  job$jobname <- file.path(rh.root, par$dataset, type, "STLtuning", index, "group.absmeanstd")
   job$readback <- FALSE
   job$mon.sec <- 10
   job.mr <- do.call("rhwatch", job)
@@ -314,7 +321,7 @@ StdMean.group <- function(index) {
 ##  and SD of error for given station, given lap, given group.
 ##
 ##################################################################################
-StdMean.grouplag <- function(index, parameter) {
+StdMean.grouplag <- function(index, parameter, type) {
 
   job <- list()
   job$map <- expression({
@@ -328,7 +335,11 @@ StdMean.grouplag <- function(index, parameter) {
       value$station.id <- map.keys[[r]][1]
       value$group <- as.numeric(map.keys[[r]][2])
       value$lag <- as.numeric(map.keys[[r]][3])
-      rhcollect(1, value)
+      if(type=="100stations") {
+        rhcollect(1, value)
+      } else {
+        rhcollect(map.keys[[r]][1], value)
+      }
     })
   })
   job$reduce <- expression(
@@ -343,20 +354,21 @@ StdMean.grouplag <- function(index, parameter) {
     }
   )
   job$input <- rhfmt(
-    file.path(rh.root, par$dataset, "100stations", "STLtuning", index, "by.stgrouplag"), 
+    file.path(rh.root, par$dataset, type, "STLtuning", index, "by.stagrouplag"), 
     type = "sequence"
   )
   job$output <- rhfmt(
-    file.path(rh.root, par$dataset, "100stations", "STLtuning", index, "grouplag.absmeanstd"),
+    file.path(rh.root, par$dataset, type, "STLtuning", index, "grouplag.absmeanstd"),
     type = "sequence"
   )
   job$mapred <- list(
     mapred.reduce.tasks = 10
   )
   job$parameters <- list(
-    parameter = parameter
+    parameter = parameter,
+    type = type
   )
-  job$jobname <- file.path(rh.root, par$dataset, "100stations", "STLtuning", index, "grouplag.absmeanstd")
+  job$jobname <- file.path(rh.root, par$dataset, type, "STLtuning", index, "grouplag.absmeanstd")
   job$readback <- FALSE
   job$combiner <- TRUE
   job$mon.sec <- 10

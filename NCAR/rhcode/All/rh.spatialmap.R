@@ -1,4 +1,4 @@
-###############################################################
+  ###############################################################
 ##  Create division by station which includes all full obs   ##
 ##  Then create the 100stations.RData which contain the 100  ##
 ##  stations.id  saved on HDFS                               ##
@@ -230,11 +230,11 @@ label <- ddply(
 
 trellis.device(
   device = postscript, 
-  file = file.path(local.root, "output", "allstations.ps"), 
+  file = file.path(local.root, "output", "allstationsone.ps"), 
   color = TRUE, 
   paper = "letter"
 )
-  b <- xyplot( lat ~ lon | factor(group, label = label$label)
+  b <- xyplot( lat ~ lon #| factor(group, label = label$label)
     , data = info
     , xlab = list(label="Longitude", cex = 1.5)
     , ylab = list(label="Latitude", cex = 1.5)
@@ -367,9 +367,9 @@ trellis.device(
 dev.off()
 
 
-#################################################################################
-##
-#################################################################################
+###################################################################
+##  Check the drop of count on Jan 1982, and Dec 1981, Feb 1982  ##
+###################################################################
 data1 <- subset(USppt, year=="1981"&month=="Dec")
 data1 <- data1[!is.na(data1$precip),c("station.id","lat","lon")]
 data2 <- subset(USppt, year=="1982"&month=="Jan")
@@ -386,38 +386,33 @@ miss2$group <- "miss2" #miss2 is the stations that active in Jan 1982 but not in
 addback$group <- "addback"#addback is the stations that active in Feb 1982 but not in Jan1982
 data <- rbind(addback, miss, add, miss2)
 data$group <- factor(data$group)
+
 trellis.device(
-    postscript, 
-    file = paste(
-        outputdir, 
-        "spatial.precip.around1982", ".ps", sep = ""), 
-    color = TRUE, 
-    paper = "legal"
+  device = postscript, 
+  file = file.path("obs.Jan1982.ps"), 
+  color = TRUE, 
+  paper = "letter"
 )
-a <- xyplot(
-    lat ~ lon,
-#    lat ~ lon | group,
-    data = data,
-    xlab = list(label="Longitude"),
-    ylab = list(label="Latitude"),
-    main = "Spatial Location of Precipitation Stations",
-    layout = c(1,1),
-    key = list(
+  a <- xyplot(lat ~ lon
+    , data = data
+    , groups = group
+    , xlab = list(label="Longitude"),
+    , ylab = list(label="Latitude"),
+    , key = list(
         columns = 4, 
         points = list(pch=c(1,16,1,16), col = col[c(1,3,4,2)]), 
-        text = list(label=c("Jan 1982 Missed","Jan 1982 Added", "Feb 1982 Missed", 
-            "Feb 1982 Added")#miss add miss2 addback
+        text = list(
+          label=c("Jan 1982 Missed","Jan 1982 Added", "Feb 1982 Missed", "Feb 1982 Added")#miss add miss2 addback
         )
-    ),
-    groups = group,
-    col = col[c(3,2,1,4)], ##add addback miss miss2
-    pch = c(16,16,1,1),
-    cex = 0.7,
-    panel = function(...) {
+      )
+    , col = col[c(3,2,1,4)], ##add addback miss miss2
+    , pch = c(16,16,1,1),
+    , cex = 0.7,
+    , panel = function(x,y,...) {
         panel.polygon(us.map$x,us.map$y)   
-        panel.xyplot(...)
-    }
-)
-print(a)
+        panel.xyplot(x,y,...)
+      }
+  )
+  print(a)
 dev.off()
 
