@@ -23,27 +23,22 @@
 ## Get the scatter plot of mean of abs(error) cross 601 replicates vs lag 
 ## conditional on group for each station.
 ####################################################################################
-QQdiv <- function() {
+QQDivFromNormal <- function(index, type) {
 
   job <- list()
   job$map <- expression({
     lapply(seq_along(map.values), function(r){
-      v <- map.values[[r]]
-      v$group <- map.keys[[r]][1]
-      myfun <- function(data){
-        yy <- quantile(data$residual, c(0.25, 0.75))
+      if(map.keys[[r]][1] %in% sample.a1950$station.id) {
+        v <- map.values[[r]]
+        v$group <- map.keys[[r]][1]
+        yy <- quantile(v$residual, c(0.25, 0.75))
         xx <- qnorm(c(0.25, 0.75))
         r <- diff(yy)/diff(xx)
-        x <- qnorm(ppoints(length(data$residual)))
+        x <- qnorm(ppoints(length(v$residual)))
         y <- r*x + yy[1] - xx[1]*r
-        div <- sum(abs(sort(data$residual) - y))
-        rhcollect(c(unique(data$group) ,unique(data$station.id)), div)
+        div <- sum(abs(sort(v$residual) - y))
+        rhcollect(map.keys[[r]][1:2], div)
       }
-      tmp <- d_ply(
-        .data = v,
-        .variables = "station.id",
-        .fun = myfun
-      )
     })
   })
   job$reduce <- expression(
@@ -65,17 +60,17 @@ QQdiv <- function() {
     }
   )
   job$input <- rhfmt(
-    file.path(rh.datadir, dataset,"100stations","sharepredict",index,"36.lap.station"), 
+    file.path(rh.root, par$dataset, type, "STLtuning", index, "by.stagrouplag"), 
     type = "sequence"
   )
   job$output <- rhfmt(
-    file.path(rh.datadir, dataset,"100stations","sharepredict",index,"orderstations"), 
+    file.path(rh.root, par$dataset, type, "STLtuning", index, "divorderstations"), 
     type = "sequence"
   )
   job$mapred <- list(
     mapred.reduce.tasks = 72
   )
-  job$jobname <- paste(dataset, "order stations")
+  job$jobname <- file.path(rh.root, par$dataset, type, "STLtuning", index, "divorderstations")
   job$readback <- FALSE
   job$mon.sec <- 10
   job.mr <- do.call("rhwatch", job)
@@ -83,7 +78,12 @@ QQdiv <- function() {
   job <- list()
   job$map <- expression({
     lapply(seq_along(map.values), function(r){
-      rhcollect(map.keys[[r]][1], c(station.id = map.keys[[r]][2], div = map.values[[r]]))
+      value <- data.frame(
+        station.id = map.keys[[r]][1], 
+        div = as.numeric(map.values[[r]]), 
+        stringsAsFactors=FALSE
+      )
+      rhcollect(map.keys[[r]][2], value)
     })
   })
   job$reduce <- expression(
@@ -94,23 +94,25 @@ QQdiv <- function() {
       combined <- rbind(combined, do.call(rbind, reduce.values)) 
     },
     post = {
-      combined$div <- as.numeric(as.character(combined$div))
-      combined <- combined[order(combined$div),]
+      combined <- arrange(combined, div)
       rhcollect(reduce.key, combined)
     }
   )
+  job$setup <- expression(
+    reduce = {library(plyr)}
+  )
   job$input <- rhfmt(
-    file.path(rh.datadir, dataset,"100stations","sharepredict",index,"orderstations"), 
+    file.path(rh.root, par$dataset, type, "STLtuning", index, "divorderstations"), 
     type = "sequence"
   )
   job$output <- rhfmt(
-    file.path(rh.datadir, dataset,"100stations","sharepredict",index,"group.orderstations"), 
+    file.path(rh.root, par$dataset, type, "STLtuning", index, "group.divorderstations"), 
     type = "sequence"
   )
   job$mapred <- list(
     mapred.reduce.tasks = 10
   )
-  job$jobname <- paste(dataset, "order stations")
+  job$jobname <- file.path(rh.root, par$dataset, type, "STLtuning", index, "divorderstations")
   job$readback <- FALSE
   job$mon.sec <- 10
   job.mr <- do.call("rhwatch", job)
