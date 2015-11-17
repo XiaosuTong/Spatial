@@ -1,4 +1,12 @@
-##for a1950 valid=270
+###################################################################
+##  Input is the best choice spatial fitting from bymonth.fit,   ##
+##  and the key is station.id. Output key is c(station.id, i),   ##
+##  where i is the starting time index of time series for one    ##
+##  STL prediction of 36 following obs.                          ##
+##                                                               ##
+##  for a1950 valid=270, tn=576,                                 ##
+##  for 100stations, valid=600, tn=1236                          ##
+###################################################################
 stationSplit <- function(reduce=100, input, type="100stations", tn=1236, valid=600){
   
   job <- list()
@@ -38,11 +46,11 @@ stationSplit <- function(reduce=100, input, type="100stations", tn=1236, valid=6
 
 }
 
-#######################################################
-## Predict 36 observation ahead using                ##
-## previous 600 observations for the 100 stations    ##
-## predict36 did not include fc component            ##
-#######################################################
+###########################################################
+## Predict 36 observation ahead using                    ##
+## previous 600/270 observations for the 100 stations    ##
+## predict36 did not include fc component                ##
+###########################################################
 predict36 <- function(type, parameter, k, index, valid) {
 
   job <- list()
@@ -187,7 +195,7 @@ lagResidual <- function(n, index, type){
 
 ############################################################################
 ##  input key is c(station.id, group, lag), input value is data.frame
-##  of 601 replicates. Output key is 1 which is meaningless, output value
+##  of 601/271 replicates. Output key is 1 which is meaningless, output value
 ##  is the data.frame include 5 quantiles of each c(station.id, group, lag)
 ############################################################################
 lagResidQuan <- function(index, type, reduce=1) {
@@ -256,7 +264,7 @@ lagResidQuan <- function(index, type, reduce=1) {
 ############################################################################
 ##
 ##  input key is c(station.id, group, lag), input value is data.frame
-##  of 601 replicates. Output key is c(station.id, group), output value
+##  of 601/271 replicates. Output key is c(station.id, group), output value
 ##  is a vector. First value is the mean over 36 of the mean of residual 
 ##  over 601 for each station. The second value is the mean over 36 of 
 ##  the standard deviation of residual over 601 for each station.

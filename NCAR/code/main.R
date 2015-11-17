@@ -2,6 +2,8 @@
 library(lattice)
 library(plyr)
 library(hexbin)
+library(maps)
+
 options(stringsAsFactors=FALSE)
 options(java.parameters = "-Xmx1000m")
 
@@ -269,6 +271,16 @@ parameter <- expand.grid(
 for(k in 1:nrow(parameter)) {
   try(predict36(type, parameter, k, index, valid=270))
 }
+try(lagResidual(n=nrow(parameter), index=index, type="a1950"))
+for(j in 1:nrow(parameter)) {
+  rhget(
+    file.path(rh.root, par$dataset, type, "STLtuning", index, "meanerrorqqplot", "_output", paste("QQ.error", dataset, "group", j, "ps", sep= ".")),
+    file.path(local.root, "output")
+  )
+}
+try(lagResidQuan(index=index, type="a1950", reduce=10))
+try(StdMean.group(index=index, type="a1950", num=36))
+try(StdMean.grouplag(index=index, parameter, type="a1950"))
 
 index <- "E2"
 parameter <- expand.grid(
@@ -278,13 +290,14 @@ parameter <- expand.grid(
 for(k in 1:nrow(parameter)) {
   try(predict36(type, parameter, k, index, valid=270))
 }
+try(lagResidual(n=nrow(parameter), index=index, type="a1950"))
+for(j in 1:)
+try(lagResidQuan(index=index, type="a1950", reduce=10))
+try(StdMean.group(index=index, type="a1950", num=36))
+try(StdMean.grouplag(index=index, parameter, type="a1950"))
 
-for(i in paste("E", 2, sep="")) {
-  try(lagResidual(n=nrow(parameter), index=i, type="a1950"))
-  try(lagResidQuan(index=i, type="a1950", reduce=10))
-  try(StdMean.group(index=i, type="a1950", num=36))
-  try(StdMean.grouplag(index=i, parameter, type="a1950"))
-}
+
+
 
 ##########################################
 ##      Backfitting for a1950           ##
