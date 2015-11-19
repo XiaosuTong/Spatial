@@ -136,12 +136,13 @@ predict36 <- function(type, parameter, k, index, valid) {
 
 }
 
-#################################################################################
-## The input files are the all runk files, the output file is by.stgrouplag
-## The key in the output is c(station.id, group, lap), in map output, the value is one row
-## dataframe which has residual and rest of columns. The value from reduce function
-## is the dataframe including all 601 replicates for one c(station.id, group, lap).
-################################################################################# 
+##################################################################################
+## The input files are the all runk files, the output file is by.stgrouplag     ##
+## The key in the output is c(station.id, group, lap), in map output, the       ##
+## value is one row dataframe which has residual and rest of columns. The       ##
+## value from reduce function is the dataframe including all 601/271 replicates ##
+## for one c(station.id, group, lap).                                           ##
+################################################################################## 
 lagResidual <- function(n, index, type){
 
   job<- list()
@@ -193,11 +194,11 @@ lagResidual <- function(n, index, type){
 
 }
 
-############################################################################
-##  input key is c(station.id, group, lag), input value is data.frame
-##  of 601/271 replicates. Output key is 1 which is meaningless, output value
-##  is the data.frame include 5 quantiles of each c(station.id, group, lag)
-############################################################################
+################################################################################
+##  input key is c(station.id, group, lag), input value is data.frame         ##
+##  of 601/271 replicates. Output key is 1 which is meaningless, output value ##
+##  is the data.frame include 5 quantiles of each c(station.id, group, lag)   ##
+################################################################################
 lagResidQuan <- function(index, type, reduce=1) {
 
   job <- list()
@@ -262,13 +263,16 @@ lagResidQuan <- function(index, type, reduce=1) {
 
 
 ############################################################################
-##
-##  input key is c(station.id, group, lag), input value is data.frame
-##  of 601/271 replicates. Output key is c(station.id, group), output value
-##  is a vector. First value is the mean over 36 of the mean of residual 
-##  over 601 for each station. The second value is the mean over 36 of 
-##  the standard deviation of residual over 601 for each station.
-##
+##  input key is c(station.id, group, lag), input value is data.frame     ##
+##  with 601/271 replicates. In the map, the mean and std of each         ##
+##  c(station.id, group) is calculated over 601/271 replicates. Final     ##
+##  output key is c(station.id, group), output value is a vector. First   ##
+##  value is the mean over 36 of the mean of residual over 601 for each   ##
+##  c(station. id, group). The second value is the mean over 36 of        ##
+##  the standard deviation of residual over 601 for each                  ##
+##  c(station.id, group).                                                 ##
+##  The results of this job will be used for dotplot of error vs.         ##
+##  station.id superpose on different group.                              ##
 ############################################################################
 StdMean.group <- function(index, type, num) {
 
@@ -280,7 +284,7 @@ StdMean.group <- function(index, type, num) {
         means = mean(abs(v$residual)),
         std = 1.96*sd(v$residual)
       )
-      key <- map.keys[[r]][1:2]
+      key <- c(map.keys[[r]][1], map.keys[[r]][2])
       rhcollect(key, value)    
     })
   })
@@ -320,15 +324,16 @@ StdMean.group <- function(index, type, num) {
 }
 
 
-##################################################################################
-##
-##  The input file is by.stgrouplag, key is c(station.id, group, lap), 
-##  value is the data.frame of 601 replicates.
-##  The output file is the absmeanstd, key is 1 which is meaningless.
-##  The value is dataframe that each row has mean of abs of error, mean of error, 
-##  and SD of error for given station, given lap, given group.
-##
-##################################################################################
+#################################################################################
+##  The input file is by.stgrouplag, key is c(station.id, group, lap),         ##
+##  value is the data.frame of 601/271 replicates.                             ##
+##  The output file is the grouplag.absmeanstd, key is 1 if it is              ##
+##  100stations, or is station.id for a1950.                                   ##
+##  The value is dataframe that each row has mean of abs of error,             ##
+##  mean of error, and SD of error for given station, given lap, given group.  ##
+##  The results of this job will be used for lineplot of error vs. lag         ##
+##  superpose on different groups.                                             ##
+#################################################################################
 StdMean.grouplag <- function(index, parameter, type) {
 
   job <- list()

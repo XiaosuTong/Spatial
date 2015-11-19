@@ -28,6 +28,8 @@ idx <- ddply(
     sample(r$idx, 1)
   }
 )
+### subset(rst, leaf==21)
+### idx$V1[21] <- 7180
 ## places is stations with lon and lat in each cell
 places <- locs[row.names(locs) %in% idx[,2],]
 sample.a1950 <- data.frame(

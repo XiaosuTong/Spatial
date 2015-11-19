@@ -1,35 +1,20 @@
-####################################################################################
-##
-## Predict 36 observation ahead using previous 600 observations for the 100 stations
-## Different parameter set up are used, predict1 to predict9 are the results for
-## different setting.
-## tmax.100stations.RData which has tmax.stations dataframe is already on HDFS, for
-## each map.keys/map.values, this dataframe will be called by using job$setup and
-## job$shared.
-## stations information is in USinfo.RData which is also on HDFS.
-##
-####################################################################################
-
-#######################################################################
-##Order the stations based on the deviation from the normal distribution
-##For each station, given lap, given group, the distribution of 601 
-##prediction error is compared with normal distribution. The sum of abs
-##deviation over all lap for one station under given group is calculated.
-#######################################################################
-####################################################################################
-## The input file is the absmeanstd.lap.station, key is 1 which is meaningless, 
-## value is the dataframe which has absmean, mean, and SD of prediction error for 
-## a given station, give lap, and given group. So there are 32400 rows in the dataframe.
-## Get the scatter plot of mean of abs(error) cross 601 replicates vs lag 
-## conditional on group for each station.
-####################################################################################
-QQDivFromNormal <- function(index, type) {
+####################################################################
+##  Order the stations based on the deviation from the normal     ##
+##  distribution. For each station, given lap, given group,       ##
+##  the distribution of 601/271 prediction error is compared      ##
+##  with normal distribution. The sum of abs deviation over all   ##
+##  lag for one station under given group is calculated.          ##
+##  The order of stations under given group is saved as           ##
+##  group.divorderstations                                        ##
+####################################################################
+QQDivFromNormal <- function(index="E1", type="a1950") {
 
   job <- list()
   job$map <- expression({
     lapply(seq_along(map.values), function(r){
       if(map.keys[[r]][1] %in% sample.a1950$station.id) {
         v <- map.values[[r]]
+        key <- c(map.keys[[r]][1], map.keys[[r]][2])
         v$group <- map.keys[[r]][1]
         yy <- quantile(v$residual, c(0.25, 0.75))
         xx <- qnorm(c(0.25, 0.75))
@@ -37,7 +22,8 @@ QQDivFromNormal <- function(index, type) {
         x <- qnorm(ppoints(length(v$residual)))
         y <- r*x + yy[1] - xx[1]*r
         div <- sum(abs(sort(v$residual) - y))
-        rhcollect(map.keys[[r]][1:2], div)
+        rhcollect(key, div)
+        rhcounter("Station","sample", 1)
       }
     })
   })
@@ -50,6 +36,7 @@ QQDivFromNormal <- function(index, type) {
     },
     post = {
       rhcollect(reduce.key, total)
+      rhcounter("Station", "reduce", 1)
     }
   )
   job$shared <- c(file.path(rh.root, par$dataset, type, "Rdata", "sample.a1950.RData"))
@@ -80,6 +67,7 @@ QQDivFromNormal <- function(index, type) {
     lapply(seq_along(map.values), function(r){
       value <- data.frame(
         station.id = map.keys[[r]][1], 
+        leaf = with(sample.a1950, leaf[which(station.id == map.keys[[r]][1])]),
         div = as.numeric(map.values[[r]]), 
         stringsAsFactors=FALSE
       )
@@ -98,7 +86,9 @@ QQDivFromNormal <- function(index, type) {
       rhcollect(reduce.key, combined)
     }
   )
+  job$shared <- c(file.path(rh.root, par$dataset, type, "Rdata", "sample.a1950.RData"))
   job$setup <- expression(
+    map = {load("sample.a1950.RData")},
     reduce = {library(plyr)}
   )
   job$input <- rhfmt(
@@ -112,7 +102,7 @@ QQDivFromNormal <- function(index, type) {
   job$mapred <- list(
     mapred.reduce.tasks = 10
   )
-  job$jobname <- file.path(rh.root, par$dataset, type, "STLtuning", index, "divorderstations")
+  job$jobname <- file.path(rh.root, par$dataset, type, "STLtuning", index, "group.divorderstations")
   job$readback <- FALSE
   job$mon.sec <- 10
   job.mr <- do.call("rhwatch", job)
@@ -123,20 +113,21 @@ QQDivFromNormal <- function(index, type) {
 #################################################################################
 ## Get the QQ plot of mean and 1.96*std of error cross 601 replicates.
 #################################################################################
-plotEngine <- function(data, dataset, key) {
+plotEngine <- function(data, dataset, key, orderdf) {
 
+  data$lag <- as.numeric(data$lag)
   trellis.device(
     device = postscript, 
     file = file.path(".", "tmp", paste("QQ.error", dataset, "group", key, "ps", sep= ".")), 
     color = TRUE, 
     paper = "legal"
   )
-  for(i in unique(data$station.id)){
-    b <- qqmath( ~ residual | as.numeric(lag)
+  for(i in orderdf$station.id){
+    b <- qqmath( ~ residual | lag
       , data = subset(data, station.id==i)
       , xlab = list(label = "Unit normal quantile", cex = 1.5)
       , ylab = list(label = ylab, cex = 1.5)
-      , sub = paste("Station", i)
+      , sub = paste("Station", i, "from cell", with(orderdf, leaf[which(station.id==i)]))
       , type = "p"
       , aspect = 1
       , col = "red"
@@ -161,6 +152,9 @@ plotEngine <- function(data, dataset, key) {
 
 QQstationlag <- function(param=parameter, index="E1", type="a1950") {
 
+  stationOrder <- rhread(
+    file.path(rh.root, par$dataset, type, "STLtuning", index, "group.divorderstations")
+  )
   job <- list()
   job$map <- expression({
     lapply(seq_along(map.keys), function(r){
@@ -183,20 +177,24 @@ QQstationlag <- function(param=parameter, index="E1", type="a1950") {
       combined <- rbind(combined, do.call(rbind, reduce.values))
     },
     post={
-      plotEngine(data=combined, dataset=dataset, key=reduce.key)
+      I <- which(unlist(lapply(div.stations, "[[", 1))==reduce.key)
+      plotEngine(data=combined, dataset=dataset, key=reduce.key, order=div.stations[[I]][[2]])
     }
   )
   job$shared <- c(file.path(rh.root, par$dataset, type, "Rdata", "sample.a1950.RData"))
   job$setup <- expression(
     map = {load("sample.a1950.RData")},
-    reduce = {library(lattice)}
+    reduce = {
+      load("sample.a1950.RData")
+      library(lattice)
+    }
   )
   job$parameters <- list(
     param = param, 
     ylab = ylab,
     dataset = par$dataset,
-    plotEngine = plotEngine
-    #div.stations= get(paste(index, "div.stations", sep="."))
+    plotEngine = plotEngine,
+    div.stations = stationOrder
   )
   job$input <- rhfmt(
     file.path(rh.root, par$dataset, type, "STLtuning", index, "by.stagrouplag"), 
@@ -217,7 +215,13 @@ QQstationlag <- function(param=parameter, index="E1", type="a1950") {
 
 }
 
-
+####################################################################################
+## The input file is the absmeanstd.lap.station, key is 1 which is meaningless, 
+## value is the dataframe which has absmean, mean, and SD of prediction error for 
+## a given station, give lap, and given group. So there are 32400 rows in the dataframe.
+## Get the scatter plot of mean of abs(error) cross 601 replicates vs lag 
+## conditional on group for each station.
+####################################################################################
 #################################################################################
 ##For each lap, get a normal quantile plot for each station conditional on group.
 ##There is an issue that the combined in reduce function is over 128MB which will

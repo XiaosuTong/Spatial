@@ -272,15 +272,17 @@ for(k in 1:nrow(parameter)) {
   try(predict36(type, parameter, k, index, valid=270))
 }
 try(lagResidual(n=nrow(parameter), index=index, type="a1950"))
-for(j in 1:nrow(parameter)) {
-  rhget(
-    file.path(rh.root, par$dataset, type, "STLtuning", index, "meanerrorqqplot", "_output", paste("QQ.error", dataset, "group", j, "ps", sep= ".")),
-    file.path(local.root, "output")
-  )
-}
 try(lagResidQuan(index=index, type="a1950", reduce=10))
 try(StdMean.group(index=index, type="a1950", num=36))
 try(StdMean.grouplag(index=index, parameter, type="a1950"))
+try(QQDivFromNormal(index="E1", type="a1950"))
+try(QQstationlag(param=parameter, index="E1", type="a1950"))
+for(j in 1:nrow(parameter)) {
+  rhget(
+    file.path(rh.root, par$dataset, type, "STLtuning", index, "meanerrorqqplot", "_outputs", paste("QQ.error", par$dataset, "group", j, "ps", sep= ".")),
+    file.path(local.root, "output")
+  )
+}
 
 index <- "E2"
 parameter <- expand.grid(
