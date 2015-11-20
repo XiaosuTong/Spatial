@@ -29,7 +29,7 @@ idx <- ddply(
   }
 )
 ### subset(rst, leaf==21)
-### idx$V1[21] <- 7180
+idx$V1[21] <- 7180
 ## places is stations with lon and lat in each cell
 places <- locs[row.names(locs) %in% idx[,2],]
 sample.a1950 <- data.frame(
@@ -64,7 +64,7 @@ a <- xyplot( lat ~ lon
       )
       for(k in 1:nrow(places)){
         panel.text(
-          places$lon[k], places$lat[k], tmax.sample.a1950$leaf[k], 
+          places$lon[k], places$lat[k], sample.a1950$leaf[k], 
           adj = c(0,0), col = col[1]
         )
       }

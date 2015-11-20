@@ -283,6 +283,8 @@ for(j in 1:nrow(parameter)) {
     file.path(local.root, "output")
   )
 }
+try(subsetStation(index="E1"), type="a1950")
+
 
 index <- "E2"
 parameter <- expand.grid(

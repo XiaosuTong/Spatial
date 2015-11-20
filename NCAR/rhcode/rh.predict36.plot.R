@@ -111,9 +111,18 @@ QQDivFromNormal <- function(index="E1", type="a1950") {
 
 
 #################################################################################
-## Get the QQ plot of mean and 1.96*std of error cross 601 replicates.
+##  For each group, get a normal quantile plot for each station conditional    ##
+##  on lag. Under given group, stations are ordered by diviation from normal   ##
+##  distribution.                                                              ##
+##  There is an issue that the combined in reduce function is over 128MB       ##
+##  which will give an error for out of memory. So we only plot in the         ##
+##  reduce step, no data is saved in this step. The station is ordered by      ##
+##  the amount of divation from normal, and the order is called from           ##
+##  group.divorderstations.                                                    ##
 #################################################################################
-plotEngine <- function(data, dataset, key, orderdf) {
+## plotEngine is the plotting function called in reduce function for each group.
+## orderdf is the data.frame contains station order and station leaf.
+plotEngine <- function(data, dataset, key, orderdf) { 
 
   data$lag <- as.numeric(data$lag)
   trellis.device(
@@ -149,7 +158,6 @@ plotEngine <- function(data, dataset, key, orderdf) {
   dev.off()
 
 }
-
 QQstationlag <- function(param=parameter, index="E1", type="a1950") {
 
   stationOrder <- rhread(
@@ -178,7 +186,7 @@ QQstationlag <- function(param=parameter, index="E1", type="a1950") {
     },
     post={
       I <- which(unlist(lapply(div.stations, "[[", 1))==reduce.key)
-      plotEngine(data=combined, dataset=dataset, key=reduce.key, order=div.stations[[I]][[2]])
+      plotEngine(data=combined, dataset=dataset, key=reduce.key, orderdf=div.stations[[I]][[2]])
     }
   )
   job$shared <- c(file.path(rh.root, par$dataset, type, "Rdata", "sample.a1950.RData"))
@@ -215,139 +223,166 @@ QQstationlag <- function(param=parameter, index="E1", type="a1950") {
 
 }
 
-####################################################################################
-## The input file is the absmeanstd.lap.station, key is 1 which is meaningless, 
-## value is the dataframe which has absmean, mean, and SD of prediction error for 
-## a given station, give lap, and given group. So there are 32400 rows in the dataframe.
-## Get the scatter plot of mean of abs(error) cross 601 replicates vs lag 
-## conditional on group for each station.
-####################################################################################
-#################################################################################
-##For each lap, get a normal quantile plot for each station conditional on group.
-##There is an issue that the combined in reduce function is over 128MB which will
-##give an error for out of memory. So we only plot in the reduce step, no data is
-##saved in this step. The station is ordered by the amount of divation from normal,
-##and the order is called from div.station.
-#################################################################################
+#####################################################################################
+## The input file is the grouplag.absmeanstd, key is 1 which is meaningless,       ##
+## value is the dataframe which has absmean, mean, and SD of prediction error for  ##
+## a given station, give lap, and given group.                                     ##
+## Get the scatter plot of mean of ABS(ERROR) cross 601 replicates vs lag          ##
+## conditional on group for each station.                                          ##
+#####################################################################################
+subsetStations <- function(type, index) {
 
-rst <- rhread(
-    file.path(
-        rh.datadir,
-        par$dataset,
-        "100stations",
-        "sharepredict",
-        index,
-        "absmeanstd.lap.station"
-    )
-)
-combined <- rst[[1]][[2]]
-library(lattice)
-combined <- combined[with(combined, order(station.id, sw, tw, lap)), ]
-if(index != "E1"){
-	combined$sw <- factor(
-        combined$sw, 
-        levels=c(sort(as.numeric(unique(combined$sw)[which(unique(combined$sw)!="periodic")])), "periodic")
-    )
-	combined$tw <- as.factor(combined$tw)
-}else{
-	combined$sw <- as.factor(combined$sw)
-	combined$tw <- as.factor(combined$tw)
+  job <- list()
+  job$map <- expression({
+    lapply(seq_along(map.keys), function(r) {
+      if(map.keys[[r]][1] %in% sample.a1950$station.id) {
+        rhcollect(1, map.values[[r]])
+        rhcounter("Station","sample", 1)
+      }
+    })
+  })
+  job$reduce <- expression(
+    pre = {
+      combined <- data.frame()
+    },
+    reduce = {
+      combined <- rbind(combined, do.call(rbind, reduce.values)) 
+    },
+    post = {
+      rhcollect(reduce.key, combined)
+    }
+  )
+  job$shared <- c(file.path(rh.root, par$dataset, type, "Rdata", "sample.a1950.RData"))
+  job$setup <- expression(
+    map = {load("sample.a1950.RData")},
+  )
+  job$input <- rhfmt(
+    file.path(rh.root, par$dataset, type, "STLtuning", index, "grouplag.absmeanstd"), 
+    type = "sequence"
+  )
+  job$output <- rhfmt(
+    file.path(rh.root, par$dataset, type, "STLtuning", index, "grouplagSample.absmeanstd"), 
+    type="sequence"
+  )
+  job$mapred <- list(
+    mapred.reduce.tasks = 1
+  )
+  job$jobname <- file.path(rh.root, par$dataset, type, "STLtuning", index, "grouplagSample.absmeanstd")
+  job$readback <- FALSE
+  job$mon.sec <- 15
+  job.mr <- do.call("rhwatch", job)  
+
 }
-trellis.device(
+
+absErrorvsLag <- function(type, index, var, target) {
+
+  ## grouplagSample.absmeanstd is one key-value pair which includes all 128 stations mean of given group given lag
+  rst <- rhread(
+    file.path(rh.root, par$dataset, type, "STLtuning", index, "grouplagSample.absmeanstd")
+  )[[1]][[2]]  
+  
+  rst <- cbind(rst, parameter[c(rst$group), var]) 
+
+  if(index != "E1"){
+    rst$sw <- factor(rst$sw, 
+      levels=c(sort(as.numeric(unique(rst$sw)[which(unique(rst$sw)!="periodic")])), "periodic")
+    )
+    rst$tw <- as.factor(rst$tw)
+  }else{
+    rst$sw <- as.factor(rst$sw)
+    rst$tw <- as.factor(rst$tw)
+  }
+
+  if(target == "means"){
+    ylab <- "Mean of Error"
+  } else if(target == "absmeans") {
+    ylab <- "Mean of Absolute Value of Error"
+  } else {
+    ylab <- "Standard Deviation of Error"
+  }
+
+  rhload(file.path(rh.root, par$dataset, type, "Rdata", "sample.a1950.RData"))
+  num <- with(rst, length(levels(get(var[2]))))
+  trellis.device(
     device = postscript, 
-    file = file.path(
-        local.output, 
-        paste("QQ_plot_of_mean_abserror_", dataset, ".ps", sep="")
-    ), 
-    color = TRUE, 
-    paper = "legal"
-)
-	b <- qqmath( ~ absmeans | group,	
-		data = combined,
-		distribution = qunif,
-		aspect = 1,
-        layout = c(3 ,3),
-		xlab = list(label = "f-value", cex = 1.2),
-		ylab = list(label = ylab, cex = 1.2),
-		pch = 1,
-		cex = 0.3,
-	)
-	print(b)
-dev.off()
-trellis.device(
-    device = postscript, 
-    file = file.path(
-        local.output, 
-        paste("scatter_plot_of_mean_abserror_", dataset, "_vs_lag_sw.ps", sep="")
-    ), 
-    color=TRUE, 
-    paper="legal"
-)
-	b <- xyplot( absmeans ~ lap | sw*as.factor(station.id),
-        data = combined,
-        xlab = list(label = "Lag", cex = 1.2),
-        ylab = list(label = ylab, cex = 1.2),
-        groups = as.factor(tw),
-        key=list(
-            type = "l", 
-            text = list(label=levels(as.factor(combined$tw))),  
-            lines = list(lwd=1.5, col=col[1:3]), 
-            columns=3
-        ),
-        type = "b",
-        scales = list(
-            x=list(at=seq(from=0, to=36, by=6)), 
-            y=list(relation="sliced")
-        ),
-        layout = c(3,1),
-        pch = 1,
-        panel = function(x,y,...) {
-            panel.xyplot(x,y,...)
-            panel.abline(h=0, v=seq(0,36, by=12), color="black", lty=1, lwd=0.5)
-        }
-	)
-	print(b)
-dev.off()
-trellis.device(
-    device = postscript, 
-    file = file.path(
-        local.output, 
-        paste("scatter_plot_of_mean_abserror_", dataset,"_vs_lag_tw.ps", sep="")
-    ), 
-    color = TRUE, 
-    paper="legal"
-)
-	b <- xyplot( absmeans ~ lap | tw*as.factor(station.id),
-        data = combined,
-        xlab = list(label = "Lag", cex = 1.2),
-        ylab = list(label = ylab, cex = 1.2),
-        groups = as.factor(sw),
-        key=list(
-            type = "l", 
-            text = list(label=levels(as.factor(combined$sw))),  
-            lines = list(lwd=1.5, col=col[1:3]), 
-            columns = 3
-        ),
-        type = "b",
-        scales = list(
-            x = list(at = seq(from = 0, to = 36, by = 6)), 
-            y = list(relation = "sliced")
-        ),
-        layout = c(3,1),
-        pch = 1,
-        panel = function(x,y,...) {
-            panel.xyplot(x,y,...)
-            panel.abline(h=0, v=seq(0,36, by=12), color="black", lty=1, lwd=0.5)
+    file   = file.path(local.root, "output", paste(par$dataset, target,"vs.lag", var[1],"ps", sep=".")), 
+    color  = TRUE, 
+    paper  = "letter"
+  )
+  for(i in 1:128) {
+    b <- xyplot( get(target) ~ lag | get(var[1])
+      , data = subset(rst, station.id == with(sample.a1950, station.id[which(leaf==i)]))
+      , sub = paste("Station", with(sample.a1950, station.id[which(leaf==i)]), "from cell", i)
+      , xlab = list(label = "Lag", cex = 1.5)
+      , ylab = list(label = ylab, cex = 1.5)
+      , groups = get(var[2])
+      , key = list(
+          type = "l", 
+          text = list(label=paste(var[2],"=",with(rst, levels(get(var[2]))), sep="")),  
+          lines = list(lwd=2, col=col[1:num]), 
+          columns = num
+        )
+      , type = "b"
+      , lwd = 1.5
+      , cex = 0.7
+      , scales = list(
+          x = list(at=seq(from=0, to=36, by=6), cex=1.2), 
+          y = list(relation="sliced", cex=1.2)
+        )
+      , layout = c(num,1)
+      , panel = function(x,y,...) {
+          panel.xyplot(x,y,...)
+          panel.abline(h=0, v=seq(0,36, by=12), color="black", lty=1, lwd=0.5)
         }
     )
-	print(b)
-dev.off()
+    print(b)
+  }
+  dev.off()
+  num <- with(rst, length(levels(get(var[1]))))
+  trellis.device(
+    device = postscript, 
+    file   = file.path(local.root, "output", paste(par$dataset, target, "vs.lag", var[2],"ps", sep=".")), 
+    color = TRUE, 
+    paper="letter"
+  )
+  for(i in 1:128) {
+    b <- xyplot( absmeans ~ lag | get(var[2])
+      , data = subset(rst, station.id == with(sample.a1950, station.id[which(leaf==i)]))
+      , xlab = list(label = "Lag", cex = 1.5),
+      , ylab = list(label = ylab, cex = 1.5),
+      , groups = get(var[1])
+      , key = list(
+          type = "l", 
+          text = list(label=paste(var[1],"=",with(rst, levels(get(var[1]))), sep="")),  
+          lines = list(lwd=2, col=col[1:num]), 
+          columns = num
+        )
+      , type = "b"
+      , lwd = 1.5
+      , cex = 0.7
+      , scales = list(
+          x = list(at=seq(from=0, to=36, by=6), cex=1.2), 
+          y = list(relation="sliced", cex=1.2)
+        )
+      , layout = c(num,1)
+      , panel = function(x,y,...) {
+          panel.xyplot(x,y,...)
+          panel.abline(h=0, v=seq(0,36, by=12), color="black", lty=1, lwd=0.5)
+        }
+    )
+  	print(b)
+  }
+  dev.off()
 
+}
 
-#################################################################################
-## Get the scatter plot of mean of error cross 601 replicates vs lag 
-## conditional on group for each station.
-#################################################################################
+#####################################################################################
+## The input file is the grouplag.absmeanstd, key is 1 which is meaningless,       ##
+## value is the dataframe which has absmean, mean, and SD of prediction error for  ##
+## a given station, give lap, and given group.                                     ##
+## Get the scatter plot of mean of ERROR cross 601 replicates vs lag conditional   ##
+## on group for each station.                                                      ##
+#####################################################################################
 trellis.device(
     device = postscript, 
     file = file.path(
