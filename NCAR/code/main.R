@@ -257,10 +257,10 @@ a1950.fitRaw(data=rst, outputdir=file.path(local.root, "output"), target="tmax",
 #####################################################
 ## Use the previous FileInput which is the bystation division of best spatial
 ## interpolation model.
-type <- "a1950"
 stationSplit(reduce=200, input=FileInput, type=type, tn=576, valid=270)
-## Experiment E1
-index <- "E1"
+###################
+## Experiment E1 ##
+###################
 parameter <- expand.grid(
   sw = c(21, 30, 39), 
   tw = c(231, 313, 451), 
@@ -269,12 +269,12 @@ parameter <- expand.grid(
   fc.flag = FALSE
 )
 for(k in 1:nrow(parameter)) {
-  try(predict36(type, parameter, k, index, valid=270))
+  try(predict36(type="a1950", parameter=parameter, k=k, index="E1", valid=270))
 }
-try(lagResidual(n=nrow(parameter), index=index, type="a1950"))
-try(lagResidQuan(index=index, type="a1950", reduce=10))
-try(StdMean.group(index=index, type="a1950", num=36))
-try(StdMean.grouplag(index=index, parameter, type="a1950"))
+try(lagResidual(n=nrow(parameter), index="E1", type="a1950"))
+try(lagResidQuan(index="E1", type="a1950", reduce=10))
+try(StdMean.group(index="E1", type="a1950", num=36))
+try(StdMean.grouplag(index="E1", parameter=parameter, type="a1950"))
 try(QQDivFromNormal(index="E1", type="a1950"))
 try(QQstationlag(param=parameter, index="E1", type="a1950"))
 for(j in 1:nrow(parameter)) {
@@ -283,25 +283,32 @@ for(j in 1:nrow(parameter)) {
     file.path(local.root, "output")
   )
 }
+## filtering only 128 station for visualization
 try(subsetStation(index="E1"), type="a1950")
+for(j in c("absmeans","means","std")) {
+  errorVsLag(type="a1950", index="E1", var=c("sw","tw"), target=j)
+}
 
-
-index <- "E2"
+###################
+## Experiment E2 ##
+###################
 parameter <- expand.grid(
   sw = c(21, 41, "periodic"), tw = c(123, 313, 451), td = 2, 
   sd = 1, fc.flag = FALSE, stringsAsFactors=FALSE
 )
 for(k in 1:nrow(parameter)) {
-  try(predict36(type, parameter, k, index, valid=270))
+  try(predict36(type="a1950", parameter=parameter, k=k, index="E2", valid=270))
 }
-try(lagResidual(n=nrow(parameter), index=index, type="a1950"))
-for(j in 1:)
-try(lagResidQuan(index=index, type="a1950", reduce=10))
-try(StdMean.group(index=index, type="a1950", num=36))
-try(StdMean.grouplag(index=index, parameter, type="a1950"))
+## 11/20 14:33 finished above
+try(lagResidual(n=nrow(parameter), index="E2", type="a1950"))
+try(lagResidQuan(index="E2", type="a1950", reduce=10))
+try(StdMean.group(index="E2", type="a1950", num=36))
+try(StdMean.grouplag(index="E2", parameter=parameter, type="a1950"))
+try(QQDivFromNormal(index="E2", type="a1950"))
+try(QQstationlag(param=parameter, index="E2", type="a1950"))
 
 
-
+  
 
 ##########################################
 ##      Backfitting for a1950           ##

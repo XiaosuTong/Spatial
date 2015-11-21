@@ -271,6 +271,9 @@ lagResidQuan <- function(index, type, reduce=1) {
 ##  c(station. id, group). The second value is the mean over 36 of        ##
 ##  the standard deviation of residual over 601 for each                  ##
 ##  c(station.id, group).                                                 ##
+##  Then the next job rbind all stations all group to be one data.frame   ##
+##  by reading c(station.id, group) key-value pairs in "group.absmeanstd" ##
+##  to create "overall.absmeanstd".                                       ##
 ##  The results of this job will be used for dotplot of error vs.         ##
 ##  station.id superpose on different group.                              ##
 ############################################################################
@@ -321,7 +324,48 @@ StdMean.group <- function(index, type, num) {
   job$mon.sec <- 10
   job.mr <- do.call("rhwatch", job)
 
+  job <- list()
+  job$map <- expression({
+    lapply(seq_along(map.keys), function(r) {
+      value <- data.frame(
+        station.id = map.keys[[r]][1],
+        group = map.keys[[r]][2],
+        mean.absmeans = map.values[[r]][1],
+        mean.std = map.values[[r]][2],
+        stringsAsFactors = FALSE
+      )
+      rhcollect(1, value)
+    })
+  })
+  job$reduce <- expression(
+    pre = {
+      combined <- data.frame()
+    },
+    reduce = {
+      combined <- rbind(combined, do.call("rbind", reduce.values))
+    },
+    post = {
+      rhcollect(reduce.key, combined)
+    }
+  )
+  job$input <- rhfmt(
+    file.path(rh.root, par$dataset, type, "STLtuning", index, "group.absmeanstd"), 
+    type = "sequence"
+  )
+  job$output <- rhfmt(
+    file.path(rh.root, par$dataset, type, "STLtuning", index, "overall.absmeanstd"),
+    type = "sequence"
+  )
+  job$mapred <- list(
+    mapred.reduce.tasks = 10
+  )
+  job$jobname <- file.path(rh.root, par$dataset, type, "STLtuning", index, "overall.absmeanstd")
+  job$readback <- FALSE
+  job$mon.sec <- 10
+  job.mr <- do.call("rhwatch", job)
+
 }
+
 
 
 #################################################################################

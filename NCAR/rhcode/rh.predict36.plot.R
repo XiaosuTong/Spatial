@@ -274,7 +274,7 @@ subsetStations <- function(type, index) {
 
 }
 
-absErrorvsLag <- function(type, index, var, target) {
+errorVsLag <- function(type, index, var, target) {
 
   ## grouplagSample.absmeanstd is one key-value pair which includes all 128 stations mean of given group given lag
   rst <- rhread(
@@ -292,13 +292,15 @@ absErrorvsLag <- function(type, index, var, target) {
     rst$sw <- as.factor(rst$sw)
     rst$tw <- as.factor(rst$tw)
   }
+  
+  rst <- arrange(rst, station.id, group, lag)
 
   if(target == "means"){
     ylab <- "Mean of Error"
   } else if(target == "absmeans") {
-    ylab <- "Mean of Absolute Value of Error"
+    ylab <- "Mean of Absolute Value of Prediction Error"
   } else {
-    ylab <- "Standard Deviation of Error"
+    ylab <- "Standard Deviation of Prediction Error"
   }
 
   rhload(file.path(rh.root, par$dataset, type, "Rdata", "sample.a1950.RData"))
@@ -346,8 +348,9 @@ absErrorvsLag <- function(type, index, var, target) {
     paper="letter"
   )
   for(i in 1:128) {
-    b <- xyplot( absmeans ~ lag | get(var[2])
+    b <- xyplot( get(target) ~ lag | get(var[2])
       , data = subset(rst, station.id == with(sample.a1950, station.id[which(leaf==i)]))
+      , sub = paste("Station", with(sample.a1950, station.id[which(leaf==i)]), "from cell", i)
       , xlab = list(label = "Lag", cex = 1.5),
       , ylab = list(label = ylab, cex = 1.5),
       , groups = get(var[1])
@@ -376,160 +379,6 @@ absErrorvsLag <- function(type, index, var, target) {
 
 }
 
-#####################################################################################
-## The input file is the grouplag.absmeanstd, key is 1 which is meaningless,       ##
-## value is the dataframe which has absmean, mean, and SD of prediction error for  ##
-## a given station, give lap, and given group.                                     ##
-## Get the scatter plot of mean of ERROR cross 601 replicates vs lag conditional   ##
-## on group for each station.                                                      ##
-#####################################################################################
-trellis.device(
-    device = postscript, 
-    file = file.path(
-        local.output, 
-        paste("scatter_plot_of_mean_error_", dataset, "_vs_lag_sw.ps", sep="")
-    ), 
-    color = TRUE, 
-    paper = "legal"
-)
-	b <- xyplot( means ~ lap | sw*as.factor(station.id),
-        data = combined,
-        xlab = list(label = "Lag", cex = 1.2),
-        ylab = list(label = ylab, cex = 1.2),
-        groups = as.factor(tw),
-        key=list(
-            type = "l", 
-            text = list(label=levels(as.factor(combined$tw))),  
-            lines = list(lwd=1.5, col=col[1:3]), 
-            columns = 3
-        ),
-        type = "b",
-        ylim = c(min(combined$means), max(combined$means)),
-        scales = list(
-            x = list(at = seq(from = 0, to = 36, by = 6)), 
-            y = list(relation = "same")
-        ),
-        layout = c(3,1),
-        pch = 1,
-        panel = function(x,y,...) {
-            panel.xyplot(x,y,...)
-            panel.abline(h=0, v=seq(0,36, by=12), color="black", lty=1, lwd=0.5)
-        }
-    )
-    print(b)
-dev.off()
-trellis.device(
-    device = postscript, 
-    file = file.path(
-        local.output, 
-        paste("scatter_plot_of_mean_error_", dataset,"_vs_lag_tw.ps", sep="")
-    ), 
-    color = TRUE, 
-    paper = "legal"
-)
-	b <- xyplot( means ~ lap | tw*as.factor(station.id),
-        data = combined,
-        xlab = list(label = "Lag", cex = 1.2),
-        ylab = list(label = ylab, cex = 1.2),
-        groups = as.factor(sw),
-        key=list(
-            type = "l", 
-            text = list(label=levels(as.factor(combined$sw))),  
-            lines = list(lwd=1.5, col=col[1:3]), 
-            columns = 3
-        ),
-        type = "b",
-        ylim = c(min(combined$means), max(combined$means)),
-        scales = list(
-            x = list(at = seq(from = 0, to = 36, by = 6)),
-            y = list(relation = "same")
-        ),
-        layout = c(3,1),
-        pch = 1,
-        panel = function(x,y,...) {
-            panel.xyplot(x,y,...)
-            panel.abline(h=0, v=seq(0,36, by=12), color="black", lty=1, lwd=0.5)
-        }
-    )
-    print(b)
-dev.off()
-
-
-#################################################################################
-## Get the scatter plot of 1.96*std of error cross 601 replicates vs lag 
-## conditional on group for each station.
-#################################################################################
-trellis.device(
-    device = postscript, 
-    file = file.path(
-        local.output, 
-        paste("scatter_plot_of_std_error_", dataset, "_vs_lag_sw.ps", sep="")
-    ), 
-    color = TRUE, 
-    paper = "legal"
-)
-	b <- xyplot( std ~ lap | sw*as.factor(station.id),
-        data = combined,
-        xlab = list(label = "Lag", cex = 1.2),
-        ylab = list(label = ylab, cex = 1.2),
-        groups = as.factor(tw),
-        key=list(
-            type = "l", 
-            text = list(label=levels(as.factor(combined$tw))),  
-            lines = list(lwd=1.5, col=col[1:3]), 
-            columns = 3
-        ),
-        type = "b",
-        scales = list(
-            x = list(at = seq(from = 0, to = 36, by = 6)), 
-            y = list(relation = "sliced")
-        ),
-        layout = c(3,1),
-        pch=1,
-        panel = function(x,y,...) {
-            panel.xyplot(x,y,...)
-            panel.abline(h=0, v=seq(0,36, by=12), color="black", lty=1, lwd=0.5)
-        }
-    )
-    print(b)
-dev.off()
-
-trellis.device(
-    device = postscript, 
-    file = file.path(
-        local.output, 
-        paste("scatter_plot_of_std_error_", dataset,"_vs_lag_tw.ps", sep="")
-    ), 
-    color = TRUE, 
-    paper = "legal"
-)
-	b <- xyplot( std ~ lap | tw*as.factor(station.id),
-        data = combined,
-        xlab = list(label = "Lag", cex = 1.2),
-        ylab = list(label = ylab, cex = 1.2),
-        groups = as.factor(sw),
-        key=list(
-            type = "l", 
-            text = list(label=levels(as.factor(combined$sw))),  
-            lines = list(lwd=1.5, col=col[1:3]), 
-            columns = 3
-        ),
-        type = "b",
-        scales = list(
-            x = list(at = seq(from = 0, to = 36, by = 6)), 
-            y = list(relation = "sliced")
-        ),
-        layout = c(3,1),
-        pch = 1,
-        panel = function(x,y,...) {
-            panel.xyplot(x,y,...)
-            panel.abline(h=0, v=seq(0,36, by=12), color="black", lty=1, lwd=0.5)
-        }
-    )
-    print(b)
-dev.off()
-
-
 ####################################################################################
 ## The input file is the mean.lap.station, key is 1 which is meaningless, value is the 
 ## dataframe which has mean of 36 mean(abs(error)) and mean of 36 1.96*SD(error) for
@@ -537,72 +386,100 @@ dev.off()
 ## Get the dotplot of overmean against sw or tw conditional on station, as well as
 ## the scatter plot matrix of overmean.
 ####################################################################################
-rst <- rhread(
-    file.path(
-        rh.datadir, 
-        dataset, 
-        "100stations",
-        "sharepredict",
-        index,
-        "over.absmeanstd.lap.station"
+overallErrorVsStation <- function(type, index, var, target, sub) {
+
+  rst <- rhread(
+    file.path(rh.root, par$dataset, type, "STLtuning", index, "overall.absmeanstd")
+  )[[1]][[2]]  
+
+  rst <- cbind(rst, parameter[c(rst$group), var]) 
+
+  if(sub) {
+    rhload(file.path(rh.root, par$dataset, type, "Rdata", "sample.a1950.RData"))
+    rst <- subset(rst, station.id %in% sample.a1950$station.id)
+  }
+  if(index != "E1"){
+    rst$sw <- factor(rst$sw, 
+      levels=c(sort(as.numeric(unique(rst$sw)[which(unique(rst$sw)!="periodic")])), "periodic")
     )
-)
-result <- as.data.frame(
-    do.call(rbind, lapply(rst, "[[", 1)), 
-    stringsAsFactors=FALSE
-)
-result <- cbind(
-    result, 
-    as.data.frame(do.call(rbind, lapply(rst, "[[", 2)))
-)
-names(result) <- c("station.id","sw","tw", "overmean", "overstd")
-#result$sw <- as.numeric(result$sw)
-result$tw <- as.numeric(result$tw)
-if(index != "E1"){
-    result$sw <- factor(
-        result$sw, 
-        levels = c(
-            sort(as.numeric(unique(result$sw)[which(unique(result$sw)!="periodic")])), 
-            "periodic"
-        )
-    )
-    result$tw <- as.factor(result$tw)
-}else{
-    result$sw <- as.factor(result$sw)
-    result$tw <- as.factor(result$tw)
-}
-od.mean <- names(sort(tapply(result$overmean, result$station.id, mean)))
-result$station.id <- factor(result$station.id, levels=od.mean)
-trellis.device(
+    rst$tw <- as.factor(rst$tw)
+  }else{
+    rst$sw <- as.factor(rst$sw)
+    rst$tw <- as.factor(rst$tw)
+  }
+
+  if(target == "mean.absmeans") {
+    ylab <- "Mean of Absolute Value of Prediction Error"
+  } else {
+    ylab <- "Mean of Standard Deviation of Error"
+  }
+  num <- with(rst, length(levels(get(var[2]))))
+  Min <- as.numeric(which.min(tapply(rst$mean.absmeans, rst$group, mean)))
+  od.mean <- as.character(arrange(subset(rst, group == Min), get(target))$station.id)
+  rst$station.id <- factor(rst$station.id, levels=od.mean)
+
+  trellis.device(
     device = postscript, 
-    file = file.path(
-        local.output, 
-        paste("dotplot_of_overmean_error_", dataset,"_tw.ps", sep="")
-    ), 
+    file = file.path(local.root, "output", paste(par$dataset, target, "error", var[1], "ps", sep=".")), 
     color = TRUE, 
-    paper = "legal"
-)
-	b <- dotplot( overmean ~ station.id | tw,
-        data = result,
-        ylab = list(label = "Mean of absolute prediction error", cex = 1.2),
-        xlab = list(label = "Stations", cex = 1.2),
-        groups = sw,
-        key = list(
-            type = "p", 
-            text = list(label=levels(as.factor(result$sw))),  
-            points = list(col=col[1:3]), 
-            columns = 3, 
-            pch = 1
-        ),
-        type = "p",
-        layout = c(1,1),
-        scales = list(
-            x = list(draw = FALSE), 
-            y = list(relation = "free")
+    paper = "letter"
+  )
+    b <- dotplot( get(target) ~ station.id | get(var[1])
+      , data = rst
+      , ylab = list(label = ylab, cex = 1.5)
+      , xlab = list(label = "Stations", cex = 1.5)
+      , groups = get(var[2])
+      , key = list(
+          type = "p", pch = 1,
+          text = list(label=paste(var[2],"=",with(rst, levels(get(var[2]))), sep="")),  
+          points = list(col=col[1:num]), 
+          columns = num
         )
+      , layout = c(num,1)
+      , scales = list(
+          x = list(draw = FALSE), y = list(relation = "same", cex=1.2)
+        )
+      , panel = function(x,y,...) {
+          panel.abline(h=seq(0,4,0.5), lwd=0.5, col="lightgray")
+          panel.dotplot(x,y,levels.fos=NULL, pch = 1, cex = 0.5,...) 
+        }
     )
     print(b)
-dev.off()
+  dev.off()
+
+  num <- with(rst, length(levels(get(var[1]))))
+  trellis.device(
+    device = postscript, 
+    file = file.path(local.root, "output", paste(par$dataset, target, "error", var[2],"ps", sep=".")), 
+    color = TRUE, 
+    paper = "letter"
+  )
+    b <- dotplot( get(target) ~ station.id | get(var[2])
+      , data = rst
+      , ylab = list(label = ylab, cex = 1.5)
+      , xlab = list(label = "Stations", cex = 1.5)
+      , groups = get(var[1])
+      , key = list(
+          type = "p", pch = 1,
+          text = list(label=paste(var[1],"=",with(rst, levels(get(var[1]))), sep="")),  
+          points = list(col=col[1:num]), 
+          columns = num
+        )
+      , layout = c(num,1)
+      , scales = list(
+          x = list(draw = FALSE), y = list(relation = "same", cex=1.2)
+        )
+      , panel = function(x,y,...) {
+          panel.abline(h=seq(0,4,0.5), lwd=0.5, col="lightgray")
+          panel.dotplot(x,y,levels.fos=NULL, pch = 1, cex = 0.5,...) 
+        }
+    )
+    print(b)
+  dev.off()
+
+}
+
+
 
 trellis.device(
     device = postscript, 
