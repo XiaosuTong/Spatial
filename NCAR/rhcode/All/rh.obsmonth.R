@@ -53,7 +53,7 @@ end <- tail(rst$date, 1)
 
 trellis.device(
   device = postscript, 
-  file = file.path(local.output, "obs.month.ps"), 
+  file = file.path(local.root, "output", "obs.month.ps"), 
   color = TRUE, 
   paper = "letter"
 )

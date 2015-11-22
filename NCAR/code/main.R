@@ -28,11 +28,11 @@ if(par$dataset == "precip") {
 #col <- lattice.theme$superpose.symbol$col
 col <- c("#0080ff", "#ff00ff", "darkgreen", "#ff0000", "orange", "#00ff00", "brown") 
 if(par$dataset == "tmax") {
-    ylab <-  "Maximum Temperature (degrees centigrade)"
+  ylab <-  "Maximum Temperature (degrees centigrade)"
 }else if(par$dataset == "tmin") {
-    ylab <- "Minimum Temperature (degrees centigrade)"
+  ylab <- "Minimum Temperature (degrees centigrade)"
 }else {
-    ylab <- "Precipitation (millimeters)"
+  ylab <- "Precipitation (millimeters)"
 }
 
 #########################################
@@ -284,11 +284,13 @@ for(j in 1:nrow(parameter)) {
   )
 }
 ## filtering only 128 station for visualization
-try(subsetStation(index="E1"), type="a1950")
+try(subsetStations(index="E1", type="a1950"))
 for(j in c("absmeans","means","std")) {
   errorVsLag(type="a1950", index="E1", var=c("sw","tw"), target=j)
 }
-
+for(j in c("mean.absmeans","mean.std")){
+  overallErrorVsStation(type="a1950", index="E1", var=c("sw","tw"), target=j, sub=TRUE)
+}
 ###################
 ## Experiment E2 ##
 ###################
@@ -299,16 +301,58 @@ parameter <- expand.grid(
 for(k in 1:nrow(parameter)) {
   try(predict36(type="a1950", parameter=parameter, k=k, index="E2", valid=270))
 }
-## 11/20 14:33 finished above
 try(lagResidual(n=nrow(parameter), index="E2", type="a1950"))
 try(lagResidQuan(index="E2", type="a1950", reduce=10))
 try(StdMean.group(index="E2", type="a1950", num=36))
 try(StdMean.grouplag(index="E2", parameter=parameter, type="a1950"))
 try(QQDivFromNormal(index="E2", type="a1950"))
 try(QQstationlag(param=parameter, index="E2", type="a1950"))
+for(j in 1:nrow(parameter)) {
+  rhget(
+    file.path(rh.root, par$dataset, type, "STLtuning", index, "meanerrorqqplot", "_outputs", paste("QQ.error", par$dataset, "group", j, "ps", sep= ".")),
+    file.path(local.root, "output")
+  )
+}
+try(subsetStations(index="E2", type="a1950"))
+for(j in c("absmeans","means","std")) {
+  errorVsLag(type="a1950", index="E2", var=c("sw","tw"), target=j)
+}
+for(j in c("mean.absmeans","mean.std")){
+  overallErrorVsStation(type="a1950", index="E2", var=c("sw","tw"), target=j, sub=TRUE)
+}
+###################
+## Experiment E3 ##
+###################
+parameter <- expand.grid(
+  sw = "periodic", tw = c(41, 83, 123, 313, 451), td = c(1, 2), 
+  sd = 1, fc.flag = FALSE, stringsAsFactors=FALSE
+)
+for(k in 1:nrow(parameter)) {
+  try(predict36(type="a1950", parameter=parameter, k=k, index="E3", valid=270))
+}
+try(lagResidual(n=nrow(parameter), index="E3", type="a1950"))
+try(lagResidQuan(index="E3", type="a1950", reduce=10))
+try(StdMean.group(index="E3", type="a1950", num=36))
+try(StdMean.grouplag(index="E3", parameter=parameter, type="a1950"))
+try(QQDivFromNormal(index="E3", type="a1950"))
+try(QQstationlag(param=parameter, index="E3", type="a1950"))
+for(j in 1:nrow(parameter)) {
+  rhget(
+    file.path(rh.root, par$dataset, "a1950", "STLtuning", "E3", "meanerrorqqplot", "_outputs", paste("QQ.error", par$dataset, "group", j, "ps", sep= ".")),
+    file.path(local.root, "output")
+  )
+}
+try(subsetStations(index="E3", type="a1950"))
+for(j in c("absmeans","means","std")) {
+  errorVsLag(type="a1950", index="E3", var=c("sw","tw"), target=j)
+}
+for(j in c("mean.absmeans","mean.std")){
+  overallErrorVsStation(type="a1950", index="E3", var=c("sw","tw"), target=j, sub=TRUE)
+}
 
 
-  
+
+
 
 ##########################################
 ##      Backfitting for a1950           ##

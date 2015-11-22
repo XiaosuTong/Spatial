@@ -373,7 +373,7 @@ errorVsLag <- function(type, index, var, target) {
           panel.abline(h=0, v=seq(0,36, by=12), color="black", lty=1, lwd=0.5)
         }
     )
-  	print(b)
+    print(b)
   }
   dev.off()
 
@@ -440,7 +440,7 @@ overallErrorVsStation <- function(type, index, var, target, sub) {
           x = list(draw = FALSE), y = list(relation = "same", cex=1.2)
         )
       , panel = function(x,y,...) {
-          panel.abline(h=seq(0,4,0.5), lwd=0.5, col="lightgray")
+          #panel.abline(h=seq(0,4,0.5), lwd=0.5, col="lightgray")
           panel.dotplot(x,y,levels.fos=NULL, pch = 1, cex = 0.5,...) 
         }
     )
@@ -470,7 +470,7 @@ overallErrorVsStation <- function(type, index, var, target, sub) {
           x = list(draw = FALSE), y = list(relation = "same", cex=1.2)
         )
       , panel = function(x,y,...) {
-          panel.abline(h=seq(0,4,0.5), lwd=0.5, col="lightgray")
+          #panel.abline(h=seq(0,4,0.5), lwd=0.5, col="lightgray")
           panel.dotplot(x,y,levels.fos=NULL, pch = 1, cex = 0.5,...) 
         }
     )
@@ -479,100 +479,6 @@ overallErrorVsStation <- function(type, index, var, target, sub) {
 
 }
 
-
-
-trellis.device(
-    device = postscript, 
-    file = file.path(
-        local.output, 
-        paste("dotplot_of_overmean_error_", dataset,"_sw.ps", sep="")
-    ), 
-    color = TRUE, 
-    paper = "legal"
-)
-    b <- dotplot( overmean ~ station.id | sw,
-        data = result,
-        ylab = list(label = "Mean of absolute prediction error", cex = 1.2),
-        xlab = list(label = "Stations", cex = 1.2),
-        groups = as.factor(tw),
-        key = list(
-            type = "l", 
-            text = list(label=levels(as.factor(result$tw))),  
-            points = list(pch=1, col=col[1:3]), 
-            columns = 3
-        ),
-        type = "p",
-        layout = c(1,1),
-        scales = list(
-            x = list(draw = FALSE), 
-            y = list(relation = "free")
-        )
-    )
-    print(b)
-dev.off()
-
-od.std <- names(sort(tapply(result$overstd, result$station.id, mean)))
-result$station.id <- factor(result$station.id, levels=od.std)
-trellis.device(
-    device = postscript, 
-    file = file.path(
-        local.output, 
-        paste("dotplot_of_overstd_error_", dataset,"_tw.ps", sep="")
-    ), 
-    color = TRUE, 
-    paper = "legal"
-)
-    b <- dotplot( overstd ~ station.id | tw,
-        data = result,
-        ylab = list(label = "Mean of 1.96*SD of prediction error", cex = 1.2),
-        xlab = list(label = "Stations", cex = 1.2),
-        groups = as.factor(sw),
-        key=list(
-            type = "p", 
-            text = list(label=levels(as.factor(result$sw))),  
-            points = list(col=col[1:3]), 
-            columns = 3, 
-            pch = 1
-        ),
-        type = "p",
-        layout = c(1,1),
-        scales = list(
-            x = list(draw = FALSE), 
-            y = list(relation = "free")
-        ),
-    )
-    print(b)
-dev.off()
-
-trellis.device(
-    device = postscript, 
-    file = file.path(
-        local.output, 
-        paste("dotplot_of_overstd_error_", dataset,"_sw.ps", sep="")
-    ), 
-    color = TRUE, 
-    paper = "legal"
-)
-    b <- dotplot( overstd ~ station.id | as.factor(sw),
-        data = result,
-        ylab = list(label = "Mean of 1.96*SD prediction error", cex = 1.2),
-        xlab = list(label = "Stations", cex = 1.2),
-        groups = as.factor(tw),
-        key = list(
-            type = "l", 
-            text = list(label = levels(as.factor(result$tw))),  
-            points = list(pch = 1, col = col[1:3]), 
-            columns = 3 
-        ),
-        type = "p",
-        layout = c(1,1),
-        scales = list(
-            x = list(draw = FALSE), 
-            y = list(relation = "free")
-        ),
-    )
-    print(b)
-dev.off()
 
 
 
