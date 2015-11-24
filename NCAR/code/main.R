@@ -3,6 +3,7 @@ library(lattice)
 library(plyr)
 library(hexbin)
 library(maps)
+library(magrittr)
 
 options(stringsAsFactors=FALSE)
 options(java.parameters = "-Xmx1000m")
@@ -309,7 +310,7 @@ try(QQDivFromNormal(index="E2", type="a1950"))
 try(QQstationlag(param=parameter, index="E2", type="a1950"))
 for(j in 1:nrow(parameter)) {
   rhget(
-    file.path(rh.root, par$dataset, type, "STLtuning", index, "meanerrorqqplot", "_outputs", paste("QQ.error", par$dataset, "group", j, "ps", sep= ".")),
+    file.path(rh.root, par$dataset, "a1950", "STLtuning", "E2", "meanerrorqqplot", "_outputs", paste("QQ.error", par$dataset, "group", j, "ps", sep= ".")),
     file.path(local.root, "output")
   )
 }
@@ -344,15 +345,56 @@ for(j in 1:nrow(parameter)) {
 }
 try(subsetStations(index="E3", type="a1950"))
 for(j in c("absmeans","means","std")) {
-  errorVsLag(type="a1950", index="E3", var=c("sw","tw"), target=j)
+  errorVsLag(type="a1950", index="E3", var=c("td","tw"), target=j)
 }
 for(j in c("mean.absmeans","mean.std")){
-  overallErrorVsStation(type="a1950", index="E3", var=c("sw","tw"), target=j, sub=TRUE)
+  overallErrorVsStation(type="a1950", index="E3", var=c("td","tw"), target=j, sub=TRUE)
 }
+###################
+## Experiment E4 ##
+###################
+parameter <- expand.grid(
+  sw = c(21,41,"periodic"), tw = 241, td = c(1, 2), 
+  sd = 1, fc.flag = FALSE, stringsAsFactors=FALSE
+)
+for(k in 1:nrow(parameter)) {
+  try(predict36(type="a1950", parameter=parameter, k=k, index="E4", valid=270))
+}
+try(lagResidual(n=nrow(parameter), index="E4", type="a1950"))
+try(lagResidQuan(index="E4", type="a1950", reduce=10))
+try(StdMean.group(index="E4", type="a1950", num=36))
+try(StdMean.grouplag(index="E4", parameter=parameter, type="a1950"))
+try(QQDivFromNormal(index="E4", type="a1950"))
+try(QQstationlag(param=parameter, index="E4", type="a1950"))
+for(j in 1:nrow(parameter)) {
+  rhget(
+    file.path(rh.root, par$dataset, "a1950", "STLtuning", "E4", "meanerrorqqplot", "_outputs", paste("QQ.error", par$dataset, "group", j, "ps", sep= ".")),
+    file.path(local.root, "output")
+  )
+}
+try(subsetStations(index="E4", type="a1950"))
+for(j in c("absmeans","means","std")) {
+  errorVsLag(type="a1950", index="E4", var=c("td","tw"), target=j)
+}
+for(j in c("mean.absmeans","mean.std")){
+  overallErrorVsStation(type="a1950", index="E4", var=c("td","tw"), target=j, sub=TRUE)
+}
+###################
+## Experiment E5 ##
+###################
+parameter <- expand.grid(
+  sw = c(11, 21, 31, 41,"periodic"), tw = 241, td = 1, 
+  sd = c(1, 2), fc.flag = FALSE, stringsAsFactors=FALSE
+)
 
 
-
-
+###################
+## Experiment E6 ##
+###################
+parameter <- expand.grid(
+  sw = "periodic", tw = c(123, 241, 313), td = c(1, 2), 
+  sd = 1, fc.flag = FALSE, stringsAsFactors=FALSE
+)
 
 ##########################################
 ##      Backfitting for a1950           ##

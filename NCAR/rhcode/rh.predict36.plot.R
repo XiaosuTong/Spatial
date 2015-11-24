@@ -283,14 +283,14 @@ errorVsLag <- function(type, index, var, target) {
   
   rst <- cbind(rst, parameter[c(rst$group), var]) 
 
-  if(index != "E1"){
+  if(("periodic" %in% parameter$sw) & ("sw" %in% var)){
     rst$sw <- factor(rst$sw, 
       levels=c(sort(as.numeric(unique(rst$sw)[which(unique(rst$sw)!="periodic")])), "periodic")
     )
-    rst$tw <- as.factor(rst$tw)
+    rst[,var[which(var != "sw")]] <- as.factor(rst[,var[which(var != "sw")]])
   }else{
-    rst$sw <- as.factor(rst$sw)
-    rst$tw <- as.factor(rst$tw)
+    rst[,var[1]] <- as.factor(rst[,var[1]])
+    rst[,var[2]] <- as.factor(rst[,var[2]])
   }
   
   rst <- arrange(rst, station.id, group, lag)
@@ -398,26 +398,28 @@ overallErrorVsStation <- function(type, index, var, target, sub) {
     rhload(file.path(rh.root, par$dataset, type, "Rdata", "sample.a1950.RData"))
     rst <- subset(rst, station.id %in% sample.a1950$station.id)
   }
-  if(index != "E1"){
+  if(("periodic" %in% parameter$sw) & ("sw" %in% var)){
     rst$sw <- factor(rst$sw, 
       levels=c(sort(as.numeric(unique(rst$sw)[which(unique(rst$sw)!="periodic")])), "periodic")
     )
-    rst$tw <- as.factor(rst$tw)
+    rst[,var[which(var != "sw")]] <- as.factor(rst[,var[which(var != "sw")]])
   }else{
-    rst$sw <- as.factor(rst$sw)
-    rst$tw <- as.factor(rst$tw)
+    rst[,var[1]] <- as.factor(rst[,var[1]])
+    rst[,var[2]] <- as.factor(rst[,var[2]])
   }
-
+  
   if(target == "mean.absmeans") {
     ylab <- "Mean of Absolute Value of Prediction Error"
   } else {
     ylab <- "Mean of Standard Deviation of Error"
   }
-  num <- with(rst, length(levels(get(var[2]))))
-  Min <- as.numeric(which.min(tapply(rst$mean.absmeans, rst$group, mean)))
+
+  myTable <- tapply(rst$mean.absmeans, rst$group, mean)
+  Min <- as.numeric(names(myTable)[which.min(myTable)])
   od.mean <- as.character(arrange(subset(rst, group == Min), get(target))$station.id)
   rst$station.id <- factor(rst$station.id, levels=od.mean)
 
+  num <- with(rst, length(levels(get(var[2]))))
   trellis.device(
     device = postscript, 
     file = file.path(local.root, "output", paste(par$dataset, target, "error", var[1], "ps", sep=".")), 
@@ -435,7 +437,7 @@ overallErrorVsStation <- function(type, index, var, target, sub) {
           points = list(col=col[1:num]), 
           columns = num
         )
-      , layout = c(num,1)
+      , layout = c(with(rst, length(levels(get(var[1])))), 1)
       , scales = list(
           x = list(draw = FALSE), y = list(relation = "same", cex=1.2)
         )
@@ -465,7 +467,7 @@ overallErrorVsStation <- function(type, index, var, target, sub) {
           points = list(col=col[1:num]), 
           columns = num
         )
-      , layout = c(num,1)
+      , layout = c(with(rst, length(levels(get(var[2])))), 1)
       , scales = list(
           x = list(draw = FALSE), y = list(relation = "same", cex=1.2)
         )
