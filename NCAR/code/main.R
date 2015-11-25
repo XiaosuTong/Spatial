@@ -76,56 +76,56 @@ for (i in c("lon","lat","elev")) {
 
 ## Rhipe job running stl2 on each station of 100 stations ##
 #source(file.path(local.root, "rhcode", "s100", "100stations.plot.R"))
-STLfit(sw=77, sd=1, tw=495, td=2, fcw=NULL, fcd=NULL)
+s100.STLfit(sw=77, sd=1, tw=495, td=2, fcw=NULL, fcd=NULL)
 rst <- rhread(file.path(rh.root, par$dataset, "100stations", "STL", "t495td2_s77sd1_ffd"))[[1]][[2]]
 fitRaw(data=rst, outputdir=file.path(local.root, "output"), target="tmax", size = "letter", test = F)
 remainderDiag(data=rst, outputdir=file.path(local.root, "output"), target="tmax", size = "letter", test=F)
 seasonalDiag(data=rst, outputdir=file.path(local.root, "output"), target="tmax", size = "letter", test=F)
 trendDiag(data=rst, outputdir=file.path(local.root, "output"), target="tmax", size = "letter", test=F, fc = FALSE)
 
-STLfit(sw=103, sd=1, tw=617, td=2, fcw=NULL, fcd=NULL)
+s100.STLfit(sw=103, sd=1, tw=617, td=2, fcw=NULL, fcd=NULL)
 rst <- rhread(file.path(rh.root, par$dataset, "100stations", "STL", "t617td2_s77sd1_ffd"))[[1]][[2]]
 fitRaw(data=rst, outputdir=file.path(local.root, "output"), target="tmax", size = "letter", test = F)
 remainderDiag(data=rst, outputdir=file.path(local.root, "output"), target="tmax", size = "letter", test=F)
 seasonalDiag(data=rst, outputdir=file.path(local.root, "output"), target="tmax", size = "letter", test=F)
 trendDiag(data=rst, outputdir=file.path(local.root, "output"), target="tmax", size = "letter", test=F, fc = FALSE)
 
-STLfit(sw="periodic", sd=1, tw=1141, td=2, fcw=NULL, fcd=NULL)
+s100.STLfit(sw="periodic", sd=1, tw=1141, td=2, fcw=NULL, fcd=NULL)
 rst <- rhread(file.path(rh.root, par$dataset, "100stations", "STL", "t1141td2_speriodicsd1_ffd"))[[1]][[2]]
 fitRaw(data=rst, outputdir=file.path(local.root, "output"), target="tmax", size = "letter", test = F)
 remainderDiag(data=rst, outputdir=file.path(local.root, "output"), target="tmax", size = "letter", test=F)
 seasonalDiag(data=rst, outputdir=file.path(local.root, "output"), target="tmax", size = "letter", test=F)
 trendDiag(data=rst, outputdir=file.path(local.root, "output"), target="tmax", size = "letter", test=F, fc = FALSE)
 
-STLfit(sw="periodic", sd=1, tw=1141, td=1, fcw=NULL, fcd=NULL)
+s100.STLfit(sw="periodic", sd=1, tw=1141, td=1, fcw=NULL, fcd=NULL)
 rst <- rhread(file.path(rh.root, par$dataset, "100stations", "STL", "t1141td1_speriodicsd1_ffd"))[[1]][[2]]
 fitRaw(data=rst, outputdir=file.path(local.root, "output"), target="tmax", size = "letter", test = F)
 remainderDiag(data=rst, outputdir=file.path(local.root, "output"), target="tmax", size = "letter", test=F)
 seasonalDiag(data=rst, outputdir=file.path(local.root, "output"), target="tmax", size = "letter", test=F)
 trendDiag(data=rst, outputdir=file.path(local.root, "output"), target="tmax", size = "letter", test=F, fc = FALSE)
 
-STLfit(sw="periodic", sd=1, tw=241, td=1, fcw=NULL, fcd=NULL)
+s100.STLfit(sw="periodic", sd=1, tw=241, td=1, fcw=NULL, fcd=NULL)
 rst <- rhread(file.path(rh.root, par$dataset, "100stations", "STL", "t241td1_speriodicsd1_ffd"))[[1]][[2]]
 fitRaw(data=rst, outputdir=file.path(local.root, "output"), target="tmax", size = "letter", test = F)
 remainderDiag(data=rst, outputdir=file.path(local.root, "output"), target="tmax", size = "letter", test=F)
 seasonalDiag(data=rst, outputdir=file.path(local.root, "output"), target="tmax", size = "letter", test=F)
 trendDiag(data=rst, outputdir=file.path(local.root, "output"), target="tmax", size = "letter", test=F, fc = FALSE)
 
-STLfit(sw="periodic", sd=1, tw=1855, td=1, fcw=121, fcd=2)
+s100.STLfit(sw="periodic", sd=1, tw=1855, td=1, fcw=121, fcd=2)
 rst <- rhread(file.path(rh.root, par$dataset, "100stations", "STL", "t1855td1_speriodicsd1_f121fd2"))[[1]][[2]]
 fitRaw(data=rst, outputdir=file.path(local.root, "output"), target="tmax", size = "letter", test = F)
 remainderDiag(data=rst, outputdir=file.path(local.root, "output"), target="tmax", size = "letter", test=F)
 seasonalDiag(data=rst, outputdir=file.path(local.root, "output"), target="tmax", size = "letter", test=F)
 trendDiag(data=rst, outputdir=file.path(local.root, "output"), target="tmax", size = "letter", test=F, fc = TRUE)
 
-STLfit(sw="periodic", sd=1, tw=1855, td=1, fcw=241, fcd=1)
+s100.STLfit(sw="periodic", sd=1, tw=1855, td=1, fcw=241, fcd=1)
 rst <- rhread(file.path(rh.root, par$dataset, "100stations", "STL", "t1855td1_speriodicsd1_f241fd1"))[[1]][[2]]
 fitRaw(data=rst, outputdir=file.path(local.root, "output"), target="tmax", size = "letter", test = F)
 remainderDiag(data=rst, outputdir=file.path(local.root, "output"), target="tmax", size = "letter", test=F)
 seasonalDiag(data=rst, outputdir=file.path(local.root, "output"), target="tmax", size = "letter", test=F)
 trendDiag(data=rst, outputdir=file.path(local.root, "output"), target="tmax", size = "letter", test=F, fc = TRUE)
 
-STLfit(sw=103, sd=2, tw=1141, td=1, fcw=NULL, fcd=NULL)
+s100.STLfit(sw=103, sd=2, tw=1141, td=1, fcw=NULL, fcd=NULL)
 rst <- rhread(file.path(rh.root, par$dataset, "100stations", "STL", "t1141td1_s103sd2_ffd"))[[1]][[2]]
 fitRaw(data=rst, outputdir=file.path(local.root, "output"), target="tmax", size = "letter", test = F)
 remainderDiag(data=rst, outputdir=file.path(local.root, "output"), target="tmax", size = "letter", test=F)
@@ -133,7 +133,7 @@ seasonalDiag(data=rst, outputdir=file.path(local.root, "output"), target="tmax",
 trendDiag(data=rst, outputdir=file.path(local.root, "output"), target="tmax", size = "letter", test=F, fc = FALSE)
 
 
-STLfit(sw=77, sd=2, tw=1855, td=1, fcw=241, fcd=1)
+s100.STLfit(sw=77, sd=2, tw=1855, td=1, fcw=241, fcd=1)
 rst <- rhread(file.path(rh.root, par$dataset, "100stations", "STL", "t1855td1_s77sd2_f241fd1"))[[1]][[2]]
 fitRaw(data=rst, outputdir=file.path(local.root, "output"), target="tmax", size = "letter", test = F)
 remainderDiag(data=rst, outputdir=file.path(local.root, "output"), target="tmax", size = "letter", test=F)
@@ -374,20 +374,40 @@ for(j in 1:nrow(parameter)) {
 }
 try(subsetStations(index="E4", type="a1950"))
 for(j in c("absmeans","means","std")) {
-  errorVsLag(type="a1950", index="E4", var=c("td","tw"), target=j)
+  errorVsLag(type="a1950", index="E4", var=c("sw","td"), target=j)
 }
 for(j in c("mean.absmeans","mean.std")){
-  overallErrorVsStation(type="a1950", index="E4", var=c("td","tw"), target=j, sub=TRUE)
+  overallErrorVsStation(type="a1950", index="E4", var=c("sw","td"), target=j, sub=TRUE)
 }
 ###################
 ## Experiment E5 ##
 ###################
 parameter <- expand.grid(
-  sw = c(11, 21, 31, 41,"periodic"), tw = 241, td = 1, 
+  sw = c(11, 21, 31, 47,"periodic"), tw = 241, td = 1, 
   sd = c(1, 2), fc.flag = FALSE, stringsAsFactors=FALSE
 )
-
-
+for(k in 1:nrow(parameter)) {
+  try(predict36(type="a1950", parameter=parameter, k=k, index="E5", valid=270))
+}
+try(lagResidual(n=nrow(parameter), index="E5", type="a1950"))
+try(lagResidQuan(index="E5", type="a1950", reduce=10))
+try(StdMean.group(index="E5", type="a1950", num=36))
+try(StdMean.grouplag(index="E5", parameter=parameter, type="a1950"))
+try(QQDivFromNormal(index="E5", type="a1950"))
+try(QQstationlag(param=parameter, index="E5", type="a1950"))
+for(j in 1:nrow(parameter)) {
+  rhget(
+    file.path(rh.root, par$dataset, "a1950", "STLtuning", "E5", "meanerrorqqplot", "_outputs", paste("QQ.error", par$dataset, "group", j, "ps", sep= ".")),
+    file.path(local.root, "output")
+  )
+}
+try(subsetStations(index="E5", type="a1950"))
+for(j in c("absmeans","means","std")) {
+  errorVsLag(type="a1950", index="E5", var=c("sw","sd"), target=j)
+}
+for(j in c("mean.absmeans","mean.std")){
+  overallErrorVsStation(type="a1950", index="E5", var=c("sw","sd"), target=j, sub=TRUE)
+}
 ###################
 ## Experiment E6 ##
 ###################
@@ -395,6 +415,18 @@ parameter <- expand.grid(
   sw = "periodic", tw = c(123, 241, 313), td = c(1, 2), 
   sd = 1, fc.flag = FALSE, stringsAsFactors=FALSE
 )
+
+
+###################
+## Experiment E7 ##
+###################
+parameter <- expand.grid(
+  sw = c(21,31,41,"periodic"), tw = c(123, 241, 313), td = c(1, 2), 
+  sd = c(1,2), fc.flag = FALSE, stringsAsFactors=FALSE
+)
+
+
+
 
 ##########################################
 ##      Backfitting for a1950           ##

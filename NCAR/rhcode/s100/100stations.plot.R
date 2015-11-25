@@ -339,7 +339,7 @@ fitRaw <- function(data=rst, outputdir, target="tmax", size = "letter", test = T
 ################################################################
 ##  diagnostic plots for remainders, QQ, scatter, line plots  ## 
 ################################################################
-remainderDiag <- function(data=rst, outputdir, target="tmax", size = "letter", test=TRUE) {
+remainderDiag <- function(data=rst, outputdir, target="tmax", size = "letter", test=TRUE, alpha=0.995) {
 
   stations <- unique(data$station.id)
 
@@ -462,7 +462,7 @@ remainderDiag <- function(data=rst, outputdir, target="tmax", size = "letter", t
       )
     }
   )
-
+  clim <- qnorm((1 + alpha)/2)/sqrt(1000)
   trellis.device(
     device = postscript, 
     file = file.path(outputdir, paste("remainder.acf", "100stations", target, "ps", sep=".")), 
@@ -472,9 +472,9 @@ remainderDiag <- function(data=rst, outputdir, target="tmax", size = "letter", t
     b <- xyplot( correlation ~ lag | station.id
       , data = ACF
       , subset = lag != 0
-      , layout = c(2,2)
+      , layout = c(3,3)
       , xlab = list(label = "Lag", cex = 1.5)
-      , ylab = list(label = "ACF", cex = 1.5)
+      , ylab = list(label = "Autocorrelation Function", cex = 1.5)
       , scales = list(
           y = list(cex=1.2), 
           x = list(relation='same', cex=1.2)
@@ -482,6 +482,7 @@ remainderDiag <- function(data=rst, outputdir, target="tmax", size = "letter", t
       , panel = function(x,y,...) {
           panel.abline(h=0)
           panel.xyplot(x,y, type="h", lwd=1.5,...)
+          panel.abline(h=c(-clim, clim), lty=2, col="red",...)
         }
     )
     print(b)
@@ -843,5 +844,3 @@ trendDiag <- function(data=rst, outputdir, target="tmax", size = "letter", test=
   }
 
 }
-
-

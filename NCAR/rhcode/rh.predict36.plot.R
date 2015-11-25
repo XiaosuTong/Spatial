@@ -331,7 +331,7 @@ errorVsLag <- function(type, index, var, target) {
           x = list(at=seq(from=0, to=36, by=6), cex=1.2), 
           y = list(relation="sliced", cex=1.2)
         )
-      , layout = c(num,1)
+      , layout = c(with(rst, length(levels(get(var[1])))),1)
       , panel = function(x,y,...) {
           panel.xyplot(x,y,...)
           panel.abline(h=0, v=seq(0,36, by=12), color="black", lty=1, lwd=0.5)
@@ -367,7 +367,7 @@ errorVsLag <- function(type, index, var, target) {
           x = list(at=seq(from=0, to=36, by=6), cex=1.2), 
           y = list(relation="sliced", cex=1.2)
         )
-      , layout = c(num,1)
+      , layout = c(with(rst, length(levels(get(var[2])))),1)
       , panel = function(x,y,...) {
           panel.xyplot(x,y,...)
           panel.abline(h=0, v=seq(0,36, by=12), color="black", lty=1, lwd=0.5)
