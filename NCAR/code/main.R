@@ -6,7 +6,7 @@ library(maps)
 library(magrittr)
 
 options(stringsAsFactors=FALSE)
-options(java.parameters = "-Xmx1000m")
+options(java.parameters = "-Xmx1024m")
 
 #source("~/Rhipe/ross.initial.R")
 source("~/Rhipe/rhinitial.R")
@@ -212,7 +212,9 @@ for(i in paste("E", 1:6, sep="")) {
 
 
 #################################################################
+##                                                             ##
 ##                     Dataset After 1950                      ##
+##                                                             ##
 #################################################################
 ## Create a1950 by month and by station subsets from All by station subsets
 #source(file.path(local.root, "rhcode", "a1950", "rh.a1950.R"))
@@ -258,7 +260,7 @@ a1950.fitRaw(data=rst, outputdir=file.path(local.root, "output"), target="tmax",
 #####################################################
 ## Use the previous FileInput which is the bystation division of best spatial
 ## interpolation model.
-stationSplit(reduce=200, input=FileInput, type=type, tn=576, valid=270)
+stationSplit(reduce=200, input=FileInput, type="a1950", tn=576, valid=270)
 ###################
 ## Experiment E1 ##
 ###################
@@ -415,13 +417,34 @@ parameter <- expand.grid(
   sw = "periodic", tw = c(123, 241, 313), td = c(1, 2), 
   sd = 1, fc.flag = FALSE, stringsAsFactors=FALSE
 )
-
+for(k in 1:nrow(parameter)) {
+  try(predict36(type="a1950", parameter=parameter, k=k, index="E6", valid=270))
+}
+try(lagResidual(n=nrow(parameter), index="E6", type="a1950"))
+try(lagResidQuan(index="E6", type="a1950", reduce=10))
+try(StdMean.group(index="E6", type="a1950", num=36))
+try(StdMean.grouplag(index="E6", parameter=parameter, type="a1950"))
+try(QQDivFromNormal(index="E6", type="a1950"))
+try(QQstationlag(param=parameter, index="E6", type="a1950"))
+for(j in 1:nrow(parameter)) {
+  rhget(
+    file.path(rh.root, par$dataset, "a1950", "STLtuning", "E6", "meanerrorqqplot", "_outputs", paste("QQ.error", par$dataset, "group", j, "ps", sep= ".")),
+    file.path(local.root, "output")
+  )
+}
+try(subsetStations(index="E6", type="a1950"))
+for(j in c("absmeans","means","std")) {
+  errorVsLag(type="a1950", index="E6", var=c("tw","td"), target=j)
+}
+for(j in c("mean.absmeans","mean.std")){
+  overallErrorVsStation(type="a1950", index="E6", var=c("tw","td"), target=j, sub=TRUE)
+}
 
 ###################
 ## Experiment E7 ##
 ###################
 parameter <- expand.grid(
-  sw = c(21,31,41,"periodic"), tw = c(123, 241, 313), td = c(1, 2), 
+  sw = c(21,31,41,"periodic"), tw = c(103, 241, 415, 617), td = c(1, 2), 
   sd = c(1,2), fc.flag = FALSE, stringsAsFactors=FALSE
 )
 

@@ -187,7 +187,7 @@ trellis.device(
 )
   b <- xyplot( lat ~ lon
     , data = info
-	, subset = station.id %in% a1950.stations
+    , subset = station.id %in% a1950.stations
     , xlab = list(label="Longitude", cex = 1.5)
     , ylab = list(label="Latitude", cex = 1.5)
     , pch = 16
