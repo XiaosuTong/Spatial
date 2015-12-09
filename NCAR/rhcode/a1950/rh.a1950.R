@@ -415,67 +415,62 @@ cppkdtree <- function(data, nb) { ## data matrix, no.of.leaves
 
 }
 
-
-leaveOneOut <- function(leaf = 100) {
+##########################################################################
+##  Input is the a1950 bymonth division, output is a1950 bymonthSplit.  ##
+##  Key is changed from c(year, month) to c(year, month, rep), where    ##
+##  rep is the index of observations in a leaf of a kd-tree built       ##
+##  based on the non-NA observations in the given month.                ##
+##  Input argument leaf control the number of leafs in that kd-tree.    ##
+##  The value of the new key-value pairs are data.frame including all   ##
+##  non-NA obs in that given month but with a new column named flag     ##
+##  which is to indicate for this given month which stations are used   ##
+##  as prediction of cross validation.                                  ##
+##  In other words, each monthly data.frames have been duplicated       ##
+##  multiple times . Totally, there are 22,916 new key-value pairs.     ## 
+##########################################################################
+bymonthSplit <- function(leaf = 100) {
 
   job <- list()
   job$map <- expression({
     lapply(seq_along(map.keys), function(r) {
       v <- subset(map.values[[r]], !is.na(resp))
+      v$flag <- 0
       row.names(v) <- NULL
       rst <- cppkdtree(as.matrix(v[,c(4,5)]), leaf)
       error <- 0
       kdtree <- data.frame(idx = rst[[5]], leaf = rst[[6]]) ## grab the row index and the leaf index 
-#      lapply(1:nrow(v), function(k) {
-#        if(Elev) {
-#          if(Edeg == 2) {
-#            v$elev2 <- log2(v$elev + 128)
-#            lo.fit <- spaloess( resp ~ lon + lat + elev2, 
-#              data    = v, 
-#              degree  = degree, 
-#              span    = span,
-#              para    = "elev2",
-#              family  = family,
-#              normalize = FALSE,
-#              distance = "Latlong",
-#              control = loess.control(surface = surf),
-#              napred = TRUE
-#            )
-#          } else if(Edeg == 1) {
-#            v$elev2 <- log2(v$elev + 128)
-#            lo.fit <- spaloess( resp ~ lon + lat + elev2, 
-#              data    = v, 
-#              degree  = degree, 
-#              span    = span,
-#              drop    = "elev2",
-#              para    = "elev2",
-#              family  = family,
-#              normalize = FALSE,
-#              distance = "Latlong",
-#              control = loess.control(surface = surf),
-#              napred = TRUE
-#            )
-#          }
-#        } else {
-#          lo.fit <- spaloess( resp ~ lon + lat, 
-#            data    = v, 
-#            degree  = degree, 
-#            span    = span,
-#            family  = family,
-#            normalize = FALSE,
-#            distance = "Latlong",
-#            control = loess.control(surface = surf),
-#            napred = TRUE
-#          )
-#        }
-#      })
-
-      rhcollect(map.keys[[r]], kdtree)
+      replicates <- ddply(
+        .data = kdtree, 
+        .vari = "leaf",
+        .fun = function(dr) {
+          dr$rep <- c(1:nrow(dr))
+          dr
+        }
+      )
+      d_ply(
+        .data = replicates,
+        .vari = "rep",
+        .fun = function(ii) {
+          rhcounter("Map","keyvalue", 1)
+          value <- v
+          value$flag[ii$idx] <- 1
+          if(nrow(value) == nrow(v)){
+            rhcounter("Map","nrow",1)
+          }
+          if(sum(value$flag) == 128) {
+            rhcounter("Map", "128", 1)
+          } else {
+            rhcounter("Map","non128", 1)
+          }
+          rhcollect(c(map.keys[[r]], unique(ii$rep)), value)
+        }
+      )
     })
   })
   job$setup <- expression(
     map = {
       library(Spaloess, lib.loc=lib.loc)
+      library(plyr)
       system("chmod 777 cppkdtree.so")
       dyn.load("cppkdtree.so")
     }
@@ -484,12 +479,6 @@ leaveOneOut <- function(leaf = 100) {
     file.path(file.path(rh.root, par$dataset, "shareRLib", "cppkdtree.so"))
   )
   job$parameters <- list(
-#    Elev = Elev,
-#    span = sp,
-#    degree = deg,
-#    family = fam,
-#    Edeg = Edeg,
-#    surf = surf,
     leaf = leaf,
     cppkdtree = cppkdtree
   )
@@ -498,7 +487,7 @@ leaveOneOut <- function(leaf = 100) {
     type = "sequence"
   )
   job$output <- rhfmt(
-    file.path(rh.root, par$dataset, "a1950", "bymonth.fit.new", "kdtree"), 
+    file.path(rh.root, par$dataset, "a1950", "bymonthSplit"), 
     type = "sequence"
   )
   job$mapred <- list(
@@ -507,7 +496,99 @@ leaveOneOut <- function(leaf = 100) {
   )
   job$readback <- FALSE
   job$combiner <- TRUE
-  job$jobname <- file.path(rh.root, par$dataset, "a1950", "bymonth.fit.new", "kdtree")
+  job$jobname <- file.path(rh.root, par$dataset, "a1950", "bymonthSplit")
+  job.mr <- do.call("rhwatch", job)
+
+}
+
+#############################################################################
+##  Input is the a1950 bymonthSplit file, for each key-value pairs, 128    ##
+##  flagged locations are predicted using the rest of locations. Then      ##
+##  the keys are changed from c(year, month, rep) to c(year, month). Value ##
+##  is the error of the prediction. In the Reduce, errors of each month    ##
+##  is accumulated.                                                        ##
+#############################################################################
+newCrossValid <- function(Elev = TRUE, sp, Edeg, deg=2, fam="symmetric", surf="direct") {
+
+  job <- list()
+  job$map <- expression({
+    lapply(1:seq_along(map.keys), function(r) {
+      v <- map.values[[r]]
+      orig <- subset(v, flag == 1)
+      v$resp[v$flag == 1]<- NA
+      if(Elev) {
+        if(Edeg == 2) {
+          v$elev2 <- log2(v$elev + 128)
+          lo.fit <- spaloess( resp ~ lon + lat + elev2, 
+            data    = v, 
+            degree  = degree, 
+            span    = span,
+            para    = "elev2",
+            family  = family,
+            normalize = FALSE,
+            distance = "Latlong",
+            control = loess.control(surface = surf),
+            napred = TRUE
+          )
+        } else if(Edeg == 1) {
+          v$elev2 <- log2(v$elev + 128)
+          lo.fit <- spaloess( resp ~ lon + lat + elev2, 
+            data    = v, 
+            degree  = degree, 
+            span    = span,
+            drop    = "elev2",
+            para    = "elev2",
+            family  = family,
+            normalize = FALSE,
+            distance = "Latlong",
+            control = loess.control(surface = surf),
+            napred = TRUE
+          )
+        }
+      } else {
+        lo.fit <- spaloess( resp ~ lon + lat, 
+          data    = v, 
+          degree  = degree, 
+          span    = span,
+          family  = family,
+          normalize = FALSE,
+          distance = "Latlong",
+          control = loess.control(surface = surf),
+          napred = TRUE
+        )
+      }
+      value <- merge()
+      rhcollect(map.keys[[r]], value)
+    })
+  })
+  job$setup <- expression(
+    map = {library(Spaloess, lib.loc=lib.loc)}
+  )
+  job$parameters <- list(
+    Elev = Elev,
+    span = sp,
+    degree = deg,
+    family = fam,
+    Edeg = Edeg,
+    surf = surf
+  )
+  job$input <- rhfmt(
+    file.path(rh.root, par$dataset, "a1950", "bymonthSplit"),
+    type = "sequence"
+  )
+  job$output <- rhfmt(
+    file.path(rh.root, par$dataset, "a1950", "bymonth.fit.new", fam, surf, Edeg, paste("sp",sp, sep="")),
+    type = "sequence"
+  )
+  job$mapred <- list(
+    mapred.reduce.tasks = 20, #cdh3,4
+    mapreduce.job.reduces = 20 #cdh5
+  )
+  job$readback <- FALSE
+  job$combiner <- TRUE
+  job$jobname <- file.path(
+    rh.root, par$dataset, "a1950", "bymonth.fit.new", fam, surf, Edeg, paste("sp",sp, sep="")
+  )
   job.mr <- do.call("rhwatch", job)
 
 }
