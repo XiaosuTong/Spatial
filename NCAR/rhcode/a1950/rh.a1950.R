@@ -80,67 +80,55 @@ interpolate <- function(Elev = TRUE, sp, Edeg, deg=2, fam="symmetric", surf="dir
     lapply(seq_along(map.keys), function(r) {
       v <- map.values[[r]]
       if(Elev) {
-
         if(Edeg == 2) {
           v$elev2 <- log2(v$elev + 128)
-          lo.fit <- my.loess2( resp ~ lon + lat + elev2, 
+          lo.fit <- spaloess( resp ~ lon + lat + elev2, 
             data    = v, 
             degree  = degree, 
             span    = span,
             para    = "elev2",
             family  = family,
-            control = loess.control(surface = surf)
+            normalize = FALSE,
+            distance = "Latlong",
+            control = loess.control(surface = surf),
+            napred = TRUE
           )
         } else if(Edeg == 1) {
           v$elev2 <- log2(v$elev + 128)
-          lo.fit <- my.loess2( resp ~ lon + lat + elev2, 
+          lo.fit <- spaloess( resp ~ lon + lat + elev2, 
             data    = v, 
             degree  = degree, 
             span    = span,
             drop    = "elev2",
             para    = "elev2",
             family  = family,
-            control = loess.control(surface = surf)
+            normalize = FALSE,
+            distance = "Latlong",
+            control = loess.control(surface = surf),
+            napred = TRUE
           )
         }
-        fit <- my.predict.loess(
-          object = lo.fit, 
-          newdata = data.frame(
-            lon = v$lon, 
-            lat = v$lat,
-            elev2 = v$elev2
-          )
-        ) 
-
       } else {
-
-        lo.fit <- my.loess2( resp ~ lon + lat, 
+        lo.fit <- spaloess( resp ~ lon + lat, 
           data    = v, 
           degree  = degree, 
           span    = span,
-          family  = family
+          family  = family,
+          normalize = FALSE,
+          distance = "Latlong",
+          control = loess.control(surface = surf),
+          napred = TRUE
         )
-        fit <- my.predict.loess(
-          object = lo.fit, 
-          newdata = data.frame(
-            lon = v$lon, 
-            lat = v$lat
-          )
-        )
-
       }
-      v$fitted <- fit
-      rhcollect(map.keys[[r]], v)
+      value <- merge(v, lo.fit$pred, by=c("lon","lat"))
+      if(nrow(value) == nrow(v)) {
+        rhcounter("MERGE","CORRECT",1)
+      }
+      rhcollect(map.keys[[r]], value)
     })
   })
   job$setup <- expression(
-    map = {
-      system("chmod 777 myloess2.so")
-      dyn.load("myloess2.so")
-    }
-  )
-  job$shared <- c(
-    file.path(file.path(rh.root, par$dataset, "shareRLib", "myloess2.so"))
+    map = {library(Spaloess, lib.loc=lib.loc)}
   )
   job$parameters <- list(
     Elev = Elev,
@@ -148,18 +136,14 @@ interpolate <- function(Elev = TRUE, sp, Edeg, deg=2, fam="symmetric", surf="dir
     degree = deg,
     family = fam,
     Edeg = Edeg,
-    surf = surf,
-    my.loess2 = my.loess2,
-    my.simple2 = my.simple2,
-    my.predict.loess = my.predict.loess,
-    my.predLoess = my.predLoess
+    surf = surf
   )
   job$input <- rhfmt(
     file.path(rh.root, par$dataset, "a1950", "bymonth"), 
     type = "sequence"
   )
   job$output <- rhfmt(
-    file.path(rh.root, par$dataset, "a1950", "bymonth.fit", fam, surf, Edeg, paste("sp",sp, sep="")), 
+    file.path(rh.root, par$dataset, "a1950", "bymonth.fit.new", fam, surf, Edeg, paste("sp",sp, sep="")), 
     type = "sequence"
   )
   job$mapred <- list(
@@ -168,7 +152,7 @@ interpolate <- function(Elev = TRUE, sp, Edeg, deg=2, fam="symmetric", surf="dir
   )
   job$readback <- FALSE
   job$combiner <- TRUE
-  job$jobname <- file.path(rh.root, par$dataset, "a1950", "bymonth.fit", fam, surf, Edeg, paste("sp",sp, sep=""))
+  job$jobname <- file.path(rh.root, par$dataset, "a1950", "bymonth.fit.new", fam, surf, Edeg, paste("sp",sp, sep=""))
   job.mr <- do.call("rhwatch", job)
 
 }
@@ -399,4 +383,131 @@ a1950.STLfit <- function(input, reduce, sw, sd, tw, td, fcw=NULL, fcd=NULL) {
 
   return(job.mr)
   
+}
+
+cppkdtree <- function(data, nb) { ## data matrix, no.of.leaves
+
+  D <- ncol(data)  ## number of columns in dm
+  ND <- nrow(data)  ## number of rows in dm
+  bucketSize <- ND/nb  ## number of rows in each leaf
+  
+  ## void getkdtree(double *data, int *D, int *ND, int *bucketSize, int* pidx, int *owner)
+  res <- .C("getkdtree"
+          , as.numeric(data)  ## data matrix as a vector, by column first
+          , as.integer(D)  ## number of columns in dm
+          , as.integer(ND)  ## number of rows in dm
+          , as.integer(bucketSize)  ## number of rows in each leaf
+          , idx = integer(ND)  ## pre-allocate index of rows
+          , leaf = integer(ND)  ## pre-allocate leaf
+  )
+  ## output is a list of 6 elements:
+  ## 1. dm as a vector
+  ## 2. number of columns in dm
+  ## 3. number of rows in dm
+  ## 4. number of rows in each leaf
+  ## 5. index of rows
+  ## 6. index of leaves, can be matched up with index of rows to find leaves
+  
+  ## return(tapply(res$idx, res$leaf, function(r) data[r,], simplify=FALSE))
+  ## return(data.frame(idx=res[[5]], leaf=res[[6]]))
+  return(res)
+  ## return the index of rows and index of leaf
+
+}
+
+
+leaveOneOut <- function(leaf = 100) {
+
+  job <- list()
+  job$map <- expression({
+    lapply(seq_along(map.keys), function(r) {
+      v <- subset(map.values[[r]], !is.na(resp))
+      row.names(v) <- NULL
+      rst <- cppkdtree(as.matrix(v[,c(4,5)]), leaf)
+      error <- 0
+      kdtree <- data.frame(idx = rst[[5]], leaf = rst[[6]]) ## grab the row index and the leaf index 
+#      lapply(1:nrow(v), function(k) {
+#        if(Elev) {
+#          if(Edeg == 2) {
+#            v$elev2 <- log2(v$elev + 128)
+#            lo.fit <- spaloess( resp ~ lon + lat + elev2, 
+#              data    = v, 
+#              degree  = degree, 
+#              span    = span,
+#              para    = "elev2",
+#              family  = family,
+#              normalize = FALSE,
+#              distance = "Latlong",
+#              control = loess.control(surface = surf),
+#              napred = TRUE
+#            )
+#          } else if(Edeg == 1) {
+#            v$elev2 <- log2(v$elev + 128)
+#            lo.fit <- spaloess( resp ~ lon + lat + elev2, 
+#              data    = v, 
+#              degree  = degree, 
+#              span    = span,
+#              drop    = "elev2",
+#              para    = "elev2",
+#              family  = family,
+#              normalize = FALSE,
+#              distance = "Latlong",
+#              control = loess.control(surface = surf),
+#              napred = TRUE
+#            )
+#          }
+#        } else {
+#          lo.fit <- spaloess( resp ~ lon + lat, 
+#            data    = v, 
+#            degree  = degree, 
+#            span    = span,
+#            family  = family,
+#            normalize = FALSE,
+#            distance = "Latlong",
+#            control = loess.control(surface = surf),
+#            napred = TRUE
+#          )
+#        }
+#      })
+
+      rhcollect(map.keys[[r]], kdtree)
+    })
+  })
+  job$setup <- expression(
+    map = {
+      library(Spaloess, lib.loc=lib.loc)
+      system("chmod 777 cppkdtree.so")
+      dyn.load("cppkdtree.so")
+    }
+  )
+  job$shared <- c(
+    file.path(file.path(rh.root, par$dataset, "shareRLib", "cppkdtree.so"))
+  )
+  job$parameters <- list(
+#    Elev = Elev,
+#    span = sp,
+#    degree = deg,
+#    family = fam,
+#    Edeg = Edeg,
+#    surf = surf,
+    leaf = leaf,
+    cppkdtree = cppkdtree
+  )
+  job$input <- rhfmt(
+    file.path(rh.root, par$dataset, "a1950", "bymonth"), 
+    type = "sequence"
+  )
+  job$output <- rhfmt(
+    file.path(rh.root, par$dataset, "a1950", "bymonth.fit.new", "kdtree"), 
+    type = "sequence"
+  )
+  job$mapred <- list(
+    mapred.reduce.tasks = 20,  #cdh3,4
+    mapreduce.job.reduces = 20  #cdh5
+  )
+  job$readback <- FALSE
+  job$combiner <- TRUE
+  job$jobname <- file.path(rh.root, par$dataset, "a1950", "bymonth.fit.new", "kdtree")
+  job.mr <- do.call("rhwatch", job)
+
 }
