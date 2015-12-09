@@ -2,3 +2,5 @@
 NCAR/output
 NCAR/output2
 NCAR/reference
+NCAR/myloess/*.o
+NCAR/myloess/shareLib/*.so
