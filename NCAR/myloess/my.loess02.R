@@ -11,7 +11,7 @@
 ## do kd-tree without interpolation, saving computation time. Then
 ## we can do the interpolation in predict.loess.
 
-dyn.load("~/Github/Spatial/NCAR/myloess/shareLib/myloess2.so")
+#dyn.load("~/Github/Spatial/NCAR/myloess/shareLib/myloess2.so")
 #source("my.loess01.R")
 
 my.loess2 <- function (formula, data, weights, subset, na.action, model = FALSE, 
