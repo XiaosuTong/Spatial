@@ -434,6 +434,7 @@ bymonthSplit <- function(leaf = 100) {
   job$map <- expression({
     lapply(seq_along(map.keys), function(r) {
       v <- subset(map.values[[r]], !is.na(resp))
+      rhcounter("Map", "input", 1)
       v$flag <- 0
       row.names(v) <- NULL
       rst <- cppkdtree(as.matrix(v[,c(4,5)]), leaf)
@@ -491,8 +492,8 @@ bymonthSplit <- function(leaf = 100) {
     type = "sequence"
   )
   job$mapred <- list(
-    mapred.reduce.tasks = 20,  #cdh3,4
-    mapreduce.job.reduces = 20  #cdh5
+    mapred.reduce.tasks = 100,  #cdh3,4
+    mapreduce.job.reduces = 100  #cdh5
   )
   job$readback <- FALSE
   job$combiner <- TRUE
@@ -512,7 +513,7 @@ newCrossValid <- function(Elev = TRUE, sp, Edeg, deg=2, fam="symmetric", surf="d
 
   job <- list()
   job$map <- expression({
-    lapply(1:seq_along(map.keys), function(r) {
+    lapply(seq_along(map.keys), function(r) {
       v <- map.values[[r]]
       orig <- subset(v, flag == 1)
       v$resp[v$flag == 1]<- NA
@@ -557,10 +558,24 @@ newCrossValid <- function(Elev = TRUE, sp, Edeg, deg=2, fam="symmetric", surf="d
           napred = TRUE
         )
       }
-      value <- merge()
-      rhcollect(map.keys[[r]], value)
+      value <- merge(orig, lo.fit$pred, by= c("lon","lat"))
+      error <- with(value, abs(resp - fitted))
+      rhcollect(map.keys[[r]][1:2], error)
     })
   })
+  job$reduce <- expression(
+    pre = {
+      all <- 0
+      len <- 0
+    },
+    reduce = {
+      all <- all + sum(unlist(reduce.values))
+      len <- len + length(unlist(reduce.values))
+    },
+    post = {
+      rhcollect(reduce.key, c(all, len))
+    }
+  )
   job$setup <- expression(
     map = {library(Spaloess, lib.loc=lib.loc)}
   )
@@ -585,10 +600,10 @@ newCrossValid <- function(Elev = TRUE, sp, Edeg, deg=2, fam="symmetric", surf="d
     mapreduce.job.reduces = 20 #cdh5
   )
   job$readback <- FALSE
-  job$combiner <- TRUE
   job$jobname <- file.path(
     rh.root, par$dataset, "a1950", "bymonth.fit.new", fam, surf, Edeg, paste("sp",sp, sep="")
   )
+  job$mon.sec <- 20
   job.mr <- do.call("rhwatch", job)
 
 }
