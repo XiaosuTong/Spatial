@@ -573,7 +573,8 @@ newCrossValid <- function(Elev = TRUE, sp, Edeg, deg=2, fam="symmetric", surf="d
       len <- len + length(unlist(reduce.values))
     },
     post = {
-      rhcollect(reduce.key, c(all, len))
+      value <- all/len
+      rhcollect(reduce.key, value)
     }
   )
   job$setup <- expression(
@@ -604,6 +605,59 @@ newCrossValid <- function(Elev = TRUE, sp, Edeg, deg=2, fam="symmetric", surf="d
     rh.root, par$dataset, "a1950", "bymonth.fit.new", fam, surf, Edeg, paste("sp",sp, sep="")
   )
   job$mon.sec <- 20
+  job.mr <- do.call("rhwatch", job)
+
+}
+
+#########################################
+##  Read in all sp files for a given fam, surf, and Edeg
+##
+#########################################
+crossValidMerge <- function(fam, Edeg, surf, first = FALSE, span) {
+  
+  FileInput <- paste(
+    file.path(rh.root, par$dataset, "a1950", "bymonth.fit.new", fam, surf, Edeg), "/sp", span, sep=""
+  )
+  FileOutput <- file.path(rh.root, par$dataset, "a1950", "bymonth.fit.new", fam, surf, Edeg, "MABSE")  
+
+  job <- list()
+  job$map <- expression({
+    lapply(seq_along(map.values), function(r) {
+      v <- map.values[[r]]
+      file <- Sys.getenv("mapred.input.file")
+      span <- substr(tail(strsplit(file, "/")[[1]],3)[2], 3, 7)
+      value <- data.frame(
+        span = span, 
+        mse = map.values[[r]], 
+        na = sum(!is.na(v$resp-v$fitted)),
+        year = map.keys[[r]][1], 
+        month = map.keys[[r]][2],
+        stringsAsFactors = FALSE
+      )
+      rhcollect(1, value)
+    })
+  })
+  job$reduce <- expression(
+    pre = {
+      combine <- data.frame()
+    },
+    reduce = {
+      combine <- rbind(combine, do.call(rbind, reduce.values))
+    },
+    post = {
+      rhcollect(reduce.key, combine)
+    }
+  )
+  job$input <- rhfmt(FileInput, type = "sequence")
+  job$output <- rhfmt(FileOutput, type = "sequence")
+  job$mapred <- list(
+    mapred.reduce.tasks = 1,  #cdh3,4
+    mapreduce.job.reduces = 1  #cdh5 
+    #rhipe_reduce_buff_size = 10000
+  )
+  job$mon.sec <- 20
+  job$jobname <- FileOutput  
+  job$readback <- FALSE
   job.mr <- do.call("rhwatch", job)
 
 }
