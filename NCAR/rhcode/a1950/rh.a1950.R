@@ -1,3 +1,8 @@
+###############################################################
+##  Input is the All bystation key-value pairs, stations     ##
+##  which does not have observations after 1950 are filtered ##
+##  out. Output is a1950 by stations key-value pairs         ##
+###############################################################
 a1950 <- function() {
 
   job <- list()
@@ -573,8 +578,7 @@ newCrossValid <- function(Elev = TRUE, sp, Edeg, deg=2, fam="symmetric", surf="d
       len <- len + length(unlist(reduce.values))
     },
     post = {
-      value <- all/len
-      rhcollect(reduce.key, value)
+      rhcollect(reduce.key, all/len)
     }
   )
   job$setup <- expression(
@@ -629,7 +633,6 @@ crossValidMerge <- function(fam, Edeg, surf, first = FALSE, span) {
       value <- data.frame(
         span = span, 
         mse = map.values[[r]], 
-        na = sum(!is.na(v$resp-v$fitted)),
         year = map.keys[[r]][1], 
         month = map.keys[[r]][2],
         stringsAsFactors = FALSE

@@ -236,13 +236,13 @@ for(k in c("direct","interpolate")) {
 ## is predicted (leave-p-out cross validation, p=128) 
 for(k in c("direct","interpolate")) {
   for(i in c(1,2)) {
-    for(j in seq(0.01, 0.1, 0.005)) {
+    for(j in seq(0.1, 0.2, 0.05)) {
       try(newCrossValid(Elev = TRUE, sp=j, deg=2, Edeg=i, surf=k, fam="symmetric"))
     }
-    for(j in seq(0.001, 0.009, 0.001)){
+    for(j in seq(0.005, 0.1, 0.01)) {
       try(newCrossValid(Elev = TRUE, sp=j, deg=2, Edeg=i, surf=k, fam="symmetric"))
     }
-    try(crossValidMerge(fam="symmetric", Edeg=i, surf=k, span = c(seq(0.001, 0.009, 0.001),seq(0.01, 0.1, 0.005))))
+    try(crossValidMerge(fam="symmetric", Edeg=i, surf=k, span = seq(0.005, 0.1, 0.005)))
   }
 }
 
