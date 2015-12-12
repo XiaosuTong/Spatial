@@ -59,6 +59,12 @@ source("~/Projects/Spatial/NCAR/rhcode/All/RawtoHDFS.R")
 
 
 
+#################################################################
+##                                                             ##
+##               Dataset of the 100 Stations                   ##
+##                                                             ##
+#################################################################
+
 ############################################################################
 ##        Raw and stl fit for the 100 stations with full obs              ##
 ############################################################################     
@@ -295,7 +301,9 @@ try(QQDivFromNormal(index="E1", type="a1950"))
 try(QQstationlag(param=parameter, index="E1", type="a1950"))
 for(j in 1:nrow(parameter)) {
   rhget(
-    file.path(rh.root, par$dataset, type, "STLtuning", index, "meanerrorqqplot", "_outputs", paste("QQ.error", par$dataset, "group", j, "ps", sep= ".")),
+    file.path(rh.root, par$dataset, type, "STLtuning", index, "meanerrorqqplot", "_outputs", 
+      paste("QQ.error", par$dataset, "group", j, "ps", sep= ".")
+    ),
     file.path(local.root, "output")
   )
 }
@@ -325,7 +333,9 @@ try(QQDivFromNormal(index="E2", type="a1950"))
 try(QQstationlag(param=parameter, index="E2", type="a1950"))
 for(j in 1:nrow(parameter)) {
   rhget(
-    file.path(rh.root, par$dataset, "a1950", "STLtuning", "E2", "meanerrorqqplot", "_outputs", paste("QQ.error", par$dataset, "group", j, "ps", sep= ".")),
+    file.path(rh.root, par$dataset, "a1950", "STLtuning", "E2", "meanerrorqqplot", "_outputs", 
+      paste("QQ.error", par$dataset, "group", j, "ps", sep= ".")
+    ),
     file.path(local.root, "output")
   )
 }
@@ -354,7 +364,9 @@ try(QQDivFromNormal(index="E3", type="a1950"))
 try(QQstationlag(param=parameter, index="E3", type="a1950"))
 for(j in 1:nrow(parameter)) {
   rhget(
-    file.path(rh.root, par$dataset, "a1950", "STLtuning", "E3", "meanerrorqqplot", "_outputs", paste("QQ.error", par$dataset, "group", j, "ps", sep= ".")),
+    file.path(rh.root, par$dataset, "a1950", "STLtuning", "E3", "meanerrorqqplot", "_outputs", 
+      paste("QQ.error", par$dataset, "group", j, "ps", sep= ".")
+    ),
     file.path(local.root, "output")
   )
 }
@@ -383,7 +395,9 @@ try(QQDivFromNormal(index="E4", type="a1950"))
 try(QQstationlag(param=parameter, index="E4", type="a1950"))
 for(j in 1:nrow(parameter)) {
   rhget(
-    file.path(rh.root, par$dataset, "a1950", "STLtuning", "E4", "meanerrorqqplot", "_outputs", paste("QQ.error", par$dataset, "group", j, "ps", sep= ".")),
+    file.path(rh.root, par$dataset, "a1950", "STLtuning", "E4", "meanerrorqqplot", "_outputs", 
+      paste("QQ.error", par$dataset, "group", j, "ps", sep= ".")
+    ),
     file.path(local.root, "output")
   )
 }
@@ -412,7 +426,9 @@ try(QQDivFromNormal(index="E5", type="a1950"))
 try(QQstationlag(param=parameter, index="E5", type="a1950"))
 for(j in 1:nrow(parameter)) {
   rhget(
-    file.path(rh.root, par$dataset, "a1950", "STLtuning", "E5", "meanerrorqqplot", "_outputs", paste("QQ.error", par$dataset, "group", j, "ps", sep= ".")),
+    file.path(rh.root, par$dataset, "a1950", "STLtuning", "E5", "meanerrorqqplot", "_outputs", 
+      paste("QQ.error", par$dataset, "group", j, "ps", sep= ".")
+    ),
     file.path(local.root, "output")
   )
 }
@@ -441,7 +457,9 @@ try(QQDivFromNormal(index="E6", type="a1950"))
 try(QQstationlag(param=parameter, index="E6", type="a1950"))
 for(j in 1:nrow(parameter)) {
   rhget(
-    file.path(rh.root, par$dataset, "a1950", "STLtuning", "E6", "meanerrorqqplot", "_outputs", paste("QQ.error", par$dataset, "group", j, "ps", sep= ".")),
+    file.path(rh.root, par$dataset, "a1950", "STLtuning", "E6", "meanerrorqqplot", "_outputs", 
+      paste("QQ.error", par$dataset, "group", j, "ps", sep= ".")
+    ),
     file.path(local.root, "output")
   )
 }
