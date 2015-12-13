@@ -514,7 +514,7 @@ bymonthSplit <- function(leaf = 100) {
 ##  is the error of the prediction. In the Reduce, errors of each month    ##
 ##  is accumulated.                                                        ##
 #############################################################################
-newCrossValid <- function(Elev = TRUE, sp, Edeg, deg=2, fam="symmetric", surf="direct") {
+newCrossValid <- function(Elev = TRUE, sp, Edeg, deg=2, fam="symmetric", surf="direct", error = "mse") {
 
   job <- list()
   job$map <- expression({
@@ -564,7 +564,11 @@ newCrossValid <- function(Elev = TRUE, sp, Edeg, deg=2, fam="symmetric", surf="d
         )
       }
       value <- merge(orig, lo.fit$pred, by= c("lon","lat"))
-      error <- with(value, abs(resp - fitted))
+      if(er == "abs") {
+        error <- with(value, abs(resp - fitted))
+      } else if (er == "mse") {
+        error <- with(value, (resp - fitted)^2)
+      }
       rhcollect(map.keys[[r]][1:2], error)
     })
   })
@@ -590,7 +594,8 @@ newCrossValid <- function(Elev = TRUE, sp, Edeg, deg=2, fam="symmetric", surf="d
     degree = deg,
     family = fam,
     Edeg = Edeg,
-    surf = surf
+    surf = surf,
+    er = error
   )
   job$input <- rhfmt(
     file.path(rh.root, par$dataset, "a1950", "bymonthSplit"),
