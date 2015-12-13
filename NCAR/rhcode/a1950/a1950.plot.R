@@ -108,6 +108,92 @@ intpolat.visual <- function(size = "letter", surf, SPsize, check=NULL) {
   
 }
 
+
+intpolat.visualNew <- function(size = "letter", surf="direct") {
+
+  rst1 <- rhread(file.path(rh.root, par$dataset, "a1950", "bymonth.fit.new", "symmetric", surf, "1", "MABSE"))[[1]][[2]]
+  rst2 <- rhread(file.path(rh.root, par$dataset, "a1950", "bymonth.fit.new", "symmetric", surf, "2", "MABSE"))[[1]][[2]]
+  rst <- rbind(rst1, rst2)
+  rst$degree <- rep(c(1,2), each = nrow(rst1))
+
+    trellis.device(
+      device = postscript, 
+      file = file.path(local.root, "output", paste("QuanMABSE", "a1950", par$dataset, "span", "ps", sep=".")), 
+      color=TRUE, 
+      paper=size
+    )
+    b <- qqmath(~mse|as.factor(span)
+      , data = rst
+      , group = degree
+      , dist = qunif
+      , cex = 0.5
+      , layout = c(4,1)
+      , xlab = list(label="f-value", cex=1.5)
+      , ylab = list(label="Mean Square Error", cex=1.5)
+      , key=list(
+          text = list(label=c("degree=1","degree=2")),
+          lines = list(pch=1, cex=1, type="p", col=col[1:2]), 
+          columns = 2
+        )
+      , scale = list(cex=1.2)
+      , panel = function(x,...) {
+          panel.abline(h=seq(0,2,0.2), v=seq(0,1,0.25), col="lightgray")
+          panel.qqmath(x,...)
+        }
+    )
+    print(b)
+    dev.off()
+
+  for(i in c("small","median","large")) {
+    if(i == "small") {
+      sub <- subset(rst, as.numeric(span) <= 0.035)
+    }else if (i == "median") {
+      sub <- subset(rst, as.numeric(span)<=0.085 & as.numeric(span) > 0.035)
+    }else {
+      sub <- subset(rst, as.numeric(span)>0.085)
+    }
+
+    trellis.device(
+      device = postscript, 
+      file = file.path(local.root, "output", paste("QuanMABSE", "a1950", par$dataset, i, "degree","ps", sep=".")), 
+      color=TRUE, 
+      paper=size
+    )
+    b <- qqmath(~mse|as.factor(degree)
+      , data = sub
+      , group = span
+      , dist = qunif
+      , cex = 0.5
+      , layout = c(2,1)
+      , xlab = list(label="f-value", cex=1.5)
+      , ylab = list(label="Mean Square Error", cex=1.5)
+      , key=list(
+          text = list(label=paste("span=", sort(unique(sub$span)), sep="")),
+          lines = list(pch=1, cex=1, type="p", col=col[1:length(unique(sub$span))]), 
+          columns = length(unique(sub$span))
+        )
+      , scale = list(cex=1.2)
+      , panel = function(x,...) {
+          panel.abline(h=seq(0,2,0.2), v=seq(0,1,0.25), col="lightgray")
+          panel.qqmath(x,...)
+        }
+    )
+    print(b)
+    dev.off()
+  }
+} 
+
+
+
+
+
+
+
+
+
+
+
+
 #########################################################
 ##  Diagnostic plots for components from stl2 fitting  ## 
 #########################################################
