@@ -132,6 +132,14 @@ plotEngine <- function(data, dataset, key, orderdf) {
     paper = "legal"
   )
   for(i in orderdf$station.id){
+    yrange <- range(subset(data, station.id == i)$residual)
+    if(yrange[2] >= 20 & yrange[2]<30) {
+      yscale <- list(cex=1.2, at=seq(-20,20,10))
+    } else if(yrange[2] >= 30) {
+      yscale <- list(cex=1.2, at=seq(-30,30,15))
+    } else {
+      yscale <- list(cex=1.2, at=seq(-10,10,5))
+    }
     b <- qqmath( ~ residual | lag
       , data = subset(data, station.id==i)
       , xlab = list(label = "Unit normal quantile", cex = 1.5)
@@ -143,7 +151,7 @@ plotEngine <- function(data, dataset, key, orderdf) {
       , layout = c(9,4)
       , scale = list(
           x = list(cex=1.2, at = seq(-2,2,2)),
-          y = list(cex=1.2, at = seq(-10,10,5))
+          y = yscale
         )
       , pch=16
       , cex=0.3
