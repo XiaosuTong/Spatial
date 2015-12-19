@@ -90,7 +90,7 @@ seasonalDiag(data=rst, outputdir=file.path(local.root, "output"), target="tmax",
 trendDiag(data=rst, outputdir=file.path(local.root, "output"), target="tmax", size = "letter", test=F, fc = FALSE)
 
 s100.STLfit(sw=103, sd=1, tw=617, td=2, fcw=NULL, fcd=NULL)
-rst <- rhread(file.path(rh.root, par$dataset, "100stations", "STL", "t617td2_s77sd1_ffd"))[[1]][[2]]
+rst <- rhread(file.path(rh.root, par$dataset, "100stations", "STL", "t617td2_s103sd1_ffd"))[[1]][[2]]
 fitRaw(data=rst, outputdir=file.path(local.root, "output"), target="tmax", size = "letter", test = F)
 remainderDiag(data=rst, outputdir=file.path(local.root, "output"), target="tmax", size = "letter", test=F)
 seasonalDiag(data=rst, outputdir=file.path(local.root, "output"), target="tmax", size = "letter", test=F)
@@ -319,10 +319,11 @@ for(j in c("mean.absmeans","mean.std")){
 ## Experiment E2 ##
 ###################
 parameter <- expand.grid(
-  sw = c(21, 41, "periodic"), tw = c(123, 313, 451), td = 2, 
+  sw = c(11, 41, "periodic"), tw = c(123, 241, 451), td = 2, 
   sd = 1, fc.flag = FALSE, stringsAsFactors=FALSE
 )
-for(k in 1:nrow(parameter)) {
+for(k in c(1,4,5,6,7)) {
+#for(k in 1:nrow(parameter)) {
   try(predict36(type="a1950", parameter=parameter, k=k, index="E2", valid=270))
 }
 try(lagResidual(n=nrow(parameter), index="E2", type="a1950"))
