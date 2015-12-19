@@ -280,7 +280,7 @@ fitRaw <- function(data=rst, outputdir, target="tmax", size = "letter", test = T
   )
   data$time <- c(rep(0:143,8), 0:83) 
 
-  stations <- unique(data$station.id)
+  stations <- sort(unique(data$station.id))
 
   if(test) {
     stations <- stations[1]

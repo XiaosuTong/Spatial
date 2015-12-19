@@ -99,7 +99,7 @@ s100.STLfit <- function(sw, sd, tw, td, fcw=NULL, fcd=NULL) {
       value$date <- 1:1236
       if (is.null(par$fcw)) {
         
-        fit <- stl2(
+        fit <- stlplus(
           x=value$resp, t=value$date, n.p=12, s.window=par$sw, s.degree=par$sd, 
           t.window=par$tw, t.degree=par$td, inner=10, outer=0
         )$data
@@ -107,7 +107,7 @@ s100.STLfit <- function(sw, sd, tw, td, fcw=NULL, fcd=NULL) {
 
       } else {
 
-        fit <- do.call("cbind", stl2(
+        fit <- do.call("cbind", stlplus(
           x=value$resp, t=value$date, n.p=12, s.window=par$sw, s.degree=par$sd, t.window=par$tw, 
           t.degree=par$td, fc.window=c(par$tw,par$fcw), fc.degree=c(par$td,par$fcd), inner=10, outer=0
         )[c("data","fc")])
@@ -134,7 +134,7 @@ s100.STLfit <- function(sw, sd, tw, td, fcw=NULL, fcd=NULL) {
   )
   job$setup <- expression(
     map = {
-      suppressMessages(library(stl2))
+      suppressMessages(library(stlplus, lib.loc=lib.loc))
     }
   )
   job$input <- rhfmt(
