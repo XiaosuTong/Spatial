@@ -351,7 +351,7 @@ for(j in c("mean.absmeans","mean.std")){
 ## Experiment E3 ##
 ###################
 parameter <- expand.grid(
-  sw = "periodic", tw = c(41, 83, 123, 313, 451), td = c(1, 2), 
+  sw = "periodic", tw = c(41, 83, 123, 241, 451), td = c(1, 2), 
   sd = 1, fc.flag = FALSE, stringsAsFactors=FALSE
 )
 for(k in 1:nrow(parameter)) {
@@ -483,7 +483,7 @@ parameter <- expand.grid(
   fc.flag = FALSE, stringsAsFactors=FALSE
 )
 for(k in 1:nrow(parameter)) {
-  try(predict36(type="a1950", parameter=parameter, k=k, index="E7blend", valid=270))
+  try(predict36.blend(type="a1950", parameter=parameter, k=k, index="E7blend", valid=270))
 }
 try(lagResidual(n=nrow(parameter), index="E7blend", type="a1950"))
 try(lagResidQuan(index="E7blend", type="a1950", reduce=10))
@@ -493,7 +493,7 @@ try(QQDivFromNormal(index="E7blend", type="a1950"))
 try(QQstationlag(param=parameter, index="E7blend", type="a1950"))
 for(j in 1:nrow(parameter)) {
   rhget(
-    file.path(rh.root, par$dataset, type, "STLtuning", index, "meanerrorqqplot", "_outputs", 
+    file.path(rh.root, par$dataset, "a1950", "STLtuning", "E7blend", "meanerrorqqplot", "_outputs", 
       paste("QQ.error", par$dataset, "group", j, "ps", sep= ".")
     ),
     file.path(local.root, "output")
@@ -508,7 +508,41 @@ for(j in c("mean.absmeans","mean.std")){
   overallErrorVsStation(type="a1950", index="E7blend", var=c("sw","tw"), target=j, sub=TRUE)
 }
 
-
+###################
+## Experiment E8 ##
+###################
+parameter <- expand.grid(
+  sw = c(7, 11, 21, "periodic"), 
+  tw = 241, 
+  td = 1, 
+  sd = c(1, 2),
+  fc.flag = FALSE, stringsAsFactors=FALSE
+)
+for(k in 1:nrow(parameter)) {
+  try(predict36.blend(type="a1950", parameter=parameter, k=k, index="E8blend", valid=270))
+}
+try(lagResidual(n=nrow(parameter), index="E8blend", type="a1950"))
+try(lagResidQuan(index="E8blend", type="a1950", reduce=10))
+try(StdMean.group(index="E8blend", type="a1950", num=36))
+try(StdMean.grouplag(index="E8blend", parameter=parameter, type="a1950"))
+try(QQDivFromNormal(index="E8blend", type="a1950"))
+try(QQstationlag(param=parameter, index="E8blend", type="a1950"))
+for(j in 1:nrow(parameter)) {
+  rhget(
+    file.path(rh.root, par$dataset, "a1950", "STLtuning", "E8blend", "meanerrorqqplot", "_outputs", 
+      paste("QQ.error", par$dataset, "group", j, "ps", sep= ".")
+    ),
+    file.path(local.root, "output")
+  )
+}
+## filtering only 128 station for visualization
+try(subsetStations(index="E8blend", type="a1950"))
+for(j in c("absmeans","means","std")) {
+  errorVsLag(type="a1950", index="E8blend", var=c("sw","tw"), target=j)
+}
+for(j in c("mean.absmeans","mean.std")){
+  overallErrorVsStation(type="a1950", index="E8blend", var=c("sw","tw"), target=j, sub=TRUE)
+}
 
 ##########################################
 ##      Backfitting for a1950           ##
