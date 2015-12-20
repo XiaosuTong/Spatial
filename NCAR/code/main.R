@@ -322,8 +322,8 @@ parameter <- expand.grid(
   sw = c(11, 41, "periodic"), tw = c(123, 241, 451), td = 2, 
   sd = 1, fc.flag = FALSE, stringsAsFactors=FALSE
 )
-for(k in c(1,4,5,6,7)) {
-#for(k in 1:nrow(parameter)) {
+#for(k in c(1,4,5,6,7)) {
+for(k in 1:nrow(parameter)) {
   try(predict36(type="a1950", parameter=parameter, k=k, index="E2", valid=270))
 }
 try(lagResidual(n=nrow(parameter), index="E2", type="a1950"))
