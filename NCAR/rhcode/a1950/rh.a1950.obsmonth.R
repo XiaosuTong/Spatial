@@ -62,15 +62,12 @@ trellis.device(
     , type = "l"
     , xlab = list(label = "Date", cex = 1.5)
     , ylab = list(label = "Log Base 2 Number of Observation", cex = 1.5)
-    , ylim = c(9, 13.5)
-    , aspect = "xy"
     , scales = list(
         y = list(cex = 1.2),
-        x = list(format = "%b %Y", at = c(seq(start, end, by="240 month")), cex = 1.2)
+        x = list(format = "%b %Y", at = c(seq(start, end, by="120 month")), cex = 1.2)
       )   
     , panel = function(x,y,...) {
-        panel.abline(v = seq(start, end, by="120 month"), h = seq(9.5, 13.5, 0.5), lwd = 0.5, col = "lightgray")
-        panel.abline(h = log2(Nstations), col = "red", lty=1, lwd = 1)
+        panel.abline(v = seq(start, end, by="120 month"), h = seq(9.5, 13.5, 0.1), lwd = 0.5, col = "lightgray")
         panel.xyplot(x,y,...)
       }
   )
@@ -78,7 +75,6 @@ trellis.device(
 dev.off()
 
 rst <- rhread("/ln/tongx/Spatial/tmp/tmax/a1950/bymonth")
-us.map <- map('state', plot = FALSE, fill = TRUE)
 trellis.device(
   device = postscript, 
   file = file.path(local.root, "output", paste(par$dataset, "a1950", "status", "ps", sep=".")), 
