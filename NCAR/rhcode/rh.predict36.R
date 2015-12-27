@@ -68,14 +68,14 @@ predict36 <- function(type, parameter, k, index, valid) {
       if(fc.flag) {
         v.predict <- tail(
           do.call("cbind", 
-            stl2(x = v.model$resp, t = v.model$time, n.p = 12, 
+            stlplus(x = v.model$resp, t = v.model$time, n.p = 12, 
               s.window = sw, s.degree = sd, t.window = tw, t.degree = td, 
               fc.window = c(fcw, scw), fc.degree = c(fcd, scd), 
               inner = inner, outer = outer)[c("data","fc")]), 36
         )
         names(v.predict)[grep("fc.fc", names(v.predict))] <- c("fc.first", "fc.second")
       } else {
-        v.predict <- tail(stl2(
+        v.predict <- tail(stlplus(
           x = v.model$resp, 
           t = v.model$time, 
           n.p = 12, s.window = sw, s.degree = sd, t.window = tw, t.degree = td, 
@@ -95,8 +95,93 @@ predict36 <- function(type, parameter, k, index, valid) {
   job$setup <- expression(
     map = {
       library(lattice)
-      library(yaImpute)
-      library(stl2)
+      library(yaImpute, lib.loc=lib.loc)
+      library(stlplus, lib.loc=lib.loc)
+      library(plyr)
+    })
+  if (parameter[k,"sw"] != "periodic"){
+    job$parameters <- list(
+      valid = valid, type = type,
+      sw = as.numeric(parameter[k,"sw"]), tw = parameter[k,"tw"], sd = parameter[k,"sd"], 
+      td = parameter[k,"td"], fcw = parameter[k, "fcw"], fcd = parameter[k, "fcd"],
+      scw = parameter[k, "scw"], scd = parameter[k, "scd"], inner = 10, outer = 0, group = k, 
+      fc.flag = parameter[k, "fc.flag"]
+    )
+  }else{
+    job$parameters <- list(
+      valid = valid, type = type,
+      sw = parameter[k,"sw"], tw = parameter[k,"tw"], sd = parameter[k,"sd"], 
+      td = parameter[k,"td"], fcw = parameter[k, "fcw"], fcd = parameter[k, "fcd"], 
+      scw = parameter[k, "scw"], scd = parameter[k, "scd"], inner = 10, outer = 0, group = k,
+      fc.flag = parameter[k, "fc.flag"]
+    )
+  }
+  job$input <- rhfmt(
+    file.path(rh.root, par$dataset, type, "bystationSplit"),
+    type = "sequence"
+  )
+  job$output <- rhfmt(
+    file.path(rh.root, par$dataset, type, "STLtuning", index, paste("run", k, sep="")), 
+    type = "sequence"
+  )
+  job$mapred <- list(
+    mapred.reduce.tasks = 50,  #cdh3,4
+    mapreduce.job.reduces = 50,  #cdh5
+    rhipe_reduce_buff_size = 10000
+  )
+  job$jobname <- file.path(rh.root, par$dataset, type, "STLtuning", index, paste("run", k, sep=""))
+  job$mon.sec <- 10
+  job$readback <- FALSE
+  job.mr <- do.call("rhwatch", job)
+
+}
+
+predict36.blend <- function(type, parameter, k, index, valid) {
+
+  job <- list()
+  job$map <- expression({
+    lapply(seq_along(map.values), function(r) {
+      key <- c(map.keys[[r]][1], group)
+      v <- map.values[[r]]
+      if(type == "a1950") {
+        Index <- which(is.na(v$resp))
+        v$resp[Index] <- v$fitted[Index]
+      }
+      v.raw <- tail(v, 36)
+      v.model <- v
+      v.model[valid+(1:36), "resp"] <- NA
+      if(fc.flag) {
+        v.predict <- tail(
+          do.call("cbind", 
+            stlplus(x = v.model$resp, t = v.model$time, n.p = 12, s.blend=0.5, t.blend=0.5,
+              s.window = sw, s.degree = sd, t.window = tw, t.degree = td, 
+              fc.window = c(fcw, scw), fc.degree = c(fcd, scd), 
+              inner = inner, outer = outer)[c("data","fc")]), 36
+        )
+        names(v.predict)[grep("fc.fc", names(v.predict))] <- c("fc.first", "fc.second")
+      } else {
+        v.predict <- tail(stlplus(
+          x = v.model$resp, 
+          t = v.model$time, 
+          n.p = 12, s.window = sw, s.degree = sd, t.window = tw, t.degree = td, s.blend=0.5, t.blend=0.5,
+          inner = inner, outer = outer)$data, 36
+        )
+      }
+      value <- cbind(v.raw, v.predict)
+      value$lag <- c(1:36)
+      if(fc.flag) {
+        value <- subset(value, select = -c(data.weights, data.remainder, data.raw, fc.remainder, data.trend, data.sub.labels))
+      } else{
+        value <- subset(value, select = -c(weights, remainder, raw, sub.labels))
+      }
+      rhcollect(key, value)
+    })
+  })
+  job$setup <- expression(
+    map = {
+      library(lattice)
+      library(yaImpute, lib.loc=lib.loc)
+      library(stlplus, lib.loc=lib.loc)
       library(plyr)
     })
   if (parameter[k,"sw"] != "periodic"){
