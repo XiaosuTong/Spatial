@@ -109,13 +109,14 @@ intpolat.visual <- function(size = "letter", surf, SPsize, check=NULL) {
 }
 
 
-intpolat.visualNew <- function(size = "letter", surf="direct") {
+imputeCrossValid <- function(size = "letter", surf="direct", Edeg = TRUE) {
 
-  rst1 <- rhread(file.path(rh.root, par$dataset, "a1950", "bymonth.fit.new", "symmetric", surf, "1", "MABSE"))[[1]][[2]]
-  rst2 <- rhread(file.path(rh.root, par$dataset, "a1950", "bymonth.fit.new", "symmetric", surf, "2", "MABSE"))[[1]][[2]]
-  rst <- rbind(rst1, rst2)
-  rst$degree <- rep(c(1,2), each = nrow(rst1))
-
+  if (Edeg) {
+    rst1 <- rhread(file.path(rh.root, par$dataset, "a1950", "bymonth.fit.cv", "symmetric", surf, "1", "MABSE"))[[1]][[2]]
+    rst2 <- rhread(file.path(rh.root, par$dataset, "a1950", "bymonth.fit.cv", "symmetric", surf, "2", "MABSE"))[[1]][[2]]
+    rst <- rbind(rst1, rst2)
+    rst$degree <- rep(c(1,2), each = nrow(rst1))
+    
     trellis.device(
       device = postscript, 
       file = file.path(local.root, "output", paste("QuanMABSE", "a1950", par$dataset, "span", "ps", sep=".")), 
@@ -144,6 +145,10 @@ intpolat.visualNew <- function(size = "letter", surf="direct") {
     print(b)
     dev.off()
 
+  } else {
+    rst <- rhread(file.path(rh.root, par$dataset, "a1950", "bymonth.fit.cv", "symmetric", surf, "0", "MABSE"))[[1]][[2]]
+  }
+
   for(i in c("small","median","large")) {
     if(i == "small") {
       sub <- subset(rst, as.numeric(span) <= 0.035)
@@ -157,9 +162,9 @@ intpolat.visualNew <- function(size = "letter", surf="direct") {
       device = postscript, 
       file = file.path(local.root, "output", paste("QuanMABSE", "a1950", par$dataset, i, "degree","ps", sep=".")), 
       color=TRUE, 
-      paper=size
+      paper="letter"
     )
-    b <- qqmath(~mse|as.factor(degree)
+    b <- qqmath(~ mse
       , data = sub
       , group = span
       , dist = qunif
@@ -184,14 +189,297 @@ intpolat.visualNew <- function(size = "letter", surf="direct") {
 } 
 
 
+###################################################################
+##  Visualization plots for the spatial loess fit for missing    ##
+##  value imputing.                                              ##
+##  input files are /a1950/bymonth.fit or /a1950/bymonth.fit.new ##
+###################################################################
+Qsample <- function(x, num) {
 
+  xx <- x[!is.na(x)]
+  xx <- sort(xx)
+  print(xx)
+  len <- length(xx)
+  idx <- round(seq(1, len, length.out = num))
+  f.value <- (idx - 0.5) / len
+  value <- data.frame(
+    resid = xx[idx],
+    fv = f.value
+  )
+  value
 
+}
 
+a1950.spaImputeVisual <- function(family = "symmetric", surf = "direct", Edeg = 2, span = 0.05) {
+  
+  FileInput <- file.path(
+    rh.root, par$dataset, "a1950", "bymonth.fit", 
+    family, surf, Edeg, paste("sp", span, sep="")
+  )
 
+  atlevels <- c(seq(-4,-1,0.2),seq(-0.8,0.8,0.1), seq(1,4,0.2))
 
+  job <- list()
+  job$map <- expression({
+    lapply(seq_along(map.keys), function(r) {
+      v <- map.values[[r]]
+      value <- Qsample(v$resp - v$fitted, 1000)
+      value$month <- map.keys[[r]][2]
+      value$year <- as.numeric(map.keys[[r]][1])
+      rhcollect(1, value)
+    })
+  })
+  job$reduce <- expression(
+    pre = {
+      combine <- data.frame()
+    },
+    reduce = {
+      combine <- rbind(combine, do.call("rbind", reduce.values))
+    },
+    post = {
+      rhcollect(reduce.key, combine)
+    }
+  )  
+  job$parameters <- list(
+    Qsample = Qsample
+  )
+  job$input <- rhfmt(FileInput, type = "sequence")
+  job$output <- rhfmt(
+    file.path(rh.root, par$dataset, "a1950", "bymonth.fit.plot", family, surf, Edeg, paste("sp",span, sep="")), 
+    type = "sequence"
+  )
+  job$mapred <- list(
+    mapred.reduce.tasks = 1,  #cdh3,4
+    mapreduce.job.reduces = 1  #cdh5
+  )
+  job$readback <- TRUE
+  job$combiner <- TRUE
+  job$jobname <- file.path(rh.root, par$dataset, "a1950", "bymonth.fit.plot", family, surf, Edeg, paste("sp",span, sep=""))
+  job.mr <- do.call("rhwatch", job)
 
+  ## normal quantile plots which includes all quantiles inside and outside of [0.015, 0.985]
+  trellis.device(
+    device = postscript, 
+    file = file.path(local.root, "output", paste("a1950", "spaloessResid", "bytime", "ps", sep=".")), 
+    color=TRUE, 
+    paper="letter"
+  )
+  for(i in c(1950:1997)) {
+    sub <- subset(job.mr[[1]][[2]], year == i)
+    b <- xyplot(resid ~ qnorm(fv) | factor(month, levels=month.abb)
+      , data = sub
+      , layout = c(6, 2)
+      , sub = paste("Year", i)
+      , ylab = list(label="Spatial Residuals", cex=1.5)
+      , xlab = list(label="Normal Quantiles", cex=1.5)
+      , scale = list(cex=1.2)
+      , key=list(
+          text = list(label=c("inside [0.015, 0.985]", "outside [0.015, 0.985]"), cex=1.2), 
+          lines = list(pch=16, cex=1, type=c("p"), col=col[c(1,2)]),
+          columns = 2
+        )
+      , panel = function(x, y, ...) {
+          idx <- which(pnorm(y) <= 0.985 & pnorm(y) >= 0.015)
+          idx2 <- which(pnorm(y) > 0.985 | pnorm(y) < 0.015)
+          panel.abline(h=0, col="black", lwd=0.5, lty=1)
+          panel.xyplot(x[idx], y[idx], col = col[1], pch = 16, cex =0.5, ...)
+          panel.xyplot(x[idx2], y[idx2], col = col[2], pch = 16, cex =0.5, ...)
+      }
+    )
+    print(b)
+  }
+  dev.off()
 
+  ## Normal quantiles plot which only includes quantiles between 0.015 and 0.985
+  trellis.device(
+    device = postscript, 
+    file = file.path(local.root, "output", paste("a1950", "spaResidcenter", "bytime", "ps", sep=".")), 
+    color=TRUE, 
+    paper="letter"
+  )
+  for(i in c(1950:1997)) {
+    sub <- subset(job.mr[[1]][[2]], year == i & fv <= 0.985 & fv >= 0.015)
+    b <- xyplot(resid ~ qnorm(fv) | factor(month, levels=month.abb)
+      , data = sub
+      , layout = c(4, 3)
+      , sub = paste("Year", i)
+      , ylab = list(label="Spatial Residuals", cex=1.5)
+      , xlab = list(label="Normal Quantiles", cex=1.5)
+      , scale = list(cex=1.2)
+      , aspect = 1
+      , panel = function(x, y, ...) {
+          panel.qqmathline(y,y=y,...)
+          panel.xyplot(x, y, col = col[1], pch = 16, cex =0.3, ...)
+      }
+    )
+    print(b)
+  }
+  dev.off()
 
+  ## The third plot is the contourplot of the smoothed residuals over the US map
+  
+  new.grid <- expand.grid(
+    lon = seq(-124, -67, by = 0.25),
+    lat = seq(25, 49, by = 0.25)
+  )
+  instate <- !is.na(map.where("state", new.grid$lon, new.grid$lat))
+  new.grid <- new.grid[instate, ]
+  job <- list()
+  job$map <- expression({
+    lapply(seq_along(map.keys), function(r) {
+      v <- map.values[[r]]
+      if(Edeg == 2) {
+        v$elev2 <- log2(v$elev + 128)
+        resid.fit <- spaloess( resp-fitted ~ lon + lat + elev2, 
+          data    = v, 
+          degree  = 2, 
+          span    = 0.05,
+          para    = "elev2",
+          family  = "symmetric",
+          normalize = FALSE,
+          distance = "Latlong",
+          control = loess.control(surface = "direct"),
+          napred = FALSE
+        )
+      } else if(Edeg == 1) {
+        v$elev2 <- log2(v$elev + 128)
+        resid.fit <- spaloess( resp-fiited ~ lon + lat + elev2, 
+          data    = v, 
+          degree  = 2, 
+          span    = 0.05,
+          drop    = "elev2",
+          para    = "elev2",
+          family  = "symmetric",
+          normalize = FALSE,
+          distance = "Latlong",
+          control = loess.control(surface = "direct"),
+          napred = FALSE
+        )
+      } else if (Edeg == 0) {
+        resid.fit <- spaloess( resp-fitted ~ lon + lat, 
+          data    = v, 
+          degree  = 2, 
+          span    = 0.05,
+          family  = "symmetric",
+          normalize = FALSE,
+          distance = "Latlong",
+          control = loess.control(surface = "direct"),
+          napred = FALSE
+        )
+      }
+      grid.fit <- predloess(
+        object = resid.fit,
+        newdata = data.frame(lon = new.grid$lon, lat = new.grid$lat)
+      )
+      new.grid$smooth <- grid.fit
+      rhcollect(map.keys[[r]], new.grid)
+    })
+  })
+  job$parameters <- list(
+    new.grid = new.grid,
+    Edeg = Edeg
+  )
+  job$input <- rhfmt(FileInput, type = "sequence")
+  job$output <- rhfmt(
+    file.path(rh.root, par$dataset, "a1950", "bymonth.fit.plot", family, surf, Edeg, paste("sp", span, ".contour", sep="")), 
+    type = "sequence"
+  )
+  job$mapred <- list(
+    mapred.reduce.tasks = 50,  #cdh3,4
+    mapreduce.job.reduces = 50  #cdh5
+  )
+  job$setup <- expression(
+    map = {library(Spaloess, lib.loc=lib.loc)}
+  )
+  job$readback <- TRUE
+  job$jobname <- file.path(
+    rh.root, par$dataset, "a1950", "bymonth.fit.plot", family, surf, Edeg, paste("sp",span, ".contour", sep="")
+  )
+  job.mr <- do.call("rhwatch", job)
+
+  year <- data.frame(do.call(rbind, lapply(job.mr, `[[`, 1)))
+  time <- arrange(mutate(year, idx = row.names(year)), X1, match(X2, month.abb))
+  
+  trellis.device(
+    device = postscript, 
+    file = file.path(local.root, "output", "a1950.spaResidcontour.bytime.ps"),
+    color = TRUE,
+    paper = "letter"
+  )
+  for(i in 1:576){
+    b <- levelplot( smooth ~ lon * lat
+      , data = job.mr[[as.numeric(time$idx[i])]][[2]]
+      , region = TRUE
+      , at = atlevels
+      , col.regions = colorRampPalette(c("blue", "yellow","red"))
+      , xlab = list(label="Longitude", cex=1.5)
+      , ylab = list(label="Latitude", cex=1.5)
+      , xlim = c(-125, -66.5)
+      , scale = list(cex=1.2)
+      , sub = paste(time[i, 1], time[i, 2])
+      , panel = function(x, y, z, ...) {
+          panel.levelplot(x,y,z,...) 
+          panel.polygon(us.map$x,us.map$y, border = "black")
+        }
+    )
+    print(b)
+  }
+  dev.off()
+
+  ## This last 6 plots are scatter plot of residuals against one of 
+  ## spatial factor conditional on another
+  rst <- rhread(FileInput)
+  tmp <- do.call(rbind, lapply(rst,"[[",1)) %>% data.frame(stringsAsFactors=FALSE) 
+  tmp$X2 <- tmp$X2 %>% substr(1,3) %>% match(month.abb)
+  mod <- tmp %>% with(tmp[order(X1, X2),]) %>% row.names() %>% as.numeric()
+  
+  if (Edeg == 0) {
+    spaPara <- data.frame(permutations(2, 2, c("lon","lat")))
+  } else {
+    spaPara <- data.frame(permutations(3, 2, c("lon","lat","elev")))
+  }
+  
+  for (ii in 1:nrow(spaPara)) {
+    against <- spaPara[ii, 1]
+    condit <- spaPara[ii, 2] 
+    varname <- grep(condit, c("Latitude","Longitude","Elevation"), ignore.case=TRUE, value=TRUE)
+    xlab <- grep(against, c("Latitude","Longitude","Elevation"), ignore.case=TRUE, value=TRUE)
+    if (against == "elev") {
+      against <- "elev2"
+      xlab <- "Log Base 2 (Elevation + 128)"
+    }
+    trellis.device(
+      device = postscript, 
+      file = file.path(local.root, "output", paste("a1950.spaResid.vs", against, condit, "ps", sep=".")),
+      color = TRUE, 
+      paper = "letter"
+    )
+    for (r in mod) {
+      b <- xyplot( resp - fitted ~ get(against) | equal.count(get(condit), 20, overlap=0)
+        , data = rst[[r]][[2]]
+        , strip=strip.custom(var.name = varname, strip.levels=rep(FALSE, 2))
+        , pch = 16
+        , cex = 0.3
+        , scale = list(
+            y = list(relation = "free", tick.number = 5, cex=1.2),
+            x = list(relation = "free", tick.number = 3, cex=1.2)
+          )
+        , layout = c(5,4)
+        , xlab = list(label=xlab, cex=1.5)
+        , ylab = list(label="Residual of Spatail Imputing", cex=1.5)
+        , sub = paste(rst[[r]][[1]][1], rst[[r]][[1]][2])
+        , panel = function(x,y,...) {
+            panel.abline(h=0, lwd=0.5, col="black")
+            panel.xyplot(x,y,...)
+            panel.loess(x,y, span=0.25, degree=1, col=col[2], evaluation=100,...)
+        }
+      )
+      print(b)
+    }
+    dev.off()
+  }
+
+}
 
 
 #########################################################
@@ -200,7 +488,7 @@ intpolat.visualNew <- function(size = "letter", surf="direct") {
 #########################################
 ##  fitted value and obs against time  ##
 #########################################
-a1950.fitRaw <- function(data=rst, outputdir, target="tmax", size = "letter", St.num = 128, test = TRUE){
+a1950.stlFitRaw <- function(data=rst, St.num = 128, test = TRUE){
 
   data$factor <- factor(
     x = rep( rep(paste("Period", 1:6), c(rep(108,5), 36)), times=St.num),
@@ -214,19 +502,11 @@ a1950.fitRaw <- function(data=rst, outputdir, target="tmax", size = "letter", St
     stations <- stations[1]
   }
 
-  if (target == "tmax") {
-    ylab <- "Maximum Temperature (degrees centigrade)"
-  } else if (target == "tmin") {
-    ylab <- "Minimum Temperature (degrees centigrade)"
-  } else {
-    ylab <- "Precipitation (millimeters)"
-  }
-
   trellis.device(
     device = postscript, 
-    file = file.path(outputdir, paste("fitted.time", "a1950", target, "ps", sep=".")),
+    file = file.path(local.root, "output", paste("fitted.time", "a1950", "tmax", "ps", sep=".")),
     color = TRUE, 
-    paper = size
+    paper = "letter"
   )
     for(i in stations){
       sub <- subset(data, station.id==i)
@@ -238,21 +518,21 @@ a1950.fitRaw <- function(data=rst, outputdir, target="tmax", size = "letter", St
         , layout = c(1,6)
         , strip = FALSE,
         , xlim = c(0, 107)
-		, ylim = c(min(c(sub$resp, sub$fitted), na.rm=TRUE), max(c(sub$resp, sub$fitted), na.rm=TRUE))
+        , ylim = c(min(c(sub$resp, sub$fitted), na.rm=TRUE), max(c(sub$resp, sub$fitted), na.rm=TRUE))
         , key=list(
-          text = list(label=c("raw", "interpolate", "fitted")), 
-          lines = list(pch=16, cex=0.7, lwd=1.5, type=c("p","p","l"), col=col[c(1,3,2)]),
-          columns=3
-        )
+            text = list(label=c("raw", "interpolate", "fitted")), 
+            lines = list(pch=16, cex=0.7, lwd=1.5, type=c("p","p","l"), col=col[c(1,3,2)]),
+            columns=3
+          )
         , scales = list(
             y = list(tick.number=4), 
             x = list(at=seq(0, 107, by=12), relation='same')
           )
         , panel = function(x,y,subscripts,...) {
             panel.abline(v=seq(0,108, by=12), color="lightgrey", lty=3, lwd=0.5)
-			fit <- subset(sub[subscripts,], flag == 0)
-			obs <- subset(sub[subscripts,], flag == 1)
-			panel.xyplot(obs$time, obs$resp, type="p", col=col[1], pch=16, cex=0.5, ...)
+            fit <- subset(sub[subscripts,], flag == 0)
+            obs <- subset(sub[subscripts,], flag == 1)
+            panel.xyplot(obs$time, obs$resp, type="p", col=col[1], pch=16, cex=0.5, ...)
             panel.xyplot(fit$time, fit$fitted, type="p", col=col[3], pch=16, cex=0.5, ...)
             if (!any(grepl("fc", names(rst)))) {
               panel.xyplot(sub[subscripts,]$time, (sub[subscripts,]$trend+sub[subscripts,]$seasonal), type="l", col=col[2], lwd=1, ...)            
