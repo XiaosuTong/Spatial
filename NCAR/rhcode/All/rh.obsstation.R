@@ -41,13 +41,13 @@ job$combiner <- TRUE
 job$jobname <- file.path(rh.root, par$dataset, "All", "stationcount")
 job.mr <- do.call("rhwatch", job)
 
-rst <- rhread(file.path(root, par$dataset, "All", "stationcount"))[[1]][[2]]
+rst <- rhread(file.path(rh.root, par$dataset, "All", "stationcount"))[[1]][[2]]
 
 
 
 trellis.device(
   device = postscript, 
-  file = file.path(local.output, "obs.station.ps"), 
+  file = file.path(local.root, "output", "obs.station.ps"), 
   color = TRUE, 
   paper = "letter"
 )
@@ -72,7 +72,7 @@ dev.off()
 
 trellis.device(
   device = postscript, 
-  file = file.path(local.output, "obsrate.station.ps"), 
+  file = file.path(local.root, "output", "obsrate.station.ps"), 
   color = TRUE, 
   paper = "letter"
 )
