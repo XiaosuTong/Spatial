@@ -4,7 +4,8 @@ library(plyr)
 library(hexbin)
 library(maps)
 library(magrittr)
-
+library(gtools)
+us.map <- map('state', plot = FALSE, fill = TRUE)
 options(stringsAsFactors=FALSE)
 options(java.parameters = "-Xmx1024m")
 
@@ -138,7 +139,6 @@ remainderDiag(data=rst, outputdir=file.path(local.root, "output"), target="tmax"
 seasonalDiag(data=rst, outputdir=file.path(local.root, "output"), target="tmax", size = "letter", test=F)
 trendDiag(data=rst, outputdir=file.path(local.root, "output"), target="tmax", size = "letter", test=F, fc = FALSE)
 
-
 s100.STLfit(sw=77, sd=2, tw=1855, td=1, fcw=241, fcd=1)
 rst <- rhread(file.path(rh.root, par$dataset, "100stations", "STL", "t1855td1_s77sd2_f241fd1"))[[1]][[2]]
 fitRaw(data=rst, outputdir=file.path(local.root, "output"), target="tmax", size = "letter", test = F)
@@ -225,42 +225,71 @@ for(i in paste("E", 1:6, sep="")) {
 ## Create a1950 by month and by station subsets from All by station subsets
 #source(file.path(local.root, "rhcode", "a1950", "rh.a1950.R"))
 a1950()
+#########################################
+## Imputation of missing w/o elevation ##
+#########################################
+## E1 span = 0.05, degree=2, without Elevation
+para <- list(span=0.05, Edeg=0)
+try(interpolate(sp=para$span, deg=2, Edeg=para$Edeg, surf="direct", fam="symmetric"))
+## Check the residual of the spatial loess imputing
+a1950.spaImputeVisual(family="symmetric", surf="direct", Edeg=para$Edeg, span=para$span)
 
-## a1950 by month, interpolate missing obs by spatial loess, cross-validation
-for(k in c("direct","interpolate")) {
-  for(i in c(1,2)) {
-    for(j in seq(0.01, 0.1, 0.005)) {
-      try(interpolate(Elev = TRUE, sp=j, deg=2, Edeg=i, surf=k, fam="symmetric"))
-    }
-    for(j in seq(0.001, 0.009, 0.001)){
-      try(interpolate(Elev = TRUE, sp=j, deg=2, Edeg=i, surf=k, fam="symmetric"))
-    }
-    try(crossValid(fam="symmetric", Edeg=i, surf=k, span = c(seq(0.001, 0.009, 0.001),seq(0.01, 0.1, 0.005))))
-  }
-}
-#intpolat.visual(surf="direct")
-intpolat.visual(surf="interpolate", SPsize="median")
-intpolat.visual(surf="interpolate", SPsize="large")
-intpolat.visual(surf="interpolate", SPsize="small")
-intpolat.visual(surf="interpolate", SPsize=NULL, check=list(c(0.008, 1), c(0.015, 2)))
+## E2 span = 0.025, degree=2, without Elevation
+para <- list(span=0.025, Edeg=0)
+try(interpolate(sp=para$span, deg=2, Edeg=para$Edeg, surf="direct", fam="symmetric"))
+## Check the residual of the spatial loess imputing
+a1950.spaImputeVisual(family="symmetric", surf="direct", Edeg=para$Edeg, span=para$span)
 
+## E3 span = 0.015, degree=2, without Elevation
+para <- list(span=0.015, Edeg=0)
+try(interpolate(sp=para$span, deg=2, Edeg=para$Edeg, surf="direct", fam="symmetric"))
+## Check the residual of the spatial loess imputing
+a1950.spaImputeVisual(family="symmetric", surf="direct", Edeg=para$Edeg, span=para$span)
 
-## Try the new code on Dec 9 2015. each month 128 sampled (from a kd-tree) locations 
-## is predicted (leave-p-out cross validation, p=128) 
-for(i in c(1,2)) {
+## E4 span = 0.005, degree=2, without Elevation
+para <- list(span=0.005, Edeg=0)
+try(interpolate(sp=para$span, deg=2, Edeg=para$Edeg, surf="direct", fam="symmetric"))
+## Check the residual of the spatial loess imputing
+a1950.spaImputeVisual(family="symmetric", surf="direct", Edeg=para$Edeg, span=para$span)
+
+for(i in c(0)) {
   for(j in seq(0.1, 0.2, 0.05)) {
-    try(newCrossValid(Elev = TRUE, sp=j, deg=2, Edeg=i, surf="direct", fam="symmetric", error="mse"))
+    try(newCrossValid(sp=j, deg=2, Edeg=i, surf="direct", fam="symmetric", error="mse"))
+  }
+  for(j in c(0.001, seq(0.005, 0.1, 0.01))) {
+    try(newCrossValid(sp=j, deg=2, Edeg=i, surf="direct", fam="symmetric", error="mse"))
+  }
+  try(crossValidMerge(fam="symmetric", Edeg=i, surf="direct", span = c(0.001, seq(0.005, 0.1, 0.01),seq(0.1,0.2,0.05))))
+}
+
+intpolat.visualNew()
+
+
+########################################
+## Imputation of missing w/ elevation ##
+########################################
+## Try the new code for Cross Validation. Each month 128 sampled 
+## (from a kd-tree) locations is predicted (leave-p-out cross validation, p=128) 
+for(i in c(1, 2)) {
+  for(j in seq(0.1, 0.2, 0.05)) {
+    try(newCrossValid(sp=j, deg=2, Edeg=i, surf="direct", fam="symmetric", error="mse"))
   }
   for(j in seq(0.005, 0.1, 0.01)) {
-    try(newCrossValid(Elev = TRUE, sp=j, deg=2, Edeg=i, surf="direct", fam="symmetric", error="mse"))
+    try(newCrossValid(sp=j, deg=2, Edeg=i, surf="direct", fam="symmetric", error="mse"))
   }
   try(crossValidMerge(fam="symmetric", Edeg=i, surf="direct", span = c(seq(0.005, 0.1, 0.01),seq(0.1,0.2,0.05))))
 }
 
+intpolat.visualNew()
 
 
+
+##########################################
+## Best model for imputation of missing ##
+##########################################
 ## After found the best interpolation parameter
 best <- data.frame(sp=0.015, Edeg=2, deg=2, fam="symmetric", surf="direct")
+try(interpolate(sp=best$sp, deg=2, Edeg=best$Edeg, surf=best$surf, fam=best$fam))
 ## switch the key from bymonth to by station
 FileInput <- try(
   interpolateStation(sp=best$sp, Edeg=best$Edeg, deg=best$deg, fam=best$fam, surf=best$surf)
@@ -270,9 +299,9 @@ FileInput <- try(
 ## first sample the 128 stations from a1950 for demonstration 
 source("~/Projects/Spatial/NCAR/code/kdtree/kdfindcells.R")
 
+## Example fitting of stlplus on a1950 and visualize on sampled 128 stations
 rst <- try(a1950.STLfit(input=FileInput, reduce=100, sw=35, sd=1, tw=231, td=2, fcw=NULL, fcd=NULL))[[1]][[2]]
-
-a1950.fitRaw(data=rst, outputdir=file.path(local.root, "output"), target="tmax", size = "letter", St.num = 128, test = TRUE)
+a1950.stlFitRaw(data=rst, St.num = 128, test = TRUE)
 
 #####################################################
 ##   STL experiment for tunning parameters a1950   ##
@@ -538,10 +567,10 @@ for(j in 1:nrow(parameter)) {
 ## filtering only 128 station for visualization
 try(subsetStations(index="E8blend", type="a1950"))
 for(j in c("absmeans","means","std")) {
-  errorVsLag(type="a1950", index="E8blend", var=c("sw","tw"), target=j)
+  errorVsLag(type="a1950", index="E8blend", var=c("sw","sd"), target=j)
 }
 for(j in c("mean.absmeans","mean.std")){
-  overallErrorVsStation(type="a1950", index="E8blend", var=c("sw","tw"), target=j, sub=TRUE)
+  overallErrorVsStation(type="a1950", index="E8blend", var=c("sw","sd"), target=j, sub=TRUE)
 }
 
 ##########################################
