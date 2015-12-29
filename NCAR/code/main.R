@@ -259,15 +259,42 @@ for(i in c(0)) {
   for(j in c(0.001, seq(0.005, 0.1, 0.01))) {
     try(newCrossValid(sp=j, deg=2, Edeg=i, surf="direct", fam="symmetric", error="mse"))
   }
-  try(crossValidMerge(fam="symmetric", Edeg=i, surf="direct", span = c(0.001, seq(0.005, 0.1, 0.01),seq(0.1,0.2,0.05))))
+  for(j in seq(0.002, 0.004, 0.001)) {
+    try(newCrossValid(sp=j, deg=2, Edeg=i, surf="direct", fam="symmetric", error="mse"))
+  }
+  try(crossValidMerge(fam="symmetric", Edeg=i, surf="direct", span = c(seq(0.001,0.004, 0.001), seq(0.005, 0.1, 0.01),seq(0.1,0.2,0.05))))
 }
 
-intpolat.visualNew()
+imputeCrossValid(surf="direct", Edeg = FALSE)
 
 
 ########################################
 ## Imputation of missing w/ elevation ##
 ########################################
+## E1 span = 0.05, degree=2, without Elevation
+para <- list(span=0.05, Edeg=1)
+try(interpolate(sp=para$span, deg=2, Edeg=para$Edeg, surf="direct", fam="symmetric"))
+## Check the residual of the spatial loess imputing
+a1950.spaImputeVisual(family="symmetric", surf="direct", Edeg=para$Edeg, span=para$span)
+
+## E2 span = 0.025, degree=2, without Elevation
+para <- list(span=0.025, Edeg=1)
+try(interpolate(sp=para$span, deg=2, Edeg=para$Edeg, surf="direct", fam="symmetric"))
+## Check the residual of the spatial loess imputing
+a1950.spaImputeVisual(family="symmetric", surf="direct", Edeg=para$Edeg, span=para$span)
+
+## E3 span = 0.015, degree=2, without Elevation
+para <- list(span=0.015, Edeg=1)
+try(interpolate(sp=para$span, deg=2, Edeg=para$Edeg, surf="direct", fam="symmetric"))
+## Check the residual of the spatial loess imputing
+a1950.spaImputeVisual(family="symmetric", surf="direct", Edeg=para$Edeg, span=para$span)
+
+## E4 span = 0.005, degree=2, without Elevation
+para <- list(span=0.005, Edeg=1)
+try(interpolate(sp=para$span, deg=2, Edeg=para$Edeg, surf="direct", fam="symmetric"))
+## Check the residual of the spatial loess imputing
+a1950.spaImputeVisual(family="symmetric", surf="direct", Edeg=para$Edeg, span=para$span)
+
 ## Try the new code for Cross Validation. Each month 128 sampled 
 ## (from a kd-tree) locations is predicted (leave-p-out cross validation, p=128) 
 for(i in c(1, 2)) {
@@ -280,7 +307,8 @@ for(i in c(1, 2)) {
   try(crossValidMerge(fam="symmetric", Edeg=i, surf="direct", span = c(seq(0.005, 0.1, 0.01),seq(0.1,0.2,0.05))))
 }
 
-intpolat.visualNew()
+imputeCrossValid(surf="direct", Edeg = TRUE)
+
 
 
 
@@ -464,10 +492,10 @@ for(j in 1:nrow(parameter)) {
 }
 try(subsetStations(index="E5", type="a1950"))
 for(j in c("absmeans","means","std")) {
-  errorVsLag(type="a1950", index="E5", var=c("sw","sd"), target=j)
+  errorVsLag(type="a1950", index="E5", var=c("sw","sd"), target=j, sd.rm=TRUE)
 }
 for(j in c("mean.absmeans","mean.std")){
-  overallErrorVsStation(type="a1950", index="E5", var=c("sw","sd"), target=j, sub=TRUE)
+  overallErrorVsStation(type="a1950", index="E5", var=c("sw","sd"), target=j, sub=TRUE, sd.rm=TRUE)
 }
 ###################
 ## Experiment E6 ##
