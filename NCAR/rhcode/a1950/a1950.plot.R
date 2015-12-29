@@ -109,22 +109,24 @@ intpolat.visual <- function(size = "letter", surf, SPsize, check=NULL) {
 }
 
 
-imputeCrossValid <- function(size = "letter", surf="direct", Edeg = TRUE) {
+imputeCrossValid <- function(surf="direct", Edeg = TRUE) {
 
   if (Edeg) {
+    layout <- c(2,1)
     rst1 <- rhread(file.path(rh.root, par$dataset, "a1950", "bymonth.fit.cv", "symmetric", surf, "1", "MABSE"))[[1]][[2]]
     rst2 <- rhread(file.path(rh.root, par$dataset, "a1950", "bymonth.fit.cv", "symmetric", surf, "2", "MABSE"))[[1]][[2]]
     rst <- rbind(rst1, rst2)
     rst$degree <- rep(c(1,2), each = nrow(rst1))
-    
+    sub <- subset(rst, span>0.005)
+
     trellis.device(
       device = postscript, 
       file = file.path(local.root, "output", paste("QuanMABSE", "a1950", par$dataset, "span", "ps", sep=".")), 
       color=TRUE, 
-      paper=size
+      paper="letter"
     )
     b <- qqmath(~mse|as.factor(span)
-      , data = rst
+      , data = sub
       , group = degree
       , dist = qunif
       , cex = 0.5
@@ -147,20 +149,13 @@ imputeCrossValid <- function(size = "letter", surf="direct", Edeg = TRUE) {
 
   } else {
     rst <- rhread(file.path(rh.root, par$dataset, "a1950", "bymonth.fit.cv", "symmetric", surf, "0", "MABSE"))[[1]][[2]]
+    layout <- c(1,1)
   }
 
-  for(i in c("small","median","large")) {
-    if(i == "small") {
-      sub <- subset(rst, as.numeric(span) <= 0.035)
-    }else if (i == "median") {
-      sub <- subset(rst, as.numeric(span)<=0.085 & as.numeric(span) > 0.035)
-    }else {
-      sub <- subset(rst, as.numeric(span)>0.085)
-    }
-
+  sub <- subset(rst, span %in% c(0.003, 0.005, 0.015, 0.035,0.095) & mse <=10)
     trellis.device(
       device = postscript, 
-      file = file.path(local.root, "output", paste("QuanMABSE", "a1950", par$dataset, i, "degree","ps", sep=".")), 
+      file = file.path(local.root, "output", paste("QuanMABSE", "a1950", par$dataset, "degree","ps", sep=".")), 
       color=TRUE, 
       paper="letter"
     )
@@ -169,23 +164,24 @@ imputeCrossValid <- function(size = "letter", surf="direct", Edeg = TRUE) {
       , group = span
       , dist = qunif
       , cex = 0.5
-      , layout = c(2,1)
+      , layout = layout
       , xlab = list(label="f-value", cex=1.5)
       , ylab = list(label="Mean Square Error", cex=1.5)
       , key=list(
           text = list(label=paste("span=", sort(unique(sub$span)), sep="")),
           lines = list(pch=1, cex=1, type="p", col=col[1:length(unique(sub$span))]), 
-          columns = length(unique(sub$span))
+          columns = length(unique(sub$span)),
+          cex = 1.2
         )
       , scale = list(cex=1.2)
       , panel = function(x,...) {
-          panel.abline(h=seq(0,2,0.2), v=seq(0,1,0.25), col="lightgray")
+          panel.abline(h=seq(0,10,2), v=seq(0,1,0.2), col="lightgray")
           panel.qqmath(x,...)
         }
     )
     print(b)
     dev.off()
-  }
+
 } 
 
 
