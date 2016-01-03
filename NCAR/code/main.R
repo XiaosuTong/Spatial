@@ -271,29 +271,31 @@ imputeCrossValid(surf="direct", Edeg = FALSE)
 ########################################
 ## Imputation of missing w/ elevation ##
 ########################################
-## E1 span = 0.05, degree=2, without Elevation
-para <- list(span=0.05, Edeg=1)
-try(interpolate(sp=para$span, deg=2, Edeg=para$Edeg, surf="direct", fam="symmetric"))
-## Check the residual of the spatial loess imputing
-a1950.spaImputeVisual(family="symmetric", surf="direct", Edeg=para$Edeg, span=para$span)
+for(ii in c(1,2)) {
+  ## E1 span = 0.05, degree=2, without Elevation
+  para <- list(span=0.05, Edeg=ii)
+  try(interpolate(sp=para$span, deg=2, Edeg=para$Edeg, surf="direct", fam="symmetric"))
+  ## Check the residual of the spatial loess imputing
+  a1950.spaImputeVisual(family="symmetric", surf="direct", Edeg=para$Edeg, span=para$span)  
 
-## E2 span = 0.025, degree=2, without Elevation
-para <- list(span=0.025, Edeg=1)
-try(interpolate(sp=para$span, deg=2, Edeg=para$Edeg, surf="direct", fam="symmetric"))
-## Check the residual of the spatial loess imputing
-a1950.spaImputeVisual(family="symmetric", surf="direct", Edeg=para$Edeg, span=para$span)
+  ## E2 span = 0.025, degree=2, without Elevation
+  para <- list(span=0.025, Edeg=ii)
+  try(interpolate(sp=para$span, deg=2, Edeg=para$Edeg, surf="direct", fam="symmetric"))
+  ## Check the residual of the spatial loess imputing
+  a1950.spaImputeVisual(family="symmetric", surf="direct", Edeg=para$Edeg, span=para$span)  
 
-## E3 span = 0.015, degree=2, without Elevation
-para <- list(span=0.015, Edeg=1)
-try(interpolate(sp=para$span, deg=2, Edeg=para$Edeg, surf="direct", fam="symmetric"))
-## Check the residual of the spatial loess imputing
-a1950.spaImputeVisual(family="symmetric", surf="direct", Edeg=para$Edeg, span=para$span)
+  ## E3 span = 0.015, degree=2, without Elevation
+  para <- list(span=0.015, Edeg=ii)
+  try(interpolate(sp=para$span, deg=2, Edeg=para$Edeg, surf="direct", fam="symmetric"))
+  ## Check the residual of the spatial loess imputing
+  a1950.spaImputeVisual(family="symmetric", surf="direct", Edeg=para$Edeg, span=para$span)  
 
-## E4 span = 0.005, degree=2, without Elevation
-para <- list(span=0.005, Edeg=1)
-try(interpolate(sp=para$span, deg=2, Edeg=para$Edeg, surf="direct", fam="symmetric"))
-## Check the residual of the spatial loess imputing
-a1950.spaImputeVisual(family="symmetric", surf="direct", Edeg=para$Edeg, span=para$span)
+  ## E4 span = 0.005, degree=2, without Elevation
+  para <- list(span=0.005, Edeg=ii)
+  try(interpolate(sp=para$span, deg=2, Edeg=para$Edeg, surf="direct", fam="symmetric"))
+  ## Check the residual of the spatial loess imputing
+  a1950.spaImputeVisual(family="symmetric", surf="direct", Edeg=para$Edeg, span=para$span)
+}
 
 ## Try the new code for Cross Validation. Each month 128 sampled 
 ## (from a kd-tree) locations is predicted (leave-p-out cross validation, p=128) 
@@ -316,8 +318,8 @@ imputeCrossValid(surf="direct", Edeg = TRUE)
 ## Best model for imputation of missing ##
 ##########################################
 ## After found the best interpolation parameter
-best <- data.frame(sp=0.015, Edeg=2, deg=2, fam="symmetric", surf="direct")
-try(interpolate(sp=best$sp, deg=2, Edeg=best$Edeg, surf=best$surf, fam=best$fam))
+#best <- data.frame(sp=0.015, Edeg=2, deg=2, fam="symmetric", surf="direct")
+#try(interpolate(sp=best$sp, deg=2, Edeg=best$Edeg, surf=best$surf, fam=best$fam))
 ## switch the key from bymonth to by station
 FileInput <- try(
   interpolateStation(sp=best$sp, Edeg=best$Edeg, deg=best$deg, fam=best$fam, surf=best$surf)
@@ -466,9 +468,9 @@ for(j in c("absmeans","means","std")) {
 for(j in c("mean.absmeans","mean.std")){
   overallErrorVsStation(type="a1950", index="E4", var=c("sw","td"), target=j, sub=TRUE)
 }
-###################
-## Experiment E5 ##
-###################
+#####################################
+## Experiment E5, on the web is E4 ##
+#####################################
 parameter <- expand.grid(
   sw = c(11, 21, 31, 47,"periodic"), tw = 241, td = 1, 
   sd = c(1, 2), fc.flag = FALSE, stringsAsFactors=FALSE
