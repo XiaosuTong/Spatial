@@ -130,7 +130,11 @@ interpolate <- function(sp, Edeg, deg=2, fam="symmetric", surf="direct") {
         )
       }
       value <- subset(v, !is.na(resp))
-      value.na <- subset(v, is.na(resp))
+      if(Edeg == 0) {
+        value.na <- subset(v, is.na(resp))
+      } else {
+        value.na <- subset(v, is.na(resp), select=-c(elev2))
+      }
       value$fitted <- lo.fit$fitted
       value.na <- merge(value.na, lo.fit$pred, by= c("lon","lat"))
       value <- rbind(value, value.na)

@@ -113,11 +113,12 @@ imputeCrossValid <- function(surf="direct", Edeg = TRUE) {
 
   if (Edeg) {
     layout <- c(2,1)
+    fo <- ~ mse | factor(degree)
     rst1 <- rhread(file.path(rh.root, par$dataset, "a1950", "bymonth.fit.cv", "symmetric", surf, "1", "MABSE"))[[1]][[2]]
     rst2 <- rhread(file.path(rh.root, par$dataset, "a1950", "bymonth.fit.cv", "symmetric", surf, "2", "MABSE"))[[1]][[2]]
     rst <- rbind(rst1, rst2)
     rst$degree <- rep(c(1,2), each = nrow(rst1))
-    sub <- subset(rst, span>0.005)
+    sub <- subset(rst, span %in% c(0.003, 0.005, 0.015, 0.035,0.095) & mse <=10)
 
     trellis.device(
       device = postscript, 
@@ -138,9 +139,13 @@ imputeCrossValid <- function(surf="direct", Edeg = TRUE) {
           lines = list(pch=1, cex=1, type="p", col=col[1:2]), 
           columns = 2
         )
-      , scale = list(cex=1.2)
+      , scale = list(cex=1.2, y=list(relation="free"))
       , panel = function(x,...) {
-          panel.abline(h=seq(0,2,0.2), v=seq(0,1,0.25), col="lightgray")
+          if(max(x)<5) {
+            panel.abline(h=seq(0,3,0.5),v=seq(0,1,0.2), col="lightgray")
+          } else {
+            panel.abline(h=seq(0,10,2),v=seq(0,1,0.2), col="lightgray")
+          }
           panel.qqmath(x,...)
         }
     )
@@ -150,16 +155,18 @@ imputeCrossValid <- function(surf="direct", Edeg = TRUE) {
   } else {
     rst <- rhread(file.path(rh.root, par$dataset, "a1950", "bymonth.fit.cv", "symmetric", surf, "0", "MABSE"))[[1]][[2]]
     layout <- c(1,1)
+    fo <- ~ mse
   }
 
-  sub <- subset(rst, span %in% c(0.003, 0.005, 0.015, 0.035,0.095) & mse <=10)
+    sub <- subset(rst, span %in% c(0.003, 0.005, 0.015, 0.035,0.095) & mse <=10)
+
     trellis.device(
       device = postscript, 
       file = file.path(local.root, "output", paste("QuanMABSE", "a1950", par$dataset, "degree","ps", sep=".")), 
       color=TRUE, 
       paper="letter"
     )
-    b <- qqmath(~ mse
+    b <- qqmath( fo
       , data = sub
       , group = span
       , dist = qunif
@@ -173,7 +180,7 @@ imputeCrossValid <- function(surf="direct", Edeg = TRUE) {
           columns = length(unique(sub$span)),
           cex = 1.2
         )
-      , scale = list(cex=1.2)
+      , scale = list(cex=1.2, y=list(relation="free"))
       , panel = function(x,...) {
           panel.abline(h=seq(0,10,2), v=seq(0,1,0.2), col="lightgray")
           panel.qqmath(x,...)
@@ -313,19 +320,39 @@ a1950.spaImputeVisual <- function(family = "symmetric", surf = "direct", Edeg = 
   dev.off()
 
   ## The third plot is the contourplot of the smoothed residuals over the US map
-  
   new.grid <- expand.grid(
     lon = seq(-124, -67, by = 0.25),
     lat = seq(25, 49, by = 0.25)
   )
   instate <- !is.na(map.where("state", new.grid$lon, new.grid$lat))
   new.grid <- new.grid[instate, ]
+  if(Edeg != 0) {
+    load(file.path(local.root, "RData", "stations.a1950.RData"))
+    load(file.path(local.root, "RData", "info.RData"))
+    loc <- subset(UStinfo, station.id %in% stations.a1950.tmax)[,-5]
+    elev.fit <- spaloess( elev ~ lon + lat,
+      data = loc,
+      degree = 2, 
+      span = 0.05,
+      distance = "Latlong",
+      normalize = FALSE,
+      napred = FALSE
+    )
+    grid.fit <- predloess(
+      object = elev.fit,
+      newdata = data.frame(
+        lon = new.grid$lon,
+        lat = new.grid$lat
+      )
+    )
+    new.grid$elev2 <- log2(grid.fit + 128)
+  }
+
   job <- list()
   job$map <- expression({
     lapply(seq_along(map.keys), function(r) {
       v <- map.values[[r]]
       if(Edeg == 2) {
-        v$elev2 <- log2(v$elev + 128)
         resid.fit <- spaloess( resp-fitted ~ lon + lat + elev2, 
           data    = v, 
           degree  = 2, 
@@ -338,8 +365,7 @@ a1950.spaImputeVisual <- function(family = "symmetric", surf = "direct", Edeg = 
           napred = FALSE
         )
       } else if(Edeg == 1) {
-        v$elev2 <- log2(v$elev + 128)
-        resid.fit <- spaloess( resp-fiited ~ lon + lat + elev2, 
+        resid.fit <- spaloess( resp-fitted ~ lon + lat + elev2, 
           data    = v, 
           degree  = 2, 
           span    = 0.05,
@@ -363,10 +389,17 @@ a1950.spaImputeVisual <- function(family = "symmetric", surf = "direct", Edeg = 
           napred = FALSE
         )
       }
-      grid.fit <- predloess(
-        object = resid.fit,
-        newdata = data.frame(lon = new.grid$lon, lat = new.grid$lat)
-      )
+      if (Edeg != 0) {
+        grid.fit <- predloess(
+          object = resid.fit,
+          newdata = data.frame(lon = new.grid$lon, lat = new.grid$lat, elev2 = new.grid$elev2)
+        )
+      } else {
+        grid.fit <- predloess(
+          object = resid.fit,
+          newdata = data.frame(lon = new.grid$lon, lat = new.grid$lat)
+        )        
+      }
       new.grid$smooth <- grid.fit
       rhcollect(map.keys[[r]], new.grid)
     })
