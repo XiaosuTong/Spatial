@@ -603,6 +603,36 @@ for(j in c("mean.absmeans","mean.std")){
   overallErrorVsStation(type="a1950", index="E8blend", var=c("sw","sd"), target=j, sub=TRUE)
 }
 
+
+##############################################
+##  Visualize the stlplus fit based on the  ##
+##  best model                              ##
+##############################################
+FileInput <- file.path(rh.root, par$dataset, "a1950", "bymonth.fit", "symmetric", "direct", 2, "sp0.015")
+FileOutput <- file.path(rh.root, par$dataset, "a1950", "bymonth.fit", "symmetric", "direct", 2, "sp0.015.bystation")
+
+swapTostation(FileInput, FileOutput)
+
+FileInput <- FileOutput
+
+FileInput <- a1950.STLfit(FileInput, reduce=72, sw="periodic", sd=1, tw=241, td=1)
+
+a1950.STLvisual(input=FileInput, plotEng=plotEng.raw, sample = TRUE)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 ##########################################
 ##      Backfitting for a1950           ##
 ##########################################
