@@ -511,67 +511,185 @@ a1950.spaImputeVisual <- function(family = "symmetric", surf = "direct", Edeg = 
 }
 
 
-#########################################################
-##  Diagnostic plots for components from stl2 fitting  ## 
-#########################################################
-#########################################
-##  fitted value and obs against time  ##
-#########################################
-a1950.stlFitRaw <- function(data=rst, St.num = 128, test = TRUE){
+############################################################
+##  Diagnostic plots for components from stlplus fitting  ## 
+############################################################
+a1950.STLvisual <- function(input, plotEng, sample = TRUE, mutiple=NULL){
+
+  output <- file.path(
+    rh.root, par$dataset, "a1950", "STL.plot", paste("t",tuning$tw, "td", tuning$td, "_s", tuning$sw, 
+    "sd", tuning$sd, "_f", tuning$fcw, "fd", tuning$fcd, sep="")
+  )
+  job <- list()
+  if (!is.null(mutiple)) {
+    job$map <- expression({
+      lapply(seq_along(map.keys), function(r) {
+        if (sample) {
+          if (map.keys[[r]] %in% sample.a1950$station.id) {
+            index <- sample.a1950$leaf[which(sample.a1950$station.id==map.keys[[r]])]
+            pp <- plotEng(map.values[[r]], map.keys[[r]], index)
+            rhcollect(as.numeric(index), map.values[[r]])
+          }
+        } else {
+          pp <- plotEng(map.values[[r]], map.keys[[r]], NULL)
+          rhcollect(map.keys[[r]], serialize(pp, NULL))
+        }        
+      })
+    })
+  } else {
+    job$map <- expression({
+      lapply(seq_along(map.keys), function(r){
+        if (sample) {
+          if (map.keys[[r]] %in% sample.a1950$station.id) {
+            index <- sample.a1950$leaf[which(sample.a1950$station.id==map.keys[[r]])]
+            pp <- plotEng(map.values[[r]], map.keys[[r]], index)
+            rhcollect(as.numeric(index), serialize(pp, NULL))
+          }
+        } else {
+          pp <- plotEng(map.values[[r]], map.keys[[r]], NULL)
+          rhcollect(map.keys[[r]], serialize(pp, NULL))
+        }
+      })
+    })
+  }
+  if (!is.null(mutiple)) {
+    job$reduce <- expression(
+      pre = {
+
+      },
+      reduce = {
+
+      },
+      post = {
+
+      }
+    )
+  }
+  job$shared <- file.path(rh.root, par$dataset, "a1950", "Rdata", "sample.a1950.RData")
+  job$setup <- expression(
+    map = {
+      load("sample.a1950.RData")
+      library(lattice)
+    }
+  )
+  job$parameters <- list(
+    sample = sample,
+    plotEng = plotEng,
+    col = col,
+    ylab = ylab
+  )
+  job$input <- rhfmt(input, type = "sequence")
+  job$output <- rhfmt(output, type = "sequence")
+  job$mapred <- list(
+    mapred.reduce.tasks = 20,  #cdh3,4
+    mapreduce.job.reduces = 20  #cdh5
+  )
+  job$readback <- TRUE
+  job$jobname <- output
+  job.mr <- do.call("rhwatch", job)
+  
+  trellis.device(
+    device = postscript, 
+    file = file.path(local.root, "output", paste("a1950.stlraw.vs.time", "ps", sep=".")),
+    color = TRUE, 
+    paper = "letter"
+  )
+  for(ii in order(unlist(lapply(job.mr, "[[", 1)))) {
+    print(unserialize(job.mr[[ii]][[2]]))
+  }
+  dev.off()
+
+}
+
+plotEng.raw <- function(data, station, leaf) {
 
   data$factor <- factor(
-    x = rep( rep(paste("Period", 1:6), c(rep(108,5), 36)), times=St.num),
+    x = rep(paste("Period", 1:6), c(rep(108,5), 36)),
     levels = paste("Period", c(6:1))
   )
   data$time <- c(rep(0:107, times = 5), 0:35) 
 
-  stations <- unique(data$station.id)
-
-  if(test) {
-    stations <- stations[1]
-  }
-
-  trellis.device(
-    device = postscript, 
-    file = file.path(local.root, "output", paste("fitted.time", "a1950", "tmax", "ps", sep=".")),
-    color = TRUE, 
-    paper = "letter"
-  )
-    for(i in stations){
-      sub <- subset(data, station.id==i)
-      b <- xyplot( resp ~ time | factor,
-        , data = sub
-        , xlab = list(label = "Month", cex = 1.5)
-        , ylab = list(label = ylab, cex = 1.5)
-        , main = list(label=paste("Station ", i, sep=""), cex=1)
-        , layout = c(1,6)
-        , strip = FALSE,
-        , xlim = c(0, 107)
-        , ylim = c(min(c(sub$resp, sub$fitted), na.rm=TRUE), max(c(sub$resp, sub$fitted), na.rm=TRUE))
-        , key=list(
-            text = list(label=c("raw", "interpolate", "fitted")), 
-            lines = list(pch=16, cex=0.7, lwd=1.5, type=c("p","p","l"), col=col[c(1,3,2)]),
-            columns=3
-          )
-        , scales = list(
-            y = list(tick.number=4), 
-            x = list(at=seq(0, 107, by=12), relation='same')
-          )
-        , panel = function(x,y,subscripts,...) {
-            panel.abline(v=seq(0,108, by=12), color="lightgrey", lty=3, lwd=0.5)
-            fit <- subset(sub[subscripts,], flag == 0)
-            obs <- subset(sub[subscripts,], flag == 1)
-            panel.xyplot(obs$time, obs$resp, type="p", col=col[1], pch=16, cex=0.5, ...)
-            panel.xyplot(fit$time, fit$fitted, type="p", col=col[3], pch=16, cex=0.5, ...)
-            if (!any(grepl("fc", names(rst)))) {
-              panel.xyplot(sub[subscripts,]$time, (sub[subscripts,]$trend+sub[subscripts,]$seasonal), type="l", col=col[2], lwd=1, ...)            
-            } else {
-              panel.xyplot(sub[subscripts,]$time, (sub[subscripts,]$data.seasonal+sub[subscripts,]$fc.first+sub[subscripts,]$fc.second), type="l", col=col[2], lwd=1, ...)
-            }
-          }
+  b <- xyplot( resp ~ time | factor,
+    , data = data
+    , xlab = list(label = "Month", cex = 1.5)
+    , ylab = list(label = ylab, cex = 1.5)
+    , sub = list(label=paste("Station ", station, "from cell", leaf), cex=1.2)
+    , layout = c(1,6)
+    , strip = FALSE,
+    , xlim = c(0, 107)
+    , ylim = c(min(c(data$resp, data$fitted), na.rm=TRUE), max(c(data$resp, data$fitted), na.rm=TRUE))
+    , key=list(
+        cex = 1.2,
+        text = list(label=c("raw", "imputed", "fitted")), 
+        lines = list(pch=16, cex=0.7, lwd=1.5, type=c("p","p","l"), col=col[c(1,3,2)]),
+        columns=3
       )
-      print(b)
+    , scales = list(
+        y = list(tick.number=4, cex=1.2), 
+        x = list(at=seq(0, 107, by=12), relation='same', cex=1.2)
+      )
+    , panel = function(x,y,subscripts,...) {
+        panel.abline(v=seq(0,108, by=12), color="lightgrey", lty=3, lwd=0.5)
+        fit <- subset(data[subscripts,], flag == 0)
+        obs <- subset(data[subscripts,], flag == 1)
+        panel.xyplot(obs$time, obs$resp, type="p", col=col[1], pch=16, cex=0.5, ...)
+        panel.xyplot(fit$time, fit$fitted, type="p", col=col[3], pch=16, cex=0.5, ...)
+        if (!any(grepl("fc", names(rst)))) {
+          panel.xyplot(data[subscripts,]$time, (data[subscripts,]$trend+data[subscripts,]$seasonal), type="l", col=col[2], lwd=1, ...)            
+        } else {
+          panel.xyplot(data[subscripts,]$time, (data[subscripts,]$data.seasonal+data[subscripts,]$fc.first+data[subscripts,]$fc.second), type="l", col=col[2], lwd=1, ...)
+        }
+      }
+  )
+  return(b)
+
+}
+
+plotEng.trend <- function(data, station, leaf) {
+
+  tmean <- ddply(
+    .data = data,
+    .variables = c("station.id","year"),
+    .fun = function(r) {
+      data.frame(mean = mean(r$resp))
     }
-  dev.off()
+  )
+  tmv <- ddply(
+    .data = arrange(tmean, year),
+    .variables = "station.id",
+    .fun = summarise,
+    mv = as.numeric(filter(mean, rep(1/10,10), sides=2)),
+    year = year
+  )
+  trendmean <- merge(x=data, y=tmv, by=c("station.id","year"), all.x=TRUE)
+
+  b <- xyplot( trend ~ date 
+    , data = data
+    , xlab = list(label = "Month", cex = 1.5)
+    , ylab = list(label = ylab, cex = 1.5)
+    , layout = c(4,3)
+    , key=list(
+        text = list(label=c(klab,"moving average of yearly mean")), 
+        lines = list(pch=16, cex=1, lwd=2, type=c("l","p"), col=col[1:2]),
+        columns=2
+      )
+    , prepanel = function(x,y,subscripts,...){ 
+        v <- data[subscripts,] 
+        ylim <- range(v$mv, na.rm=TRUE) 
+        ans <- prepanel.default.xyplot(v$date, v[, "trend"], ...) 
+        ans$ylim <- range(c(ans$ylim, ylim), na.rm=TRUE) 
+        ans 
+      } 
+    , scales = list(
+        y = list(relation = 'free', cex=1.2, tick.number = 4), 
+        x = list(at=c(0,120, 240, 480), relation = 'same', cex=1.2)
+      )
+    , panel = function(x, y, subscripts, ...) {
+        v <- data[subscripts,]
+        panel.xyplot(v$date[seq(1,576,12)], v$mv[seq(1,576,12)], type="p", pch=16, cex=0.5, col=col[2], ...)
+        panel.xyplot(x, y, type="l", lwd=2, col=col[1], ...)
+      }
+  )
+  return(b)
 
 }
