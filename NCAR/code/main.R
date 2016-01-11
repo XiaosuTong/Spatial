@@ -225,6 +225,9 @@ for(i in paste("E", 1:6, sep="")) {
 ## Create a1950 by month and by station subsets from All by station subsets
 #source(file.path(local.root, "rhcode", "a1950", "rh.a1950.R"))
 a1950()
+FileInput <- file.path(rh.root, par$dataset, "a1950", "bymonth")
+FileInput <- bymonthSplit(input=FileInput, leaf = 100, vari="resp")
+
 #########################################
 ## Imputation of missing w/o elevation ##
 #########################################
@@ -252,17 +255,23 @@ try(interpolate(sp=para$span, deg=2, Edeg=para$Edeg, surf="direct", fam="symmetr
 ## Check the residual of the spatial loess imputing
 a1950.spaImputeVisual(family="symmetric", surf="direct", Edeg=para$Edeg, span=para$span)
 
+## Try the new code for Cross Validation. Each month 128 sampled 
+## (from a kd-tree) locations is predicted (leave-p-out cross validation, p=128)
+FileInput <- file.path(rh.root, par$dataset, "a1950", "bymonthSplit")
 for(i in c(0)) {
   for(j in seq(0.1, 0.2, 0.05)) {
-    try(newCrossValid(sp=j, deg=2, Edeg=i, surf="direct", fam="symmetric", error="mse"))
+    try(newCrossValid(input=FileInput, vari="resp", sp=j, deg=2, Edeg=i, surf="direct", fam="symmetric", error="mse"))
   }
   for(j in c(0.001, seq(0.005, 0.1, 0.01))) {
-    try(newCrossValid(sp=j, deg=2, Edeg=i, surf="direct", fam="symmetric", error="mse"))
+    try(newCrossValid(input=FileInput, vari="resp", sp=j, deg=2, Edeg=i, surf="direct", fam="symmetric", error="mse"))
   }
   for(j in seq(0.002, 0.004, 0.001)) {
-    try(newCrossValid(sp=j, deg=2, Edeg=i, surf="direct", fam="symmetric", error="mse"))
+    try(newCrossValid(input=FileInput, vari="resp", sp=j, deg=2, Edeg=i, surf="direct", fam="symmetric", error="mse"))
   }
-  try(crossValidMerge(fam="symmetric", Edeg=i, surf="direct", span = c(seq(0.001,0.004, 0.001), seq(0.005, 0.1, 0.01),seq(0.1,0.2,0.05))))
+  try(crossValidMerge(
+    input=file.path(rh.root, par$dataset, "a1950", "bymonth.fit.cv", "symmetric", "direct", i), 
+    span = c(seq(0.001,0.004, 0.001), seq(0.005, 0.1, 0.01),seq(0.1,0.2,0.05))
+  ))
 }
 
 imputeCrossValid(surf="direct", Edeg = FALSE)
@@ -299,14 +308,18 @@ for(ii in c(1,2)) {
 
 ## Try the new code for Cross Validation. Each month 128 sampled 
 ## (from a kd-tree) locations is predicted (leave-p-out cross validation, p=128) 
+
 for(i in c(1, 2)) {
   for(j in seq(0.1, 0.2, 0.05)) {
-    try(newCrossValid(sp=j, deg=2, Edeg=i, surf="direct", fam="symmetric", error="mse"))
+    try(newCrossValid(input=FileInput, vari="resp", sp=j, deg=2, Edeg=i, surf="direct", fam="symmetric", error="mse"))
   }
   for(j in seq(0.005, 0.1, 0.01)) {
-    try(newCrossValid(sp=j, deg=2, Edeg=i, surf="direct", fam="symmetric", error="mse"))
+    try(newCrossValid(input=FileInput, vari="resp", sp=j, deg=2, Edeg=i, surf="direct", fam="symmetric", error="mse"))
   }
-  try(crossValidMerge(fam="symmetric", Edeg=i, surf="direct", span = c(seq(0.005, 0.1, 0.01),seq(0.1,0.2,0.05))))
+  try(crossValidMerge(
+    input=file.path(rh.root, par$dataset, "a1950", "bymonth.fit.cv", "symmetric", "direct", i), 
+    span = c(seq(0.005, 0.1, 0.01),seq(0.1,0.2,0.05))
+  ))
 }
 
 imputeCrossValid(surf="direct", Edeg = TRUE)
@@ -617,16 +630,178 @@ FileInput <- FileOutput
 
 FileInput <- a1950.STLfit(FileInput, reduce=72, sw="periodic", sd=1, tw=241, td=1)
 
-a1950.STLvisual(input=FileInput, plotEng=plotEng.raw, sample = TRUE)
+a1950.STLvisual(
+  input=FileInput, plotEng=plotEng.raw, 
+  name="stlraw.vs.time", sample = TRUE, multiple=NULL
+)
+
+a1950.STLvisual(
+  input=FileInput, plotEng=plotEng.trend, 
+  name="trend.vs.time", sample = TRUE, multiple=c(4,3)
+)
+
+a1950.STLvisual(
+  input=FileInput, plotEng=plotEng.periodicseason, 
+  name="seasonal.vs.year", sample = TRUE, multiple=c(5,4)
+)
+
+a1950.STLvisual(
+  input=FileInput, plotEng=plotEng.QQremaider, 
+  name="QQ.remainder", sample = TRUE, multiple=c(5,3)
+)
+
+a1950.STLvisual(
+  input=FileInput, plotEng=plotEng.remainderMonth, 
+  name="remainder.vs.year", sample = TRUE, multiple=NULL
+)
+
+a1950.STLvisual(
+  input=FileInput, plotEng=plotEng.remainderMonth2, 
+  name="remainder.vs.year2", sample = TRUE, multiple=NULL
+)
+
+a1950.STLvisual(
+  input=FileInput, plotEng=plotEng.remainderACF, 
+  name="remainder.acf", sample = TRUE, multiple=c(3,3)
+)
+
+#####################################
+##  visualize remainder of stlplus ##
+#####################################
+bestStlplus <- "t241td1_speriodicsd1_ffd"
+FileInput
+FileOutput <- file.path(rh.root, par$dataset, "a1950", "STL.bymonth", bestStlplus)
+
+swapTomonth(FileInput, FileOutput)
+FileInput <- FileOutput
+
+spaPara <- data.frame(permutations(3, 2, c("lon","lat","elev")))
+for (k in 1:nrow(spaPara)) {
+  vars <- spaPara[k, ]
+  a1950.spafitVisualMon(input=FileInput, plotEng.RevsSpa, vars, target="remainder")
+}
+
+###################################################
+##  Spatial fit on the remainder of stlplus      ##
+##  parallelly visualize the residual against    ##
+##  three spatial factors for each month.        ##
+##  Then visualize the residual against time,    ##
+##  and finally visualize the overall quantiles  ##
+##  of the residual                              ##
+###################################################
+residSpaFitVisl <- function(i, j, bestStlplus) {
+
+  FileInput <- file.path(rh.root, par$dataset, "a1950", "STL.bymonth", bestStlplus)
+
+  para <- list(span=i, Edeg=j, degree=2, surf="direct")
+  FileOutput <- file.path(
+    rh.root, par$dataset, "a1950", "STL.bymonth.remaindfit", 
+    bestStlplus, "symmetric", para$surf, para$Edeg, paste("sp", para$span, sep="")
+  )
+  a1950.Spatialfit(input=FileInput, output=FileOutput, argumt=para)
+  a1950.spafitVisualMon(input=FileOutput, plotEng.Revsfit, vars=c("fitted", ""), target="spaResid")
+  for (k in 1:nrow(spaPara)) {
+    vars <- spaPara[k, ]
+    a1950.spafitVisualMon(input=FileOutput, plotEng.RevsSpa, vars, target="spaResid")
+  }
+  ## the residual against time for each station
+  FileInput <- FileOutput
+  FileOutput <- paste(FileInput, "bystation", sep=".")
+  swapTostation(FileInput, FileOutput, elevFlag = FALSE)
+  FileInput <- FileOutput
+  a1950.spafitVisualStat(
+    input=FileInput, plotEng.residualDate, 
+    name="resid.vs.time", sample = TRUE, multiple=NULL
+  )
+  a1950.spafitVisualStat(
+    input=FileInput, plotEng.residual, 
+    name="resid.vs.timeMulti", sample = TRUE, multiple=NULL
+  )
+  
+  ## the overall quantile plot of the residual for each month
+  FileInput <- file.path(
+    rh.root, par$dataset, "a1950", "STL.bymonth.remaindfit", 
+    bestStlplus, "symmetric", para$surf, para$Edeg, paste("sp", para$span, sep="")
+  )
+  df <- a1950.residQuant(
+    input=FileInput, target="residual", by=NULL, 
+    probs=seq(0.005, 0.995, 0.005), nBins = 10000, tails = 100
+  )
+  trellis.device(
+    device = postscript, 
+    file = file.path(local.root, "output", "a1950.residual.quant.ps"),
+    color = TRUE, 
+    paper = "letter"
+  )
+    b <- xyplot(q ~ fval
+      , data = df
+      , xlab = list(label="f-value", cex=1.5)
+      , ylab = list(label="Residual", cex=1.5)
+      , scale = list(cex=1.2)
+    )
+    print(b)
+  dev.off()      
+  df <- a1950.residQuant(
+    input=FileInput, target="residual", by=NULL, 
+    probs=seq(0.005, 0.995, 0.005), nBins = 10000, tails = 0
+  )
+  trellis.device(
+    device = postscript, 
+    file = file.path(local.root, "output", "a1950.residual.centerquant.ps"),
+    color = TRUE, 
+    paper = "letter"
+  )
+    b <- xyplot(q ~ fval
+      , data = df
+      , xlab = list(label="f-value", cex=1.5)
+      , ylab = list(label="Residual", cex=1.5)
+      , scale = list(cex=1.2)
+    )
+    print(b)
+  dev.off()  
+  trellis.device(
+    device = postscript, 
+    file = file.path(local.root, "output", "a1950.residual.QQ.ps"),
+    color = TRUE, 
+    paper = "letter"
+  )
+    b <- xyplot(q ~ qt(fval,3)
+      , data = df
+      , xlab = list(label="Quantiles of t-distribution", cex=1.5)
+      , ylab = list(label="Residual", cex=1.5)
+      , scale = list(cex=1.2)
+      , aspect = 1
+      , panel = function(x, y, ...) {
+          panel.qqmathline(y,y=y, distribution=function(p) qt(p, df=3),...)
+          panel.xyplot(x, y, col = col[1], pch = 1, cex = 1, ...)
+      }
+    )
+    print(b)
+  dev.off() 
+}
 
 
 
+############################################
+##  Cross validation for the spatial fit  ##
+############################################
+FileInput <- "/ln/tongx/Spatial/tmp/tmax/a1950/STL.bymonth/t241td1_speriodicsd1_ffd"
+FileInput <- bymonthSplit(input=FileInput, leaf = 100, vari="remainder")
 
+try(newCrossValid(input=FileInput, vari="remainder", sp=0.05, deg=2, Edeg=2, surf="direct", fam="symmetric", error="mse"))
 
-
-
-
-
+for(i in c(1, 2)) {
+  for(j in seq(0.1, 0.2, 0.05)) {
+    try(newCrossValid(input=FileInput, vari="remainder", sp=j, deg=2, Edeg=i, surf="direct", fam="symmetric", error="mse"))
+  }
+  for(j in seq(0.005, 0.1, 0.01)) {
+    try(newCrossValid(input=FileInput, vari="remainder", sp=j, deg=2, Edeg=i, surf="direct", fam="symmetric", error="mse"))
+  }
+  try(crossValidMerge(
+    input=file.path(rh.root, par$dataset, "a1950", "STL.bymonth", "t241td1_speriodicsd1_ffd.fit.cv", "symmetric", "direct", i), 
+    span = c(seq(0.005, 0.1, 0.01),seq(0.1,0.2,0.05))
+  ))
+}
 
 
 
