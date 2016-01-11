@@ -153,7 +153,7 @@ predict36.blend <- function(type, parameter, k, index, valid) {
       if(fc.flag) {
         v.predict <- tail(
           do.call("cbind", 
-            stlplus(x = v.model$resp, t = v.model$time, n.p = 12, s.blend=0.5, t.blend=0.5,
+            stlplus(x = v.model$resp, t = v.model$time, n.p = 12, s.blend=1, t.blend=1,
               s.window = sw, s.degree = sd, t.window = tw, t.degree = td, 
               fc.window = c(fcw, scw), fc.degree = c(fcd, scd), 
               inner = inner, outer = outer)[c("data","fc")]), 36
@@ -163,7 +163,7 @@ predict36.blend <- function(type, parameter, k, index, valid) {
         v.predict <- tail(stlplus(
           x = v.model$resp, 
           t = v.model$time, 
-          n.p = 12, s.window = sw, s.degree = sd, t.window = tw, t.degree = td, s.blend=0.5, t.blend=0.5,
+          n.p = 12, s.window = sw, s.degree = sd, t.window = tw, t.degree = td, s.blend=1, t.blend=1,
           inner = inner, outer = outer)$data, 36
         )
       }
