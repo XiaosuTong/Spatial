@@ -321,12 +321,13 @@ cppkdtree <- function(data, nb) { ## data matrix, no.of.leaves
 ##  In other words, each monthly data.frames have been duplicated       ##
 ##  multiple times . Totally, there are 22,916 new key-value pairs.     ## 
 ##########################################################################
-bymonthSplit <- function(leaf = 100) {
-
+bymonthSplit <- function(input, leaf = 100, vari) {
+  
+  output <- paste(input, "Split", sep="")
   job <- list()
   job$map <- expression({
     lapply(seq_along(map.keys), function(r) {
-      v <- subset(map.values[[r]], !is.na(resp))
+      v <- subset(map.values[[r]], !is.na(map.values[[r]][, vari]))
       rhcounter("Map", "input", 1)
       v$flag <- 0
       row.names(v) <- NULL
@@ -374,24 +375,21 @@ bymonthSplit <- function(leaf = 100) {
   )
   job$parameters <- list(
     leaf = leaf,
-    cppkdtree = cppkdtree
+    cppkdtree = cppkdtree,
+    vari = vari
   )
-  job$input <- rhfmt(
-    file.path(rh.root, par$dataset, "a1950", "bymonth"), 
-    type = "sequence"
-  )
-  job$output <- rhfmt(
-    file.path(rh.root, par$dataset, "a1950", "bymonthSplit"), 
-    type = "sequence"
-  )
+  job$input <- rhfmt(input, type = "sequence")
+  job$output <- rhfmt(output, type = "sequence")
   job$mapred <- list(
     mapred.reduce.tasks = 100,  #cdh3,4
     mapreduce.job.reduces = 100  #cdh5
   )
   job$readback <- FALSE
   job$combiner <- TRUE
-  job$jobname <- file.path(rh.root, par$dataset, "a1950", "bymonthSplit")
+  job$jobname <- output
   job.mr <- do.call("rhwatch", job)
+
+  return(output)
 
 }
 
@@ -402,30 +400,34 @@ bymonthSplit <- function(leaf = 100) {
 ##  is the error of the prediction. In the Reduce, errors of each month    ##
 ##  is accumulated.                                                        ##
 #############################################################################
-newCrossValid <- function(sp, Edeg, deg=2, fam="symmetric", surf="direct", error = "mse") {
+newCrossValid <- function(input, vari, sp, Edeg, deg=2, fam="symmetric", surf="direct", error = "mse") {
 
+  output <- gsub("Split", ".fit.cv", input)
   job <- list()
   job$map <- expression({
     lapply(seq_along(map.keys), function(r) {
       v <- map.values[[r]]
       orig <- subset(v, flag == 1)
-      v$resp[v$flag == 1]<- NA
-      if (Edeg == 2) {
+      v[v$flag == 1, vari]<- NA
+      if (!("elev2" %in% colnames(v))) {
         v$elev2 <- log2(v$elev + 128)
-        lo.fit <- spaloess( resp ~ lon + lat + elev2, 
+      }
+      if (Edeg == 2) {
+        fml <- paste(vari, "~ lon + lat + elev2")
+        lo.fit <- spaloess( fml, 
           data    = v, 
-          degree  = degree, 
-          span    = span,
+          degree  = 2, 
+          span    = 0.05,
           para    = "elev2",
-          family  = family,
+          family  = "symmetric",
           normalize = FALSE,
           distance = "Latlong",
-          control = loess.control(surface = surf),
+          control = loess.control(surface = "direct"),
           napred = TRUE
         )
       } else if (Edeg == 1) {
-        v$elev2 <- log2(v$elev + 128)
-        lo.fit <- spaloess( resp ~ lon + lat + elev2, 
+        fml <- paste(vari, "~ lon + lat + elev2")
+        lo.fit <- spaloess( fml, 
           data    = v, 
           degree  = degree, 
           span    = span,
@@ -438,7 +440,8 @@ newCrossValid <- function(sp, Edeg, deg=2, fam="symmetric", surf="direct", error
           napred = TRUE
         )
       } else if (Edeg == 0) {
-        lo.fit <- spaloess( resp ~ lon + lat, 
+        fml <- paste(vari, "~ lon + lat")
+        lo.fit <- spaloess( fml, 
           data    = v, 
           degree  = degree, 
           span    = span,
@@ -450,10 +453,13 @@ newCrossValid <- function(sp, Edeg, deg=2, fam="symmetric", surf="direct", error
         )
       }
       value <- merge(orig, lo.fit$pred, by= c("lon","lat"))
+      if (vari == "remainder") {
+        names(value)[ncol(value)] <- "fitted"
+      }
       if(er == "abs") {
-        error <- with(value, abs(resp - fitted))
+        error <- abs(value[, vari] - value[, "fitted"])
       } else if (er == "mse") {
-        error <- with(value, (resp - fitted)^2)
+        error <- (value[, vari] - value[, "fitted"])^2
       }
       rhcollect(map.keys[[r]][1:2], error)
     })
@@ -475,6 +481,7 @@ newCrossValid <- function(sp, Edeg, deg=2, fam="symmetric", surf="direct", error
     map = {library(Spaloess, lib.loc=lib.loc)}
   )
   job$parameters <- list(
+    vari = vari,
     span = sp,
     degree = deg,
     family = fam,
@@ -482,12 +489,9 @@ newCrossValid <- function(sp, Edeg, deg=2, fam="symmetric", surf="direct", error
     surf = surf,
     er = error
   )
-  job$input <- rhfmt(
-    file.path(rh.root, par$dataset, "a1950", "bymonthSplit"),
-    type = "sequence"
-  )
+  job$input <- rhfmt(input, type = "sequence")
   job$output <- rhfmt(
-    file.path(rh.root, par$dataset, "a1950", "bymonth.fit.cv", fam, surf, Edeg, paste("sp",sp, sep="")),
+    file.path(output, fam, surf, Edeg, paste("sp",sp, sep="")),
     type = "sequence"
   )
   job$mapred <- list(
@@ -495,9 +499,7 @@ newCrossValid <- function(sp, Edeg, deg=2, fam="symmetric", surf="direct", error
     mapreduce.job.reduces = 20 #cdh5
   )
   job$readback <- FALSE
-  job$jobname <- file.path(
-    rh.root, par$dataset, "a1950", "bymonth.fit.cv", fam, surf, Edeg, paste("sp",sp, sep="")
-  )
+  job$jobname <- file.path(output, fam, surf, Edeg, paste("sp",sp, sep=""))
   job$mon.sec <- 20
   job.mr <- do.call("rhwatch", job)
 
@@ -507,12 +509,10 @@ newCrossValid <- function(sp, Edeg, deg=2, fam="symmetric", surf="direct", error
 ##  Read in all sp files for a given fam, surf, and Edeg
 ##
 #########################################
-crossValidMerge <- function(fam, Edeg, surf, first = FALSE, span) {
+crossValidMerge <- function(input, span) {
   
-  FileInput <- paste(
-    file.path(rh.root, par$dataset, "a1950", "bymonth.fit.cv", fam, surf, Edeg), "/sp", span, sep=""
-  )
-  FileOutput <- file.path(rh.root, par$dataset, "a1950", "bymonth.fit.cv", fam, surf, Edeg, "MABSE")  
+  Input <- paste(input, "/sp", span, sep="")
+  Output <- file.path(input, "MABSE")  
 
   job <- list()
   job$map <- expression({
@@ -541,15 +541,15 @@ crossValidMerge <- function(fam, Edeg, surf, first = FALSE, span) {
       rhcollect(reduce.key, combine)
     }
   )
-  job$input <- rhfmt(FileInput, type = "sequence")
-  job$output <- rhfmt(FileOutput, type = "sequence")
+  job$input <- rhfmt(Input, type = "sequence")
+  job$output <- rhfmt(Output, type = "sequence")
   job$mapred <- list(
     mapred.reduce.tasks = 1,  #cdh3,4
     mapreduce.job.reduces = 1  #cdh5 
     #rhipe_reduce_buff_size = 10000
   )
   job$mon.sec <- 20
-  job$jobname <- FileOutput  
+  job$jobname <- Output  
   job$readback <- FALSE
   job.mr <- do.call("rhwatch", job)
 
@@ -559,7 +559,7 @@ crossValidMerge <- function(fam, Edeg, surf, first = FALSE, span) {
 ##  swap the input key-value pairs from by month ##
 ##  to by station.id                             ##
 ###################################################
-swapTostation <- function(input, output) {
+swapTostation <- function(input, output, elevFlag=TRUE) {
 
     # job is just changing the key from month and year to station.id from job22
     job <- list()
@@ -584,15 +584,25 @@ swapTostation <- function(input, output) {
         lon <- unique(combine$lon)
         lat <- unique(combine$lat)
         elev2 <- unique(combine$elev2)
-        combine <- subset(combine, select = -c(lon, lat, elev, elev2, station.id))
+        if(elevFlag) {
+          combine <- subset(combine, select = -c(lon, lat, elev, elev2, station.id))
+        } else {
+          combine <- subset(combine, select = -c(lon, lat, elev2, station.id))
+        }
         attr(combine, "loc") <- c(lon, lat, elev2)
         rhcollect(reduce.key, combine)
       }
     )
+    job$parameters <- list(
+      elevFlag = elevFlag
+    )
     job$combiner <- FALSE
     job$input <- rhfmt(input , type = "sequence")
     job$output <- rhfmt(output, type = "sequence")
-    job$mapred <- list(mapred.reduce.tasks = 72)
+    job$mapred <- list(
+      mapred.tasktimeout = 0,
+      mapred.reduce.tasks = 72
+    )
     job$mon.sec <- 10
     job$jobname <- output  
     job$readback <- FALSE  
@@ -679,3 +689,315 @@ a1950.STLfit <- function(input, reduce, sw, sd, tw, td, fcw=NULL, fcd=NULL) {
 
 }
 
+swapTomonth <- function(input, output) {
+
+  job <- list()
+  job$map <- expression({
+    lapply(seq_along(map.values), function(r) {
+      d_ply(
+        .data = map.values[[r]],
+        .variable = c("year","month"),
+        .fun = function(k, station = map.keys[[r]]) {
+          key <- c(unique(k$year), unique(as.character(k$month)))
+          value <- subset(k, select = -c(year, month))
+          value$station.id <- station
+          value$lon <- as.numeric(attributes(map.values[[r]])$loc[1])
+          value$lat <- as.numeric(attributes(map.values[[r]])$loc[2])
+          value$elev2 <- as.numeric(attributes(map.values[[r]])$loc[3])
+          rhcollect(key, value)
+      })
+    })
+  })
+  job$reduce <- expression(
+    pre = {
+      combine <- data.frame()
+    },
+    reduce = {
+      combine <- rbind(combine, do.call(rbind, reduce.values))
+    },
+    post = {
+      rhcollect(reduce.key, combine)
+    }
+  )
+  job$setup <- expression(
+    map = {
+      library(plyr)
+    }
+  )
+  job$mapred <- list(
+    mapred.reduce.tasks = 72,
+    mapred.tasktimeout = 0,
+    rhipe_reduce_buff_size = 10000
+  )
+  job$combiner <- TRUE
+  job$input <- rhfmt(input, type="sequence")
+  job$output <- rhfmt(output, type="sequence")
+  job$mon.sec <- 20
+  job$jobname <- output
+  job$readback <- FALSE  
+
+  job.mr <- do.call("rhwatch", job)  
+
+}
+
+a1950.Spatialfit <- function(input, output, argumt) {
+
+  job <- list()
+  job$map <- expression({
+    lapply(seq_along(map.values), function(r) {
+      v <- map.values[[r]]
+      if(argumt$Edeg == 2) {
+        lo.fit <- spaloess( remainder ~ lon + lat + elev2, 
+          data    = v, 
+          degree  = argumt$degree, 
+          span    = argumt$span,
+          para    = "elev2",
+          family  = "symmetric",
+          normalize = FALSE,
+          distance = "Latlong",
+          control = loess.control(surface = argumt$surf),
+          napred = FALSE
+        )
+      } else if(argumt$Edeg == 1) {
+        lo.fit <- spaloess( remainder ~ lon + lat + elev2, 
+          data    = v, 
+          degree  = argumt$degree, 
+          span    = argumt$span,
+          drop    = "elev2",
+          para    = "elev2",
+          family  = "symmetric",
+          normalize = FALSE,
+          distance = "Latlong",
+          control = loess.control(surface = argumt$surf),
+          napred = FALSE
+        )
+      } else if (argumt$Edeg == 0) {
+        lo.fit <- spaloess( remainder ~ lon + lat, 
+          data    = v, 
+          degree  = argumt$degree, 
+          span    = argumt$span,
+          family  = "symmetric",
+          normalize = FALSE,
+          distance = "Latlong",
+          control = loess.control(surface = argumt$surf),
+          napred = FALSE
+        )
+      }
+      v$spafit <- lo.fit$fitted
+      rhcollect(map.keys[[r]], v)
+    })
+  })
+  job$parameters <- list(
+    argumt = argumt
+  )
+  job$setup <- expression(
+    map = {
+      library(Spaloess, lib.loc=lib.loc)
+    }
+  )
+  job$mapred <- list(
+    mapred.reduce.tasks = 72,
+    mapred.tasktimeout = 0
+  )
+  job$input <- rhfmt(input, type="sequence")
+  job$output <- rhfmt(output, type="sequence")
+  job$mon.sec <- 10
+  job$jobname <- output
+  job$readback <- FALSE  
+
+  job.mr <- do.call("rhwatch", job)  
+
+}
+
+
+constructQuants <- function(obj, probs, tails, mids) {
+  keys <- lapply(obj, function(x) x[[1]][[2]])
+  intKeys <- sapply(keys, is.integer)
+  vals <- lapply(obj, "[[", 2)
+
+  quants <- data.frame(
+    idx = unlist(keys[intKeys]),
+    freq = unlist(vals[intKeys])
+  )
+
+  tot <- sum(as.numeric(quants$freq))
+  quants <- quants[order(quants$idx),]
+  quants$pct <- quants$freq / tot
+  quants$cpct <- cumsum(quants$pct)
+  quants$q <- mids[quants$idx]
+
+  fn <- approxfun(quants$cpct, quants$q, method = "constant", f = 1, rule = 2)
+  res <- data.frame(
+    fval = probs,
+    q = fn(probs)
+  )
+
+  if(tails > 0) {
+    # now append top and bottom
+    tailKeys <- unlist(keys[!intKeys])
+    tailVals <- vals[!intKeys]
+
+    top <- tailVals[tailKeys == "top"][[1]]
+    bot <- tailVals[tailKeys == "bot"][[1]]
+
+    botDf <- data.frame(
+      fval = (seq_len(tails) - 1) / tot,
+      q = bot
+    )
+
+    topDf <- data.frame(
+      fval = (seq_len(tails) + tot - tails) / tot,
+      q = top
+    )
+
+    res <- res[res$fval > max(botDf$fval) & res$fval < min(topDf$fval),]
+    res <- rbind(botDf, res, topDf)
+  }
+  res
+}
+
+a1950.residQuant <- function(input, target="residual", by=NULL, probs=seq(0, 1, 0.005), nBins = 10000, tails = 100) {
+
+  ## Get the range of residual
+  jobRng <- list()
+  jobRng$map <- expression({
+    lapply(seq_along(map.keys), function(r) {
+      v <- subset(map.values[[r]], flag==1)
+      if(target == "residual") (
+        value <- with(v, remainder - spafit)
+      ) else {
+        value <- v[, target]
+      }
+      rhcollect(1, data.frame(bot=min(value), top=max(value)))
+    })
+  })
+  jobRng$reduce <- expression(
+    pre = {
+      combine <- data.frame()
+    },
+    reduce = {
+      combine <- rbind(combine, do.call("rbind", reduce.values))
+    },
+    post = {
+      rhcollect(reduce.key, data.frame(bot=min(combine$bot), top=max(combine$top)))
+    }
+  )
+  jobRng$mapred <- list(
+    mapred.reduce.tasks = 1,
+    mapred.tasktimeout = 0
+  )
+  jobRng$parameters <- list(
+    target = target
+  )
+  jobRng$input <- rhfmt(input, type="sequence")
+  jobRng$output <- rhfmt(paste(input, target, "range", sep="."), type="sequence")
+  jobRng$mon.sec <- 10
+  jobRng$jobname <- paste(input, target, "range", sep=".")
+  jobRng$readback <- TRUE
+  varRange <- as.numeric(do.call("rhwatch", jobRng)[[1]][[2]])
+
+  delta <- abs(diff(varRange)) / (nBins - 1)
+  cuts <- seq(varRange[1] - delta / 2, varRange[2] + delta / 2, by = delta)
+  mids <- seq(varRange[1], varRange[2], by = delta)
+
+  jobQuant <- list()
+  jobQuant$map <- expression({
+    dat <- do.call("rbind", lapply(seq_along(map.keys), function(r) {
+      data.frame(
+        v = with(subset(map.values[[r]], flag==1), remainder - spafit),
+        subset(map.values[[r]], flag==1)[, by, drop = FALSE],
+        stringsAsFactors = FALSE
+      )
+    }))
+    if(is.null(by)) {
+      inds <- list("1" = seq_len(nrow(dat)))
+    } else {
+      splits <- getCondCuts(dat[, by, drop = FALSE], by)
+      inds <- split(seq_along(splits), splits)
+    }
+    ## inds is a list of vector, each element of list is a vector of row index for the given level
+    ## of conditional variable by. Next we loop over all different levels of by variable
+    for (ii in seq_along(inds)) {
+      vv <- dat$v[inds[[ii]]]  ## get the target variable for the given level of by variable
+      vv <- vv[!is.na(vv)]
+      if (length(vv) > 0) {
+        ord <- order(vv)
+        cutTab <- as.data.frame(
+          table(cut(vv, cuts, labels = FALSE)), responseName = "Freq", stringsAsFactors = FALSE
+        )
+        cutTab$Var1 <- as.integer(cutTab$Var1)
+        ## for each bin we collect the key-value pair
+        ## key is the bin index cutTab$Var1, and value is the frequency count in that bin
+        for (jj in 1:nrow(cutTab)) {
+          rhcollect(list(as.list(dat[inds[[ii]][1], by, drop = FALSE]), cutTab$Var1[jj]), cutTab$Freq[jj])
+        } 
+        rhcollect(list(as.list(dat[inds[[ii]][1], by, drop = FALSE]), "bot"), vv[head(ord, tails)])
+        rhcollect(list(as.list(dat[inds[[ii]][1], by, drop = FALSE]), "top"), vv[tail(ord, tails)])
+      }
+    }    
+  })
+  jobQuant$reduce <- expression(
+    pre = {
+      bot <- NULL
+      top <- NULL
+      sum <- 0
+    }, 
+    reduce = {
+      if(reduce.key[[2]] == "bot") {
+        bot <- head(sort(c(bot, do.call(c, reduce.values))), tails)
+      } else if(reduce.key[[2]] == "top") {
+        top <- tail(sort(c(top, do.call(c, reduce.values))), tails)
+      } else {
+        sum <- sum + sum(unlist(reduce.values))
+      }
+    }, 
+    post = {
+      if(reduce.key[[2]] == "bot") {
+        rhcollect(reduce.key, bot)
+      } else if(reduce.key[[2]] == "top") {
+        rhcollect(reduce.key, top)
+      } else {
+        rhcollect(reduce.key, sum)
+      }
+    }
+  )
+  jobQuant$parameters <- list(
+    by = by,
+    delta = delta,
+    cuts = cuts,
+    mids = mids,
+    tails = tails
+  )
+  jobQuant$mapred <- list(
+    mapred.reduce.tasks = 50,
+    mapred.tasktimeout = 0
+  # rhipe_map_buff_size = 5
+  )
+  jobQuant$input <- rhfmt(input, type="sequence")
+  jobQuant$output <- rhfmt(paste(input, target, "quant", sep="."), type="sequence")
+  jobQuant$mon.sec <- 10
+  jobQuant$jobname <- paste(input, target, "quant", sep=".")
+  jobQuant$readback <- TRUE
+  mrRes <- do.call("rhwatch", jobQuant)
+  
+  if(is.null(by)) {
+    res <- constructQuants(mrRes, probs, tails, mids)
+  } else {
+    groups <- sapply(mrRes, function(x) {
+      do.call(paste, c(as.list(x[[1]][[1]]), sep = "|"))
+    })
+    ind <- split(seq_along(groups), groups)
+
+    res <- lapply(seq_along(ind), function(i) {
+      data.frame(
+        constructQuants(mrRes[ind[[i]]], probs, tails, mids),
+        mrRes[[ind[[i]][1]]][[1]][[1]],
+        stringsAsFactors = FALSE
+      )
+    })
+    res <- do.call("rbind", res)
+  }
+
+  res
+
+}
