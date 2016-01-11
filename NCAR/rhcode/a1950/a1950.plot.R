@@ -195,7 +195,7 @@ imputeCrossValid <- function(surf="direct", Edeg = TRUE) {
 ###################################################################
 ##  Visualization plots for the spatial loess fit for missing    ##
 ##  value imputing.                                              ##
-##  input files are /a1950/bymonth.fit or /a1950/bymonth.fit.new ##
+##  input files are /a1950/bymonth.fit                           ##
 ###################################################################
 Qsample <- function(x, num) {
 
@@ -514,25 +514,26 @@ a1950.spaImputeVisual <- function(family = "symmetric", surf = "direct", Edeg = 
 ############################################################
 ##  Diagnostic plots for components from stlplus fitting  ## 
 ############################################################
-a1950.STLvisual <- function(input, plotEng, sample = TRUE, mutiple=NULL){
+a1950.STLvisual <- function(input, plotEng, name, sample = TRUE, multiple=NULL){
 
   output <- file.path(
     rh.root, par$dataset, "a1950", "STL.plot", paste("t",tuning$tw, "td", tuning$td, "_s", tuning$sw, 
     "sd", tuning$sd, "_f", tuning$fcw, "fd", tuning$fcd, sep="")
   )
   job <- list()
-  if (!is.null(mutiple)) {
+  if (!is.null(multiple)) {
     job$map <- expression({
       lapply(seq_along(map.keys), function(r) {
         if (sample) {
           if (map.keys[[r]] %in% sample.a1950$station.id) {
-            index <- sample.a1950$leaf[which(sample.a1950$station.id==map.keys[[r]])]
-            pp <- plotEng(map.values[[r]], map.keys[[r]], index)
-            rhcollect(as.numeric(index), map.values[[r]])
+            index <- as.numeric(sample.a1950$leaf[which(sample.a1950$station.id==map.keys[[r]])])
+            num <- multiple[1] * multiple[2]
+            map.values[[r]]$leaf <- index
+            rhcollect(ceiling((index-0.5)/num), map.values[[r]])
           }
         } else {
-          pp <- plotEng(map.values[[r]], map.keys[[r]], NULL)
-          rhcollect(map.keys[[r]], serialize(pp, NULL))
+          map.values[[r]]$station.id <- map.keys[[r]]
+          rhcollect(1, map.values[[r]])
         }        
       })
     })
@@ -552,16 +553,17 @@ a1950.STLvisual <- function(input, plotEng, sample = TRUE, mutiple=NULL){
       })
     })
   }
-  if (!is.null(mutiple)) {
+  if (!is.null(multiple)) {
     job$reduce <- expression(
       pre = {
-
+        combine <- data.frame()
       },
       reduce = {
-
+        combine <- rbind(combine, do.call("rbind", reduce.values))
       },
       post = {
-
+        pp <- plotEng(combine, multiple)
+        rhcollect(reduce.key, serialize(pp, NULL))
       }
     )
   }
@@ -570,13 +572,18 @@ a1950.STLvisual <- function(input, plotEng, sample = TRUE, mutiple=NULL){
     map = {
       load("sample.a1950.RData")
       library(lattice)
+    },
+    reduce = {
+      library(plyr)
+      library(lattice)
     }
   )
   job$parameters <- list(
     sample = sample,
     plotEng = plotEng,
     col = col,
-    ylab = ylab
+    ylab = ylab,
+    multiple = multiple
   )
   job$input <- rhfmt(input, type = "sequence")
   job$output <- rhfmt(output, type = "sequence")
@@ -590,7 +597,7 @@ a1950.STLvisual <- function(input, plotEng, sample = TRUE, mutiple=NULL){
   
   trellis.device(
     device = postscript, 
-    file = file.path(local.root, "output", paste("a1950.stlraw.vs.time", "ps", sep=".")),
+    file = file.path(local.root, "output", paste("a1950", name, "ps", sep=".")),
     color = TRUE, 
     paper = "letter"
   )
@@ -645,49 +652,482 @@ plotEng.raw <- function(data, station, leaf) {
 
 }
 
-plotEng.trend <- function(data, station, leaf) {
+plotEng.trend <- function(data, layout) {
 
   tmean <- ddply(
     .data = data,
-    .variables = c("station.id","year"),
+    .variables = c("leaf","year"),
     .fun = function(r) {
-      data.frame(mean = mean(r$resp))
+      data.frame(mean = mean(r$trend + r$seasonal + r$remainder))
     }
   )
   tmv <- ddply(
     .data = arrange(tmean, year),
-    .variables = "station.id",
+    .variables = "leaf",
     .fun = summarise,
-    mv = as.numeric(filter(mean, rep(1/10,10), sides=2)),
+    mv = as.numeric(filter(mean, rep(1/5,5), sides=2)),
     year = year
   )
-  trendmean <- merge(x=data, y=tmv, by=c("station.id","year"), all.x=TRUE)
+  trendmean <- merge(x=data, y=tmv, by=c("leaf","year"), all.x=TRUE)
 
-  b <- xyplot( trend ~ date 
-    , data = data
+  b <- xyplot( trend ~ date | factor(leaf)
+    , data = trendmean
     , xlab = list(label = "Month", cex = 1.5)
     , ylab = list(label = ylab, cex = 1.5)
-    , layout = c(4,3)
+    , layout = layout
     , key=list(
-        text = list(label=c(klab,"moving average of yearly mean")), 
+        text = list(label=c("trend","moving average of yearly mean")), 
         lines = list(pch=16, cex=1, lwd=2, type=c("l","p"), col=col[1:2]),
         columns=2
       )
     , prepanel = function(x,y,subscripts,...){ 
-        v <- data[subscripts,] 
+        v <- trendmean[subscripts,] 
         ylim <- range(v$mv, na.rm=TRUE) 
         ans <- prepanel.default.xyplot(v$date, v[, "trend"], ...) 
         ans$ylim <- range(c(ans$ylim, ylim), na.rm=TRUE) 
         ans 
       } 
     , scales = list(
-        y = list(relation = 'free', cex=1.2, tick.number = 4), 
-        x = list(at=c(0,120, 240, 480), relation = 'same', cex=1.2)
+        y = list(relation = 'free', cex=1.2, tick.number = 3), 
+        x = list(at=c(0, 144, 288, 432, 576), relation = 'same', cex=1.2)
       )
     , panel = function(x, y, subscripts, ...) {
-        v <- data[subscripts,]
+        v <- trendmean[subscripts,]
         panel.xyplot(v$date[seq(1,576,12)], v$mv[seq(1,576,12)], type="p", pch=16, cex=0.5, col=col[2], ...)
         panel.xyplot(x, y, type="l", lwd=2, col=col[1], ...)
+      }
+  )
+  return(b)
+
+}
+
+plotEng.periodicseason <- function(data, layout) {
+  
+  mmean <- ddply(
+    .data = data,
+    .variable = c("leaf","month"),
+    .fun = summarise,
+    mean = mean(seasonal)
+  )
+  mmean <- arrange(mmean, match(month, month.abb))
+
+  b <- xyplot( mean ~ match(month, month.abb) | factor(leaf),
+    , data = mmean
+    , xlab = list(label = "Month", cex = 1.5)
+    , ylab = list(label = ylab, cex = 1.5)
+    , layout = layout
+    , scales = list(
+        y = list(at=c(0, seq(-15,15,10)), cex=1.2), 
+        x = list(at=c(1, 3, 5, 7, 9, 11), relation='same', cex=1.2)
+      )
+    , panel = function(x,y,...) {
+        panel.xyplot(x,y,, type="b", cex=0.5, pch=16, ...)
+      }
+  )
+  return(b)
+
+}
+
+plotEng.QQremaider <- function(data, layout) {
+
+  b <- qqmath( ~ remainder | factor(leaf)
+    , data = data
+    , distribution = qnorm
+    , aspect = 1
+    , layout = layout
+    , xlab = list(label="Unit normal quantile", cex=1.5)
+    , ylab = list(label=ylab, cex=1.5)
+    , scales = list(x = list(cex=1.2), y = list(at=c(0,seq(-15,15,10)), cex=1.2))
+    , prepanel = prepanel.qqmathline
+    , panel = function(x, y,...) {
+        panel.abline(h= c(seq(-15,15,by=10),0), v=c(-2,0,2), lty=1, lwd=1, col="lightgrey")
+        panel.qqmathline(x, y=x)
+        panel.qqmath(x, y, pch=16, cex=0.3, ...)
+      }
+  )
+  return(b)
+
+}
+
+plotEng.remainderDate <- function(data, station, leaf) {
+ 
+  b <- xyplot( remainder ~ date
+    , data = data
+    , xlab = list(label = "Month", cex=1.5)
+    , ylab = list(label = ylab, cex=1.5)
+    , sub = list(label=paste("Station ", station, "from cell", leaf), cex=1.2)
+    , scale = list(cex=.12)
+    , key = list(
+        text=list(label=c("remainder","loess smoothing")), 
+        lines=list(pch=16, cex=1, lwd=2, type=c("p","l"), col=col[1:2]), 
+        columns=2
+      )
+    , panel = function(x,y,...){
+        panel.abline(h=0, color="black", lty=1)
+        panel.xyplot(x,y, cex = 0.6, pch=16, ...)
+        panel.loess(x,y, span=0.8, degree=1, lwd = 2, col=col[2],...)
+      }
+  )
+
+}
+
+plotEng.remainderMonth <- function(data, station, leaf) {
+
+  b <- xyplot( remainder ~ as.numeric(year) | factor(month, levels = month.abb)
+    , data = data
+    , xlab = list(label = "Year", cex = 1.5)
+    , ylab = list(label = ylab, cex = 1.5)
+    , sub = list(label=paste("Station ", station, "from cell", leaf), cex=1.2)
+    , layout = c(12,1)
+    , scales = list(
+       y = list(cex=1.2), 
+       x = list(tick.number=2, cex=1.2)
+      )
+    , key = list(
+        text=list(label=c("remainder","loess smoothing")), 
+        lines=list(pch=16, cex=1, lwd=2, type=c("p","l"), col=col[1:2]), 
+        columns=2
+      )
+    , panel = function(x,y,...){
+        panel.abline(h=0, color="black", lty=1)
+        panel.xyplot(x,y, cex = 0.6, pch=16, ...)
+        panel.loess(x,y, span=0.8, degree=1, lwd = 2, col=col[2],...)
+      }
+  )
+  return(b)
+
+}
+
+plotEng.remainderMonth2 <- function(data, station, leaf) {
+
+  b <- xyplot( remainder ~ as.numeric(year) | factor(month, levels = month.abb)
+    , data = data
+    , xlab = list(label = "Year", cex = 1.5)
+    , ylab = list(label = ylab, cex = 1.5)
+    , layout = c(2,6)
+    , sub = list(label=paste("Station ", station, "from cell", leaf), cex=1.2)
+    , scales = list(
+        y = list(cex=1.2, at=seq(-10,10,5)), 
+        x = list(tick.number=10, relation='same', cex=1.2)
+      )
+    , panel = function(x,y,...) {
+        panel.abline(h=0, color="black", lty=1)
+        panel.xyplot(x, y, type="b", pch=16, cex=0.5, ...)
+      }
+  )
+  return(b)
+
+}
+
+plotEng.remainderACF <- function(data, layout) {
+
+  alpha <- 0.995
+
+  ACF <- ddply(
+    .data = data,
+    .variables = "leaf",
+    .fun = function(r) {
+      corr <- acf(r[, "remainder"], plot=FALSE)
+      data.frame(
+        correlation = corr$acf,
+        lag = corr$lag 
+      )
+    }
+  )
+  clim <- qnorm((1 + alpha)/2)/sqrt(1000)
+
+  b <- xyplot( correlation ~ lag | factor(leaf)
+    , data = ACF
+    , subset = lag != 0
+    , layout = layout
+    , xlab = list(label = "Lag", cex = 1.5)
+    , ylab = list(label = "Autocorrelation Function", cex = 1.5)
+    , scales = list(
+        y = list(cex=1.2), 
+        x = list(relation='same', cex=1.2)
+      )
+    , panel = function(x,y,...) {
+        panel.abline(h=0)
+        panel.xyplot(x,y, type="h", lwd=1.5,...)
+        panel.abline(h=c(-clim, clim), lty=2, col="red",...)
+      }
+  )
+  return(b)
+
+}
+
+
+#############################################
+##  Visualize the final residuals by month ##
+#############################################
+a1950.spafitVisualMon <- function(input, plotEng, vars, target) {
+
+  output <- paste(input, "plot", sep=".")
+
+  job <- list()
+  job$map <- expression({
+    lapply(seq_along(map.keys), function(r) {
+      year <- map.keys[[r]][1]
+      month <- map.keys[[r]][2]
+      pp <- plotEng(subset(map.values[[r]], flag==1), year, month, vars, target)
+      index <- (as.numeric(year) - 1950)*12 + match(month, month.abb)
+      rhcollect(index, serialize(pp, NULL))
+    })
+  })
+  job$setup <- expression(
+    map = {
+      library(lattice)
+    }
+  )
+  job$parameters <- list(
+    plotEng = plotEng,
+    col = col,
+    ylab = ylab,
+    target = target,
+    vars = vars
+  )
+  job$input <- rhfmt(input, type = "sequence")
+  job$output <- rhfmt(output, type = "sequence")
+  job$mapred <- list(
+    mapred.reduce.tasks = 20,  #cdh3,4
+    mapreduce.job.reduces = 20  #cdh5
+  )
+  job$readback <- TRUE
+  job$jobname <- output
+  job.mr <- do.call("rhwatch", job)
+  
+  trellis.device(
+    device = postscript, 
+    file = file.path(local.root, "output", paste("a1950", target, "vs", vars[1], vars[2], "ps", sep=".")),
+    color = TRUE, 
+    paper = "letter"
+  )
+  for(ii in order(unlist(lapply(job.mr, "[[", 1)))) {
+    print(unserialize(job.mr[[ii]][[2]]))
+  }
+  dev.off()  
+
+}
+
+plotEng.RevsSpa <- function(data, year, month, vars, target) {
+
+  if (target == "remainder"){
+    ylab <- "Remainder of Stlplus"
+  } else {
+    ylab <- "Residual"
+    data$spaResid <- with(data, remainder - spafit)
+  }
+  against <- vars[1, 1]
+  condit <- vars[1, 2] 
+  varname <- grep(condit, c("Latitude","Longitude","Elevation"), ignore.case=TRUE, value=TRUE)
+  xlab <- grep(against, c("Latitude","Longitude","Elevation"), ignore.case=TRUE, value=TRUE)
+  if (against == "elev") {
+    against <- "elev2"
+    xlab <- "Log Base 2 (Elevation + 128)"
+  }
+  if (condit == "elev"){
+    data$elev <- 2^data$elev2 - 128
+  }
+  b <- xyplot( get(target) ~ get(against) | equal.count(get(condit), 20, overlap=0)
+    , data = data
+    , strip=strip.custom(var.name = varname, strip.levels=rep(FALSE, 2))
+    , pch = 16
+    , cex = 0.3
+    , scale = list(
+        y = list(relation = "free", tick.number = 5, cex=1.2),
+        x = list(relation = "free", tick.number = 3, cex=1.2)
+      )
+    , layout = c(5,4)
+    , xlab = list(label=xlab, cex=1.5)
+    , ylab = list(label=ylab, cex=1.5)
+    , sub = paste(year, month)
+    , panel = function(x,y,...) {
+        panel.abline(h=0, lwd=0.5, col="black")
+        panel.xyplot(x,y,...)
+        panel.loess(x,y, span=0.25, degree=1, col=col[2], evaluation=100,...)
+    }
+  )
+  return(b)
+
+}
+
+plotEng.RevsFit <- function(data, year, month, vars=NULL, target=NULL) {
+
+  b <- xyplot( remainder-spafit ~ spafit
+    , data = data
+    , pch = 16
+    , cex = 0.5
+    , scale = list(
+        y = list(cex=1.2),
+        x = list(cex=1.2)
+      )
+    , ylab = list(label="Residual", cex=1.5)
+    , xlab = list(label="Spatial Fitted Value", cex=1.5)
+    , sub = paste(year, month)
+    , panel = function(x,y,...) {
+        panel.abline(h=0, lwd=0.5, col="black")
+        panel.xyplot(x,y,...)
+        #panel.loess(x,y, span=0.25, degree=1, col=col[2], evaluation=100,...)
+    }
+  )
+  return(b)
+
+}
+
+
+
+
+
+###############################################
+##  Visualize the final residuals by station ##
+###############################################
+a1950.spafitVisualStat <- function(input, plotEng, name, sample = TRUE, multiple=NULL) {
+
+  output <- paste(input, "plot", sep=".")
+
+  job <- list()
+  if (!is.null(multiple)) {
+    job$map <- expression({
+      lapply(seq_along(map.keys), function(r) {
+        if (sample) {
+          if (map.keys[[r]] %in% sample.a1950$station.id) {
+            index <- as.numeric(sample.a1950$leaf[which(sample.a1950$station.id==map.keys[[r]])])
+            num <- multiple[1] * multiple[2]
+            map.values[[r]]$leaf <- index
+            rhcollect(ceiling((index-0.5)/num), subset(map.values[[r]], flag==1))
+          }
+        } else {
+          map.values[[r]]$station.id <- map.keys[[r]]
+          rhcollect(1, map.values[[r]])
+        }        
+      })
+    })
+  } else {
+    job$map <- expression({
+      lapply(seq_along(map.keys), function(r){
+        if (sample) {
+          if (map.keys[[r]] %in% sample.a1950$station.id) {
+            index <- sample.a1950$leaf[which(sample.a1950$station.id==map.keys[[r]])]
+            pp <- plotEng(subset(map.values[[r]], flag==1), map.keys[[r]], index)
+            rhcollect(as.numeric(index), serialize(pp, NULL))
+          }
+        } else {
+          pp <- plotEng(map.values[[r]], map.keys[[r]], NULL)
+          rhcollect(map.keys[[r]], serialize(pp, NULL))
+        }
+      })
+    })
+  }
+  if (!is.null(multiple)) {
+    job$reduce <- expression(
+      pre = {
+        combine <- data.frame()
+      },
+      reduce = {
+        combine <- rbind(combine, do.call("rbind", reduce.values))
+      },
+      post = {
+        pp <- plotEng(combine, multiple)
+        rhcollect(reduce.key, serialize(pp, NULL))
+      }
+    )
+  }
+  job$shared <- file.path(rh.root, par$dataset, "a1950", "Rdata", "sample.a1950.RData")
+  job$setup <- expression(
+    map = {
+      load("sample.a1950.RData")
+      library(lattice)
+      library(plyr)
+    },
+    reduce = {
+      library(plyr)
+      library(lattice)
+    }
+  )
+  job$parameters <- list(
+    sample = sample,
+    plotEng = plotEng,
+    col = col,
+    ylab = ylab,
+    multiple = multiple
+  )
+  job$input <- rhfmt(input, type = "sequence")
+  job$output <- rhfmt(output, type = "sequence")
+  job$mapred <- list(
+    mapred.reduce.tasks = 20,  #cdh3,4
+    mapreduce.job.reduces = 20  #cdh5
+  )
+  job$readback <- TRUE
+  job$jobname <- output
+  job.mr <- do.call("rhwatch", job)
+  
+  trellis.device(
+    device = postscript, 
+    file = file.path(local.root, "output", paste("a1950", name, "ps", sep=".")),
+    color = TRUE, 
+    paper = "letter"
+  )
+  for(ii in order(unlist(lapply(job.mr, "[[", 1)))) {
+    print(unserialize(job.mr[[ii]][[2]]))
+  }
+  dev.off()
+
+}
+plotEng.residualDate <- function(data, station, leaf) {
+ 
+  b <- xyplot( remainder - spafit ~ date
+    , data = data
+    , group = flag
+    , xlab = list(label = "Month", cex=1.5)
+    , ylab = list(label = ylab, cex=1.5)
+    , sub = list(label=paste("Station ", station, "from cell", leaf), cex=1.2)
+    , scale = list(cex=1.2)
+#    , key=list(
+#        cex = 1.2,
+#        text = list(label=c("raw", "imputed")), 
+#        lines = list(pch=16, cex=0.7, lwd=1.5, type=c("p","p"), col=col[c(2,1)]),
+#        columns=2
+#      )
+    , auto.key=TRUE
+    , panel = function(x,y,...){
+        panel.abline(h=0, color="black", lty=1)
+        panel.xyplot(x,y, cex = 0.6, pch=16, ...)
+        panel.loess(x,y, span=0.8, degree=1, lwd = 2, col=col[2],...)
+      }
+  )
+
+}
+plotEng.residual <- function(data, station, leaf) {
+
+  data <- arrange(data, date)
+  data$factor <- factor(
+    x = rep(paste("Period", 1:6), c(rep(108,5), 36)),
+    levels = paste("Period", c(6:1))
+  )
+  data$time <- c(rep(0:107, times = 5), 0:35) 
+
+  b <- xyplot( remainder-spafit ~ time | factor,
+    , data = data
+    , group = flag
+    , xlab = list(label = "Month", cex = 1.5)
+    , ylab = list(label = ylab, cex = 1.5)
+    , sub = list(label=paste("Station ", station, "from cell", leaf), cex=1.2)
+    , layout = c(1,6)
+    , strip = FALSE,
+    , xlim = c(0, 107)
+    , key=list(
+        cex = 1.2,
+        text = list(label=c("raw", "imputed")), 
+        lines = list(pch=16, cex=0.7, lwd=1.5, type=c("p","p"), col=col[c(2,1)]),
+        columns=2
+      )
+    , scales = list(
+        y = list(tick.number=4, cex=1.2), 
+        x = list(at=seq(0, 107, by=12), relation='same', cex=1.2)
+      )
+    , panel = function(x,y,...) {
+        panel.abline(v=seq(0,108, by=12), color="lightgrey", lty=3, lwd=0.5)
+        panel.xyplot(x, y, type="p", pch=16, cex=0.5, ...)
       }
   )
   return(b)
