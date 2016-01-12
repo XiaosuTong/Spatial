@@ -274,7 +274,7 @@ for(i in c(0)) {
   ))
 }
 
-imputeCrossValid(surf="direct", Edeg = FALSE)
+imputeCrossValid(input=file.path(rh.root, par$dataset, "a1950", "bymonth.fit.cv", "symmetric", "direct"), Edeg = FALSE)
 
 
 ########################################
@@ -322,7 +322,7 @@ for(i in c(1, 2)) {
   ))
 }
 
-imputeCrossValid(surf="direct", Edeg = TRUE)
+imputeCrossValid(input=file.path(rh.root, par$dataset, "a1950", "bymonth.fit.cv", "symmetric", "direct"), Edeg = TRUE)
 
 
 
@@ -693,13 +693,14 @@ residSpaFitVisl <- function(i, j, bestStlplus) {
 
   FileInput <- file.path(rh.root, par$dataset, "a1950", "STL.bymonth", bestStlplus)
 
+  spaPara <- data.frame(permutations(3, 2, c("lon","lat","elev")))
   para <- list(span=i, Edeg=j, degree=2, surf="direct")
   FileOutput <- file.path(
     rh.root, par$dataset, "a1950", "STL.bymonth.remaindfit", 
     bestStlplus, "symmetric", para$surf, para$Edeg, paste("sp", para$span, sep="")
   )
   a1950.Spatialfit(input=FileInput, output=FileOutput, argumt=para)
-  a1950.spafitVisualMon(input=FileOutput, plotEng.Revsfit, vars=c("fitted", ""), target="spaResid")
+  a1950.spafitVisualMon(input=FileOutput, plotEng.RevsFit, vars=c("fitted", ""), target="spaResid")
   for (k in 1:nrow(spaPara)) {
     vars <- spaPara[k, ]
     a1950.spafitVisualMon(input=FileOutput, plotEng.RevsSpa, vars, target="spaResid")
@@ -780,15 +781,38 @@ residSpaFitVisl <- function(i, j, bestStlplus) {
   dev.off() 
 }
 
+for (ii in c(0.05,0.025,0.015, 0.005)) {
+  for (jj in c(1, 2)) {
+    residSpaFitVisl(i=ii, j=jj, bestStlplus="t241td1_speriodicsd1_ffd")
+  }
+}
 
+
+#  df <- a1950.residQuant(
+#    input=FileInput, target="residual", by="coastdis", 
+#    probs=seq(0.005, 0.995, 0.005), nBins = 10000, tails = 100, coast=TRUE, dislim=300
+#  )
+#  trellis.device(
+#    device = postscript, 
+#    file = file.path(local.root, "output", "tmp.ps"),
+#    color = TRUE, 
+#    paper = "letter"
+#  )
+#    b <- xyplot(q ~ fval
+#      , data = df
+#      , group = coastdis
+#      , xlab = list(label="f-value", cex=1.5)
+#      , ylab = list(label="Residual", cex=1.5)
+#      , scale = list(cex=1.2)
+#    )
+#    print(b)
+#  dev.off()  
 
 ############################################
 ##  Cross validation for the spatial fit  ##
 ############################################
 FileInput <- "/ln/tongx/Spatial/tmp/tmax/a1950/STL.bymonth/t241td1_speriodicsd1_ffd"
 FileInput <- bymonthSplit(input=FileInput, leaf = 100, vari="remainder")
-
-try(newCrossValid(input=FileInput, vari="remainder", sp=0.05, deg=2, Edeg=2, surf="direct", fam="symmetric", error="mse"))
 
 for(i in c(1, 2)) {
   for(j in seq(0.1, 0.2, 0.05)) {
@@ -799,10 +823,14 @@ for(i in c(1, 2)) {
   }
   try(crossValidMerge(
     input=file.path(rh.root, par$dataset, "a1950", "STL.bymonth", "t241td1_speriodicsd1_ffd.fit.cv", "symmetric", "direct", i), 
-    span = c(seq(0.005, 0.1, 0.01),seq(0.1,0.2,0.05))
+    span = c(seq(0.005, 0.085, 0.01),seq(0.1,0.2,0.05))
   ))
 }
 
+imputeCrossValid(
+  input=file.path(rh.root, par$dataset, "a1950", "STL.bymonth", "t241td1_speriodicsd1_ffd.fit.cv", "symmetric", "direct"), 
+  Edeg = TRUE
+)
 
 
 
