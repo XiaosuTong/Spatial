@@ -570,16 +570,36 @@ library(sp)
 library(maps)
 
 ## single point for a simple test
-pts <- matrix(c(-88, 36), ncol = 2)
+pts <- as.matrix(data[,1:2], ncol = 2)
 ## simple map data
 mp <- map("usa", plot = FALSE)
 ## convert coords to matrix and dump NA
 xy.coast <- cbind(mp$x, mp$y)[!is.na(mp$x), ]
-sea.coast <- xy.coast[c(195:4238,6095:6713),]
-
 ## container for all the nearest points matching the input
-closest.points <- matrix(0, ncol = 2, nrow = nrow(pts))
 for (i in 1:nrow(pts)) {
-   closest.points[i, 1:2] <- sea.coast[which.min(spDistsN1(sea.coast,
-pts, longlat = TRUE)), ]
+   data$coastdis[i] <- min(spDistsN1(xy.coast, pts[i,], longlat = TRUE)) <=200
+}
+
+xyplot(V2~V1, 
+	data=data, 
+	xlim = c(-125, -65),
+	ylim = c(24.5,50),
+	panel=function(x,y,...) {
+		panel.xyplot(x,y,...,col="red", cex=1.5)
+		panel.polygon(mp$x, mp$y, border = "blue") 
+})
+
+
+coastDist <- function(data, lim) {
+
+  pts <- as.matrix(data[,1:2], ncol = 2)
+  mp <- map("usa", plot = FALSE)
+  data$coastdis <- NA
+  xy.coast <- cbind(mp$x, mp$y)[!is.na(mp$x), ]
+  for (i in 1:nrow(pts)) {
+    data$coastdis[i] <- as.numeric(min(spDistsN1(xy.coast, pts[i,], longlat = TRUE)) <= lim)
+  }
+  
+  return(data)
+
 }

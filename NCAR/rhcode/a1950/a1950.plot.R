@@ -109,16 +109,20 @@ intpolat.visual <- function(size = "letter", surf, SPsize, check=NULL) {
 }
 
 
-imputeCrossValid <- function(surf="direct", Edeg = TRUE) {
+imputeCrossValid <- function(input, Edeg = TRUE) {
 
   if (Edeg) {
     layout <- c(2,1)
     fo <- ~ mse | factor(degree)
-    rst1 <- rhread(file.path(rh.root, par$dataset, "a1950", "bymonth.fit.cv", "symmetric", surf, "1", "MABSE"))[[1]][[2]]
-    rst2 <- rhread(file.path(rh.root, par$dataset, "a1950", "bymonth.fit.cv", "symmetric", surf, "2", "MABSE"))[[1]][[2]]
+    #rst1 <- rhread(file.path(rh.root, par$dataset, "a1950", "bymonth.fit.cv", "symmetric", surf, "1", "MABSE"))[[1]][[2]]
+    #rst2 <- rhread(file.path(rh.root, par$dataset, "a1950", "bymonth.fit.cv", "symmetric", surf, "2", "MABSE"))[[1]][[2]]
+    rst1 <- rhread(file.path(input, "1", "MABSE"))[[1]][[2]]
+    rst2 <- rhread(file.path(input, "2", "MABSE"))[[1]][[2]]
+
+
     rst <- rbind(rst1, rst2)
     rst$degree <- rep(c(1,2), each = nrow(rst1))
-    sub <- subset(rst, span %in% c(0.003, 0.005, 0.015, 0.035,0.095) & mse <=10)
+    sub <- subset(rst, span %in% c(0.005, 0.015, 0.035,0.095) & mse <=10)
 
     trellis.device(
       device = postscript, 
@@ -153,7 +157,8 @@ imputeCrossValid <- function(surf="direct", Edeg = TRUE) {
     dev.off()
 
   } else {
-    rst <- rhread(file.path(rh.root, par$dataset, "a1950", "bymonth.fit.cv", "symmetric", surf, "0", "MABSE"))[[1]][[2]]
+    #rst <- rhread(file.path(rh.root, par$dataset, "a1950", "bymonth.fit.cv", "symmetric", surf, "0", "MABSE"))[[1]][[2]]
+    rst <- rhread(file.path(input, "0", "MABSE"))[[1]][[2]]
     layout <- c(1,1)
     fo <- ~ mse
   }
@@ -1088,7 +1093,6 @@ plotEng.residualDate <- function(data, station, leaf) {
 #        lines = list(pch=16, cex=0.7, lwd=1.5, type=c("p","p"), col=col[c(2,1)]),
 #        columns=2
 #      )
-    , auto.key=TRUE
     , panel = function(x,y,...){
         panel.abline(h=0, color="black", lty=1)
         panel.xyplot(x,y, cex = 0.6, pch=16, ...)

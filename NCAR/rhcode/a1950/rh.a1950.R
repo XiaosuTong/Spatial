@@ -416,13 +416,13 @@ newCrossValid <- function(input, vari, sp, Edeg, deg=2, fam="symmetric", surf="d
         fml <- paste(vari, "~ lon + lat + elev2")
         lo.fit <- spaloess( fml, 
           data    = v, 
-          degree  = 2, 
-          span    = 0.05,
+          degree  = degree, 
+          span    = span,
           para    = "elev2",
-          family  = "symmetric",
+          family  = family,
           normalize = FALSE,
           distance = "Latlong",
-          control = loess.control(surface = "direct"),
+          control = loess.control(surface = surf),
           napred = TRUE
         )
       } else if (Edeg == 1) {
@@ -856,7 +856,29 @@ constructQuants <- function(obj, probs, tails, mids) {
   res
 }
 
-a1950.residQuant <- function(input, target="residual", by=NULL, probs=seq(0, 1, 0.005), nBins = 10000, tails = 100) {
+coastDist <- function(data, lim) {
+
+  pts <- as.matrix(data[,c("lon","lat")], ncol = 2)
+  mp <- map("usa", plot = FALSE)
+  data$coastdis <- NA
+  xy.coast <- cbind(mp$x, mp$y)[!is.na(mp$x), ]
+  for (i in 1:nrow(pts)) {
+    data$coastdis[i] <- as.numeric(min(spDistsN1(xy.coast, pts[i,], longlat = TRUE)) <= lim)
+  }
+  
+  return(data)
+
+}
+
+getCondCuts <- function(df, splitVars) {
+  apply(
+    X = do.call("cbind", lapply(df[,splitVars,drop = FALSE], function(x) format(x, scientific = FALSE, trim = TRUE, justify = "none"))), 
+    MARGIN = 1,
+    FUN = function(x) paste(paste(splitVars, "=", x, sep = ""), collapse = "|")
+  )
+}
+
+a1950.residQuant <- function(input, target="residual", by=NULL, probs=seq(0, 1, 0.005), nBins = 10000, tails = 100, coast=FALSE, dislim=NULL) {
 
   ## Get the range of residual
   jobRng <- list()
@@ -903,9 +925,13 @@ a1950.residQuant <- function(input, target="residual", by=NULL, probs=seq(0, 1, 
   jobQuant <- list()
   jobQuant$map <- expression({
     dat <- do.call("rbind", lapply(seq_along(map.keys), function(r) {
+      value <- map.values[[r]]
+      if (coast) {
+        value <- coastDist(value, dislim)
+      }
       data.frame(
-        v = with(subset(map.values[[r]], flag==1), remainder - spafit),
-        subset(map.values[[r]], flag==1)[, by, drop = FALSE],
+        v = with(subset(value, flag==1), remainder - spafit),
+        subset(value, flag==1)[, by, drop = FALSE],
         stringsAsFactors = FALSE
       )
     }))
@@ -966,7 +992,17 @@ a1950.residQuant <- function(input, target="residual", by=NULL, probs=seq(0, 1, 
     delta = delta,
     cuts = cuts,
     mids = mids,
-    tails = tails
+    tails = tails,
+    coast = coast,
+    coastDist = coastDist,
+    getCondCuts = getCondCuts,
+    dislim = dislim
+  )
+  jobQuant$setup <- expression(
+    map = {
+      suppressMessages(library(sp, lib.loc=lib.loc))
+      library(maps, lib.loc=lib.loc)
+    }
   )
   jobQuant$mapred <- list(
     mapred.reduce.tasks = 50,
