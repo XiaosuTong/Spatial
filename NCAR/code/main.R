@@ -325,26 +325,67 @@ for(i in c(1, 2)) {
 imputeCrossValid(input=file.path(rh.root, par$dataset, "a1950", "bymonth.fit.cv", "symmetric", "direct"), Edeg = TRUE)
 
 
-
-
-##########################################
-## Best model for imputation of missing ##
-##########################################
-## After found the best interpolation parameter
-#best <- data.frame(sp=0.015, Edeg=2, deg=2, fam="symmetric", surf="direct")
-#try(interpolate(sp=best$sp, deg=2, Edeg=best$Edeg, surf=best$surf, fam=best$fam))
-## switch the key from bymonth to by station
-FileInput <- try(
-  interpolateStation(sp=best$sp, Edeg=best$Edeg, deg=best$deg, fam=best$fam, surf=best$surf)
-)
-
-## tunning the STL+ parameter for stations a1950
+##############################################
+##  Visualize the stlplus fit based on the  ##
+##  best model                              ##
+##############################################
 ## first sample the 128 stations from a1950 for demonstration 
 source("~/Projects/Spatial/NCAR/code/kdtree/kdfindcells.R")
+## the best imputed model
+FileInput <- file.path(rh.root, par$dataset, "a1950", "bymonth.fit", "symmetric", "direct", 2, "sp0.015")
+FileOutput <- file.path(rh.root, par$dataset, "a1950", "bymonth.fit", "symmetric", "direct", 2, "sp0.015.bystation")
+## switch the key from bymonth to by station
+swapTostation(FileInput, FileOutput)
+FileInput <- FileOutput
 
-## Example fitting of stlplus on a1950 and visualize on sampled 128 stations
-rst <- try(a1950.STLfit(input=FileInput, reduce=100, sw=35, sd=1, tw=231, td=2, fcw=NULL, fcd=NULL))[[1]][[2]]
-a1950.stlFitRaw(data=rst, St.num = 128, test = TRUE)
+stlplusFitVisl<- function(fileinput=FileInput, SW, SD, TW, TD, FCW=NULL, FCD=NULL) {
+
+  paras <- list(sw=SW, sd=SD, tw=TW, td=TD, fcw=FCW, fcd=FCD)
+  input <- a1950.STLfit(fileinput, reduce=72, tuning=paras)
+  a1950.STLvisual(
+    paras=paras, input=input, plotEng=plotEng.raw, 
+    name="stlraw.vs.time", sample = TRUE, multiple=NULL
+  )
+  a1950.STLvisual(
+    paras=paras, input=input, plotEng=plotEng.trend, 
+    name="trend.vs.time", sample = TRUE, multiple=c(4,3)
+  )
+  a1950.STLvisual(
+    paras=paras, input=input, plotEng=plotEng.periodicseason, 
+    name="seasonal.vs.year", sample = TRUE, multiple=c(5,4)
+  )
+  a1950.STLvisual(
+    paras=paras, input=input, plotEng=plotEng.searemainder, 
+    name="searemainder.vs.year", sample = TRUE, multiple=NULL
+  )
+  a1950.STLvisual(
+    paras=paras, input=input, plotEng=plotEng.QQremaider, 
+    name="QQ.remainder", sample = TRUE, multiple=c(5,3)
+  )
+  a1950.STLvisual(
+    paras=paras, input=input, plotEng=plotEng.remainderMonth, 
+    name="remainder.vs.year", sample = TRUE, multiple=NULL
+  )
+  a1950.STLvisual(
+    paras=paras, input=input, plotEng=plotEng.remainderMonth2, 
+    name="remainder.vs.year2", sample = TRUE, multiple=NULL
+  )
+  a1950.STLvisual(
+    paras=paras, input=input, plotEng=plotEng.remainderACF, 
+    name="remainder.acf", sample = TRUE, multiple=c(3,3)
+  )
+
+}
+
+stlplusFitVisl(fileinput=FileInput, SW=21, SD=1, TW=231, TD=2, FCW=NULL, FCD=NULL)
+
+stlplusFitVisl(fileinput=FileInput, SW=41, SD=1, TW=241, TD=1, FCW=NULL, FCD=NULL)
+
+stlplusFitVisl(fileinput=FileInput, SW=45, SD=2, TW=451, TD=1, FCW=NULL, FCD=NULL)
+
+stlplusFitVisl(fileinput=FileInput, SW="periodic", SD=1, TW=241, TD=1, FCW=NULL, FCD=NULL)
+
+stlplusFitVisl(fileinput=FileInput, SW="periodic", SD=1, TW=451, TD=1, FCW=NULL, FCD=NULL)
 
 #####################################################
 ##   STL experiment for tunning parameters a1950   ##
@@ -617,57 +658,10 @@ for(j in c("mean.absmeans","mean.std")){
 }
 
 
-##############################################
-##  Visualize the stlplus fit based on the  ##
-##  best model                              ##
-##############################################
-FileInput <- file.path(rh.root, par$dataset, "a1950", "bymonth.fit", "symmetric", "direct", 2, "sp0.015")
-FileOutput <- file.path(rh.root, par$dataset, "a1950", "bymonth.fit", "symmetric", "direct", 2, "sp0.015.bystation")
-
-swapTostation(FileInput, FileOutput)
-
-FileInput <- FileOutput
-
-FileInput <- a1950.STLfit(FileInput, reduce=72, sw="periodic", sd=1, tw=241, td=1)
-
-a1950.STLvisual(
-  input=FileInput, plotEng=plotEng.raw, 
-  name="stlraw.vs.time", sample = TRUE, multiple=NULL
-)
-
-a1950.STLvisual(
-  input=FileInput, plotEng=plotEng.trend, 
-  name="trend.vs.time", sample = TRUE, multiple=c(4,3)
-)
-
-a1950.STLvisual(
-  input=FileInput, plotEng=plotEng.periodicseason, 
-  name="seasonal.vs.year", sample = TRUE, multiple=c(5,4)
-)
-
-a1950.STLvisual(
-  input=FileInput, plotEng=plotEng.QQremaider, 
-  name="QQ.remainder", sample = TRUE, multiple=c(5,3)
-)
-
-a1950.STLvisual(
-  input=FileInput, plotEng=plotEng.remainderMonth, 
-  name="remainder.vs.year", sample = TRUE, multiple=NULL
-)
-
-a1950.STLvisual(
-  input=FileInput, plotEng=plotEng.remainderMonth2, 
-  name="remainder.vs.year2", sample = TRUE, multiple=NULL
-)
-
-a1950.STLvisual(
-  input=FileInput, plotEng=plotEng.remainderACF, 
-  name="remainder.acf", sample = TRUE, multiple=c(3,3)
-)
-
-#####################################
-##  visualize remainder of stlplus ##
-#####################################
+#############################################################
+##  visualize remainder of stlplus against spatial factors ##
+##  longitude, latitude, and elevation                     ##
+#############################################################
 bestStlplus <- "t241td1_speriodicsd1_ffd"
 FileInput
 FileOutput <- file.path(rh.root, par$dataset, "a1950", "STL.bymonth", bestStlplus)
@@ -706,7 +700,7 @@ residSpaFitVisl <- function(i, j, bestStlplus) {
     a1950.spafitVisualMon(input=FileOutput, plotEng.RevsSpa, vars, target="spaResid")
   }
   ## the residual against time for each station
-  FileInput <- FileOutput
+  FileInput <- FileOutput 
   FileOutput <- paste(FileInput, "bystation", sep=".")
   swapTostation(FileInput, FileOutput, elevFlag = FALSE)
   FileInput <- FileOutput
@@ -714,10 +708,10 @@ residSpaFitVisl <- function(i, j, bestStlplus) {
     input=FileInput, plotEng.residualDate, 
     name="resid.vs.time", sample = TRUE, multiple=NULL
   )
-  a1950.spafitVisualStat(
-    input=FileInput, plotEng.residual, 
-    name="resid.vs.timeMulti", sample = TRUE, multiple=NULL
-  )
+##  a1950.spafitVisualStat(
+##    input=FileInput, plotEng.residual, 
+##    name="resid.vs.timeMulti", sample = TRUE, multiple=NULL
+##  )
   
   ## the overall quantile plot of the residual for each month
   FileInput <- file.path(
@@ -831,8 +825,6 @@ imputeCrossValid(
   input=file.path(rh.root, par$dataset, "a1950", "STL.bymonth", "t241td1_speriodicsd1_ffd.fit.cv", "symmetric", "direct"), 
   Edeg = TRUE
 )
-
-
 
 
 
