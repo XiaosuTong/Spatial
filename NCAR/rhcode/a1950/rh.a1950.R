@@ -173,55 +173,6 @@ interpolate <- function(sp, Edeg, deg=2, fam="symmetric", surf="direct") {
 
 }
 
-##############################################################
-## After found the best inputing model, switch the key from ##
-## month to station.id. The output of this function will be ##
-## the input file for stlplus fit                           ##
-##############################################################
-interpolateStation <- function( sp, Edeg, deg=2, fam="symmetric", surf="direct"){
-
-  FileInput <- file.path(
-    rh.root, par$dataset, "a1950", "bymonth.fit", fam, surf, Edeg, paste("sp",sp, sep="")
-  )
-  FileOutput <- file.path(
-    rh.root, par$dataset, "a1950", "bymonth.fit", fam, surf, Edeg, paste("sp",sp, ".bystation", sep="")
-  )
-  job <- list()
-  job$map <- expression({
-    lapply(seq_along(map.keys), function(r) {
-      map.values[[r]]$year <- map.keys[[r]][1]
-      map.values[[r]]$month <- map.keys[[r]][2]
-      lapply(1:nrow(map.values[[r]]), function(i){
-        value <- map.values[[r]][i, ]
-        rhcollect(as.character(value$station.id), value)
-      })
-    })
-  })
-  job$reduce <- expression(
-    pre = {
-      combine <- data.frame()
-    },
-    reduce = {
-      combine <- rbind(combine, do.call(rbind, reduce.values))
-    },
-    post = {
-      rhcollect(reduce.key, combine)
-    }
-  )
-  job$combiner <- TRUE
-  job$input <- rhfmt(FileInput , type = "sequence")
-  job$output <- rhfmt(FileOutput, type = "sequence")
-  job$mapred <- list(mapred.reduce.tasks = 100)
-  job$mon.sec <- 10
-  job$jobname <- FileOutput
-  job$readback <- FALSE  
-
-  job.mr <- do.call("rhwatch", job)
-  
-  return(FileOutput)
-
-} 
-
 
 ########################################################
 ##  The old corss validation function, did not remove ##
@@ -611,10 +562,7 @@ swapTostation <- function(input, output, elevFlag=TRUE) {
 
 }
 
-a1950.STLfit <- function(input, reduce, sw, sd, tw, td, fcw=NULL, fcd=NULL) {
-
-  tuning <- list(sw=sw, sd=sd, tw=tw, td=td, fcw=fcw, fcd=fcd)
-#  tuning <- list(sw="periodic", sd=1, tw=241, td=1, fcw=NULL, fcd=NULL)
+a1950.STLfit <- function(input, reduce, tuning) {
   
   output <- file.path(
     rh.root, par$dataset, "a1950", "STL", paste("t",tuning$tw, "td", tuning$td, "_s", tuning$sw, 

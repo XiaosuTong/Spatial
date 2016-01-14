@@ -114,15 +114,13 @@ imputeCrossValid <- function(input, Edeg = TRUE) {
   if (Edeg) {
     layout <- c(2,1)
     fo <- ~ mse | factor(degree)
-    #rst1 <- rhread(file.path(rh.root, par$dataset, "a1950", "bymonth.fit.cv", "symmetric", surf, "1", "MABSE"))[[1]][[2]]
-    #rst2 <- rhread(file.path(rh.root, par$dataset, "a1950", "bymonth.fit.cv", "symmetric", surf, "2", "MABSE"))[[1]][[2]]
     rst1 <- rhread(file.path(input, "1", "MABSE"))[[1]][[2]]
     rst2 <- rhread(file.path(input, "2", "MABSE"))[[1]][[2]]
 
 
     rst <- rbind(rst1, rst2)
     rst$degree <- rep(c(1,2), each = nrow(rst1))
-    sub <- subset(rst, span %in% c(0.005, 0.015, 0.035,0.095) & mse <=10)
+    sub <- subset(rst, span %in% c(0.005, 0.015, 0.035, 0.085, 0.095) & mse <=10)
 
     trellis.device(
       device = postscript, 
@@ -143,10 +141,11 @@ imputeCrossValid <- function(input, Edeg = TRUE) {
           lines = list(pch=1, cex=1, type="p", col=col[1:2]), 
           columns = 2
         )
-      , scale = list(cex=1.2, y=list(relation="free"))
+      , scale = list(cex=1.2, y=list(relation="same"))
       , panel = function(x,...) {
+          panel.abline(h=seq(0,1,0.2),v=seq(0,1,0.2), col="lightgray")
           if(max(x)<5) {
-            panel.abline(h=seq(0,3,0.5),v=seq(0,1,0.2), col="lightgray")
+            #panel.abline(h=seq(0,3,0.5),v=seq(0,1,0.2), col="lightgray")
           } else {
             panel.abline(h=seq(0,10,2),v=seq(0,1,0.2), col="lightgray")
           }
@@ -157,13 +156,12 @@ imputeCrossValid <- function(input, Edeg = TRUE) {
     dev.off()
 
   } else {
-    #rst <- rhread(file.path(rh.root, par$dataset, "a1950", "bymonth.fit.cv", "symmetric", surf, "0", "MABSE"))[[1]][[2]]
     rst <- rhread(file.path(input, "0", "MABSE"))[[1]][[2]]
     layout <- c(1,1)
     fo <- ~ mse
   }
 
-    sub <- subset(rst, span %in% c(0.003, 0.005, 0.015, 0.035,0.095) & mse <=10)
+    sub <- subset(rst, span %in% c(0.003, 0.005, 0.015, 0.035, 0.085, 0.095) & mse <=10)
 
     trellis.device(
       device = postscript, 
@@ -185,9 +183,9 @@ imputeCrossValid <- function(input, Edeg = TRUE) {
           columns = length(unique(sub$span)),
           cex = 1.2
         )
-      , scale = list(cex=1.2, y=list(relation="free"))
+      , scale = list(cex=1.2, y=list(relation="same"))
       , panel = function(x,...) {
-          panel.abline(h=seq(0,10,2), v=seq(0,1,0.2), col="lightgray")
+          panel.abline(h=seq(0,1,0.2), v=seq(0,1,0.2), col="lightgray")
           panel.qqmath(x,...)
         }
     )
@@ -519,11 +517,11 @@ a1950.spaImputeVisual <- function(family = "symmetric", surf = "direct", Edeg = 
 ############################################################
 ##  Diagnostic plots for components from stlplus fitting  ## 
 ############################################################
-a1950.STLvisual <- function(input, plotEng, name, sample = TRUE, multiple=NULL){
+a1950.STLvisual <- function(paras, input, plotEng, name, sample = TRUE, multiple=NULL){
 
   output <- file.path(
-    rh.root, par$dataset, "a1950", "STL.plot", paste("t",tuning$tw, "td", tuning$td, "_s", tuning$sw, 
-    "sd", tuning$sd, "_f", tuning$fcw, "fd", tuning$fcd, sep="")
+    rh.root, par$dataset, "a1950", "STL.plot", paste("t",paras$tw, "td", paras$td, "_s", paras$sw, 
+    "sd", paras$sd, "_f", paras$fcw, "fd", paras$fcd, sep="")
   )
   job <- list()
   if (!is.null(multiple)) {
@@ -577,6 +575,7 @@ a1950.STLvisual <- function(input, plotEng, name, sample = TRUE, multiple=NULL){
     map = {
       load("sample.a1950.RData")
       library(lattice)
+      library(plyr)
     },
     reduce = {
       library(plyr)
@@ -646,7 +645,7 @@ plotEng.raw <- function(data, station, leaf) {
         obs <- subset(data[subscripts,], flag == 1)
         panel.xyplot(obs$time, obs$resp, type="p", col=col[1], pch=16, cex=0.5, ...)
         panel.xyplot(fit$time, fit$fitted, type="p", col=col[3], pch=16, cex=0.5, ...)
-        if (!any(grepl("fc", names(rst)))) {
+        if (!any(grepl("fc", names(data)))) {
           panel.xyplot(data[subscripts,]$time, (data[subscripts,]$trend+data[subscripts,]$seasonal), type="l", col=col[2], lwd=1, ...)            
         } else {
           panel.xyplot(data[subscripts,]$time, (data[subscripts,]$data.seasonal+data[subscripts,]$fc.first+data[subscripts,]$fc.second), type="l", col=col[2], lwd=1, ...)
@@ -727,6 +726,42 @@ plotEng.periodicseason <- function(data, layout) {
       )
     , panel = function(x,y,...) {
         panel.xyplot(x,y,, type="b", cex=0.5, pch=16, ...)
+      }
+  )
+  return(b)
+
+}
+
+plotEng.searemainder <- function(data, station, leaf) {
+
+  smean <- ddply(
+    .data = data,
+    .variables = c("month"),
+    .fun = function(r) {
+      data.frame(mean = mean(r[, "seasonal"]))
+    }
+  )
+  searmd <- arrange(merge(x=data, y=smean, by="month", all.x=TRUE), date)
+
+  b <- xyplot( (seasonal - mean + remainder) ~ as.numeric(year) | factor(month, levels = month.abb),
+    , data = searmd
+    , xlab = list(label = "Year", cex = 1.5)
+    , ylab = list(label = ylab, cex = 1.5)
+    , sub = list(label=paste("Station ", station, "from cell", leaf), cex=1.2)
+    , key=list(
+        text = list(label=c("seasonal","seasonal+remainder")), 
+        lines = list(pch=16, cex=1, lwd=2, type=c("l","p"), col=col[2:1]), 
+        columns = 2
+      )
+    , layout = c(12,1)
+    , scales = list(
+        y = list(relation = 'same', alternating=TRUE, cex=1.2), 
+        x = list(tick.number=2, relation='same', cex=1.2)
+      )
+    , panel = function(x,y,subscripts,...) {
+        panel.abline(h=0, color="black", lty=1)
+        panel.xyplot(x, y, col=col[1], pch=16, cex=0.6, ...)
+        panel.xyplot(as.numeric(searmd$year)[subscripts], (searmd$seasonal[subscripts]-searmd$mean[subscripts]), type="l", lwd=2, col=col[2], ...)
       }
   )
   return(b)
