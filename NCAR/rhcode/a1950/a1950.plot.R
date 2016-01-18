@@ -204,7 +204,6 @@ Qsample <- function(x, num) {
 
   xx <- x[!is.na(x)]
   xx <- sort(xx)
-  print(xx)
   len <- length(xx)
   idx <- round(seq(1, len, length.out = num))
   f.value <- (idx - 0.5) / len
@@ -513,6 +512,232 @@ a1950.spaImputeVisual <- function(family = "symmetric", surf = "direct", Edeg = 
 
 }
 
+a1950.spaImputeVisual <- function(input, plotEng, name, sample=FALSE, multiple=FALSE, byvari=FALSE) {
+
+  output <- paste(input, "plot", sep=".")
+
+  job <- list()
+  if (multiple) {
+    job$map <- expression({
+      lapply(seq_along(map.keys), function(r) {
+        if (!sample) {
+          map.values[[r]]$month <- map.keys[[r]][2]
+          rhcollect(as.numeric(map.keys[[r]][1]), map.values[[r]])    
+        } else {
+          if(byvari) {
+            value <- Qsample(with(subset(map.values[[r]], elev<=58|elev>=1647), resp - fitted), 1000)
+            value$flag <- 0
+            value2 <- Qsample(with(subset(map.values[[r]], elev>58&elev<1647), resp - fitted), 1000)
+            value2$flag <- 1
+            value <- rbind(value, value2)
+          } else {
+            value <- Qsample(with(map.values[[r]], resp - fitted), 1000)
+          }
+          value$month <- map.keys[[r]][2]
+          rhcollect(as.numeric(map.keys[[r]][1]), value)
+        }
+      })
+    })
+  } else {
+    job$map <- expression({
+      lapply(seq_along(map.keys), function(r){
+        index <- (as.numeric(map.keys[[r]][1]) - 1950)*12 + match(map.keys[[r]][2], month.abb)
+        pp <- plotEng(map.values[[r]], map.keys[[r]][1], map.keys[[r]][2])
+        rhcollect(index, serialize(pp, NULL))
+      })
+    })
+  }
+  if (!is.null(multiple)) {
+    job$reduce <- expression(
+      pre = {
+        combine <- data.frame()
+      },
+      reduce = {
+        combine <- rbind(combine, do.call("rbind", reduce.values))
+      },
+      post = {
+        pp <- plotEng(combine, reduce.key, byvari)
+        rhcollect(reduce.key, serialize(pp, NULL))
+      }
+    )
+  }
+  job$setup <- expression(
+    map = {
+      library(lattice)
+      library(plyr)
+    },
+    reduce = {
+      library(lattice)
+      library(plyr)
+    }
+  )
+  job$parameters <- list(
+    plotEng = plotEng,
+    multiple = multiple,
+    byvari = byvari,
+    col = col,
+    ylab = ylab,
+    Qsample = Qsample,
+    sample = sample
+  )
+  job$input <- rhfmt(input, type = "sequence")
+  job$output <- rhfmt(output, type = "sequence")
+  job$mapred <- list(
+    mapred.reduce.tasks = 20,  #cdh3,4
+    mapreduce.job.reduces = 20  #cdh5
+  )
+  job$readback <- TRUE
+  job$jobname <- output
+  job.mr <- do.call("rhwatch", job)  
+
+  trellis.device(
+    device = postscript, 
+    file = file.path(local.root, "output", paste("a1950", name, "ps", sep=".")),
+    color = TRUE, 
+    paper = "letter"
+  )
+  for(ii in order(unlist(lapply(job.mr, "[[", 1)))) {
+    print(unserialize(job.mr[[ii]][[2]]))
+  }
+  dev.off()
+
+}
+
+plotEng.impResvsElev <- function(data, year, month) {
+
+  b <- xyplot( resp-fitted ~ elev2
+    , data = data
+    , xlab = list(label = "Log Base 2 (Elevation + 128)", cex = 1.5)
+    , ylab = list(label = "Residual of Spatail Imputing", cex = 1.5)
+    , sub = paste(year, month)
+    , scales = list(cex = 1.2)
+    , panel = function(x,y,...) {
+        panel.abline(h=0, lwd=0.5, col="black")
+        panel.xyplot(x,y,, type="p", cex=0.5, pch=16, ...)
+      }
+  )
+  return(b)
+
+}
+
+plotEng.QQimpRes <- function(data, year, by) {
+  
+  if(by) {
+    fo <- resid ~ qnorm(fv) | factor(flag)*factor(month, levels=month.abb)
+  } else {
+    fo <- resid ~ qnorm(fv) | factor(month, levels=month.abb)
+  }
+  b <- xyplot( fo
+    , data = data
+    , layout = c(8, 3)
+    , sub = paste("Year", year)
+    , ylab = list(label="Spatial Residuals", cex=1.5)
+    , xlab = list(label="Normal quantiles", cex=1.5)
+    , scale = list(cex=1.2)
+    , panel = function(x, y, ...) {
+        #panel.qqmathline(y,y=y,...)
+        panel.xyplot(x, y, col = col[1], pch = 16, cex =0.5, ...)
+    }
+  )
+  return(b)
+
+}
+
+############################################################
+##  dotplot for the range of each levels of 20 equal cut  ##
+##  intervel for each of three spatial factors.           ##
+############################################################
+spacutRange <- function(input) {
+
+  output <- paste(input, "plot", sep=".")
+
+  job <- list()
+  job$map <- expression({
+    lapply(seq_along(map.keys), function(r) {
+      value <- data.frame()
+      for (vari in c("lon","lat","elev")) {
+        inval <- unlist(attributes(equal.count(map.values[[r]][, vari], 20, overlap=0))$level)
+        month <- (as.numeric(map.keys[[r]][1]) -1950)*12 + match(map.keys[[r]][2], month.abb)
+        tmp <- data.frame(
+          cut=inval, type=rep(c("low","up"), times=20), 
+          idx=rep(1:20, each=2), month=month, vari=vari
+        )
+        value <- rbind(value, tmp)
+      }
+      rhcollect(1, value)
+    })
+  })
+  job$reduce <- expression(
+    pre = {
+      combine <- data.frame()
+      value <- data.frame()
+    },
+    reduce = {
+      combine <- rbind(combine, do.call("rbind", reduce.values))
+    },
+    post = {
+      value <- ddply(
+        .data = combine,
+        .vari = c("vari","type", "idx"),
+        .fun = summarize,
+        cut = mean(cut)
+      )
+      rhcollect(reduce.key, value)
+    }
+  )
+  job$setup <- expression(
+    map = {
+      library(lattice)
+      library(plyr)
+    },
+    reduce = {
+      library(plyr)
+    }
+  )
+  job$input <- rhfmt(input, type = "sequence")
+  job$output <- rhfmt(output, type = "sequence")
+  job$mapred <- list(
+    mapred.reduce.tasks = 20,  #cdh3,4
+    mapreduce.job.reduces = 20  #cdh5
+  )
+  job$readback <- TRUE
+  job$jobname <- output
+  job.mr <- do.call("rhwatch", job)
+  
+  tmp <- ddply(
+    .data = job.mr[[1]][[2]],
+    .vari = c("vari","idx"),
+    .fun = function(r) {
+      r$label <- rep(paste(round(min(r$cut),1), round(max(r$cut),1), sep="~"),2)
+      r
+    }
+  )  
+
+  trellis.device(
+    device = postscript, 
+    file = file.path(local.root, "output", "equalcut.ps"),
+    color = TRUE, 
+    paper = "letter"
+  )
+  dotplot( factor(label, levels = unique(label)) ~ cut | vari
+    , data = tmp
+    , group = type
+    , auto.key = TRUE
+    , layout=c(1,1)
+    , cex=1
+    , pch = 16
+    , key=list(
+        cex = 1.2,
+        text = list(label=c("lower bound", "upper bound")), 
+        lines = list(pch=16, cex=1, type="p", col=col[1:2]),
+        columns=2
+      )
+    , scale = list(relation="free", cex=1.2)
+  )
+  dev.off()
+
+}
+
 
 ############################################################
 ##  Diagnostic plots for components from stlplus fitting  ## 
@@ -620,7 +845,7 @@ plotEng.raw <- function(data, station, leaf) {
   )
   data$time <- c(rep(0:107, times = 5), 0:35) 
 
-  b <- xyplot( resp ~ time | factor,
+  b <- xyplot( resp ~ time | factor
     , data = data
     , xlab = list(label = "Month", cex = 1.5)
     , ylab = list(label = ylab, cex = 1.5)
@@ -715,7 +940,7 @@ plotEng.periodicseason <- function(data, layout) {
   )
   mmean <- arrange(mmean, match(month, month.abb))
 
-  b <- xyplot( mean ~ match(month, month.abb) | factor(leaf),
+  b <- xyplot( mean ~ match(month, month.abb) | factor(leaf)
     , data = mmean
     , xlab = list(label = "Month", cex = 1.5)
     , ylab = list(label = ylab, cex = 1.5)
