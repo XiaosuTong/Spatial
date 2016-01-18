@@ -231,6 +231,10 @@ FileInput <- bymonthSplit(input=FileInput, leaf = 100, vari="resp")
 #########################################
 ## Imputation of missing w/o elevation ##
 #########################################
+## For each month, calculate the range of each spatial factor in the 
+## equal cut of 20 intervals.
+
+
 ## E1 span = 0.05, degree=2, without Elevation
 para <- list(span=0.05, Edeg=0)
 try(interpolate(sp=para$span, deg=2, Edeg=para$Edeg, surf="direct", fam="symmetric"))
