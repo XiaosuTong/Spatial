@@ -332,6 +332,7 @@ bymonthSplit <- function(input, leaf = 100, vari) {
   job$input <- rhfmt(input, type = "sequence")
   job$output <- rhfmt(output, type = "sequence")
   job$mapred <- list(
+    mapred.tasktimeout = 0,
     mapred.reduce.tasks = 100,  #cdh3,4
     mapreduce.job.reduces = 100  #cdh5
   )
@@ -626,6 +627,7 @@ a1950.STLfit <- function(input, reduce, tuning) {
   job$input <- rhfmt(input, type = "sequence")
   job$output <- rhfmt(output, type = "sequence")
   job$mapred <- list(
+    mapred.tasktimeout = 0,
     mapred.reduce.tasks = reduce,  #cdh3,4
     mapreduce.job.reduces = reduce  #cdh5
   )

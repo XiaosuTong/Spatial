@@ -16,8 +16,6 @@ par <- list()
 par$dataset <- "tmax"
 par$Machine <- "adhara"
 source("~/Projects/Spatial/NCAR/rhcode/rh.setup.R")
-source("~/Projects/Spatial/NCAR/myloess/my.loess02.R")
-source("~/Projects/Spatial/NCAR/myloess/my.predloess.R")
 
 
 if(par$dataset == "precip") {
