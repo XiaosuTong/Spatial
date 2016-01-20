@@ -10,12 +10,12 @@ for(x in formatC(1:103, width = 3, flag = "0")) {
 }
 for(x in formatC(1:103, width = 3, flag = "0")) {
   rhput(
-    paste(local.raw, "/NCAR_tinfill/tmax.complete.Y", x, sep = ""), 
-    paste(rh.root,"/Raw/tmax/tmax.complete.Y", x, sep = "")
+    file.path(local.root, "Raw", "NCAR_tinfill", paste("tmax.complete.Y", x, sep = "")), 
+    file.path(rh.root,"Raw","tmax", paste("tmax.complete.Y", x, sep = ""))
   )
   rhput(
-    paste(local.raw,"/NCAR_tinfill/tmin.complete.Y", x, sep = ""), 
-    paste(rh.root,"/Raw/tmin/tmin.complete.Y", x, sep="")
+    file.path(local.root, "Raw", "NCAR_tinfill", paste("tmin.complete.Y", x, sep = "")), 
+    file.path(rh.root,"Raw","tmin", paste("tmin.complete.Y", x, sep=""))
   )
 }
 
