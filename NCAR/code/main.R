@@ -14,7 +14,7 @@ source("~/Rhipe/rhinitial.R")
 
 par <- list()
 par$dataset <- "tmax"
-par$Machine <- "adhara"
+par$Machine <- "wsc"
 source("~/Projects/Spatial/NCAR/rhcode/rh.setup.R")
 
 
