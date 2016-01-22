@@ -120,7 +120,7 @@ imputeCrossValid <- function(input, Edeg = TRUE) {
 
     rst <- rbind(rst1, rst2)
     rst$degree <- rep(c(1,2), each = nrow(rst1))
-    sub <- subset(rst, span %in% c(0.005, 0.015, 0.035, 0.085, 0.095) & mse <=10)
+    sub <- subset(rst, span %in% c(0.005, 0.015, 0.035, 0.055, 0.085) & mse <=10)
 
     trellis.device(
       device = postscript, 
@@ -161,7 +161,7 @@ imputeCrossValid <- function(input, Edeg = TRUE) {
     fo <- ~ mse
   }
 
-    sub <- subset(rst, span %in% c(0.003, 0.005, 0.015, 0.035, 0.085, 0.095) & mse <=10)
+    sub <- subset(rst, span %in% c(0.003, 0.005, 0.015, 0.035, 0.055, 0.085) & mse <=10)
 
     trellis.device(
       device = postscript, 

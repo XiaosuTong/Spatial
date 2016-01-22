@@ -3,8 +3,8 @@ repTime <- function(input, output, Rep=8000, buffSize=7){
   job <- list()
   job$map <- expression({
     lapply(seq_along(map.keys), function(r) {
-      value <- rdply(Rep, arrange(map.values[[r]], year, match(month, month.abb)))
-      value$time <- 1:nrow(value)
+      value <- rdply(Rep, arrange(map.values[[r]], year, match(month, month.abb)), .id=NULL)
+      value$date <- 1:nrow(value)
       rhcollect(map.keys[[r]], value)
     })
   })
