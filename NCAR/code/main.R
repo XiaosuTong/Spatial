@@ -829,6 +829,113 @@ imputeCrossValid(
 )
 
 
+##############################################
+## Visualize all outliers after spatial fit ##
+##############################################
+FileInput <- "/ln/tongx/Spatial/tmp/tmax/a1950/STL.bymonth.remaindfit/t241td1_speriodicsd1_ffd/symmetric/direct/2/sp0.015"
+FileOutput <- paste(FileInput, "outliers", sep=".")
+
+job <- list()
+job$map <- expression({
+  lapply(seq_along(map.keys), function(r) {
+    value <- subset(map.values[[r]], flag == 1)
+    value$resid <- with(value, remainder - spafit)
+    value <- subset(value, select=c(lon, lat, elev2, resid, resp, fitted, seasonal, trend, station.id, remainder))
+    value$month <- map.keys[[r]][2]
+    value$year <- as.numeric(map.keys[[r]][1])
+    value <- subset(value, resid <= -5.8 | resid >= 5.8)
+    rhcollect(1, value)
+  })
+})
+job$reduce <- expression(
+  pre = {
+    combine <- data.frame()
+  },
+  reduce = {
+    combine <- rbind(combine, do.call("rbind", reduce.values))
+  },
+  post = {
+    rhcollect(reduce.key, combine)
+  }
+)
+job$setup <- expression(
+  map = {
+    library(plyr, lib.loc=lib.loc)
+  }
+)
+job$mapred <- list(
+  mapred.reduce.tasks = 1,
+  mapred.tasktimeout = 0
+)
+job$input <- rhfmt(FileInput, type="sequence")
+job$output <- rhfmt(FileOutput, type="sequence")
+job$mon.sec <- 10
+job$jobname <- FileOutput
+job$readback <- TRUE
+job.mr <- do.call("rhwatch", job)  
+
+xyplot(lat ~ lon
+  , data = job.mr[[1]][[2]]
+  , panel = function(x,y,...) {
+      panel.polygon(us.map$x,us.map$y)   
+      panel.xyplot(x,y,...)
+  }
+)
+
+xyplot(resid ~ elev2 
+  , data = job.mr[[1]][[2]]
+)
+
+qqmath(~resid | factor(month, levels=month.abb)
+  , data = job.mr[[1]][[2]]
+  , distribution = qunif
+)
+
+tmp <- ddply(.data=job.mr[[1]][[2]], .vari="month", .fun=summarise, count=length(resid))
+dotplot( factor(month, levels=arrange(tmp, count)$month) ~ count, data=tmp )
+
+
+job <- list()
+job$map <- expression({
+  lapply(seq_along(map.keys), function(r) {
+    value <- map.values[[r]]
+    value$outFlag <- with(value, remainder - spafit) <= -5.8 | with(value, remainder - spafit) >= 5.8
+    x1 <- subset(value, outFlag, select=c(lon, lat))
+    x2 <- subset(value, select=c(lon, lat))
+    if(nrow(x1) > 0) {
+      dist <- as.data.frame(rdist.earth(x2, x1, miles = FALSE, R = NULL))
+    }
+  })
+})
+job$reduce <- expression(
+  pre = {
+    combine <- data.frame()
+  },
+  reduce = {
+    combine <- rbind(combine, do.call("rbind", reduce.values))
+  },
+  post = {
+    rhcollect(reduce.key, combine)
+  }
+)
+job$setup <- expression(
+  map = {
+    library(plyr, lib.loc=lib.loc)
+    library(fields, lib.loc=lib.loc)
+  }
+)
+job$mapred <- list(
+  mapred.reduce.tasks = 1,
+  mapred.tasktimeout = 0
+)
+job$input <- rhfmt(FileInput, type="sequence")
+job$output <- rhfmt(FileOutput, type="sequence")
+job$mon.sec <- 10
+job$jobname <- FileOutput
+job$readback <- TRUE
+job.mr <- do.call("rhwatch", job)  
+
+
 
 ##########################################
 ##      Backfitting for a1950           ##
