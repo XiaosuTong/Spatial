@@ -842,67 +842,29 @@ FileOutput <- paste(FileInput, "outliers", sep=".")
 ## is a vector of station.id
 outliersStations(FileInput, FileOutput, lim=2)
 ## generate the dataframe including all outliers
+## There are 2,096,822 observations, and 21,471 are outliers
 outliers <- outliersTotal(FileInput, FileOutput, lim=2)
+outlierBymonth <- outliersCount(FileInput, FileOutput, lim=2, by="month")
+outlierBymonth$mFlag <- outlierBymonth$month %in% c("Jan","Feb","Dec")
+outliers$mFlag <- outliers$month %in% c("Jan","Feb","Dec")
 
-tmp <- unique(outliers[, c("lon","lat")])
-trellis.device(
-  device = postscript, 
-  file = file.path(local.root, "output", "a1950.outliersLoc.ps"),
-  color = TRUE, 
-  paper = "letter"
-)
-xyplot(lat ~ lon
-  , data = tmp
-  , xlab = list(label="Logitude", cex=1.5)
-  , ylab = list(label="Latitude", cex=1.5)
-  , scale = list(cex=1.2)
-  , panel = function(x,y,...) {
-      panel.polygon(us.map$x,us.map$y)   
-      panel.xyplot(x,y,...)
-  }
-)
-dev.off()
 
-trellis.device(
-  device = postscript, 
-  file = file.path(local.root, "output", "a1950.outliersElev.ps"),
-  color = TRUE, 
-  paper = "letter"
-)
-xyplot(abs(remainder-spafit) ~ elev2 
-  , data = outliers
-  , xlab = list(label="Log Base 2 (Elevation + 128)", cex=1.5)
-  , ylab = list(label="Residual", cex=1.5)
-  , scale = list(cex=1.2, y=list(at=c(seq(0,15,5), 2.5)))
-  , panel = function(x,y,...) {
-      panel.abline(h=c(seq(0,15,5),2.5), v=seq(6,12,1), col="lightgray", lwd=0.5)
-      panel.xyplot(x,y,...)
-      panel.loess(x,y,col="red", lwd=1, span=0.25, degree=1, evaluation = 200)
-  }
-)
-dev.off()
 
-trellis.device(
-  device = postscript, 
-  file = file.path(local.root, "output", "a1950.outliersQuant.ps"),
-  color = TRUE, 
-  paper = "letter"
-)
-qqmath(~(remainder-spafit)
-  , data = outliers
-  , distribution = qunif
-  , xlab = list(label="f-value", cex=1.5)
-  , ylab = list(label="Residual", cex=1.5)
-  , scale = list(cex=1.2)
-)
-dev.off()
 
-xyplot(remainder~(remainder-spafit), data = job.mr[[1]][[2]])
+bestStlplus <- "t241td1_speriodicsd1_ffd"
+FileInput <- file.path(
+  rh.root, par$dataset, "a1950", "STL.bymonth.remaindfit", bestStlplus, "symmetric", "direct", "2", "sp0.015.bystation"
+)
+FileOutput <- paste(FileInput, "outliers", sep=".")
+## generate the count of outliers in each station
+outlierBystation <- outliersCount(FileInput, FileOutput, lim=2, by="station")
+
+
+
+
 
 xyplot(radius ~ elev2, data = job.mr[[1]][[2]])
 
-tmp <- ddply(.data=job.mr[[1]][[2]], .vari="month", .fun=summarise, count=length(resid))
-dotplot( factor(month, levels=arrange(tmp, count)$month) ~ count, data=tmp )
 
 ##########################################
 ##      Backfitting for a1950           ##
