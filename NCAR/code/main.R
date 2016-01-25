@@ -14,7 +14,7 @@ source("~/Rhipe/rhinitial.R")
 
 par <- list()
 par$dataset <- "tmax"
-par$Machine <- "wsc"
+par$Machine <- "adhara"
 source("~/Projects/Spatial/NCAR/rhcode/rh.setup.R")
 
 
@@ -331,7 +331,7 @@ imputeCrossValid(input=file.path(rh.root, par$dataset, "a1950", "bymonth.fit.cv"
 ##  Visualize the stlplus fit based on the  ##
 ##  best model                              ##
 ##############################################
-## first sample the 128 stations from a1950 for demonstration 
+## first sample the 512 stations from a1950 for demonstration 
 source("~/Projects/Spatial/NCAR/code/kdtree/kdfindcells.R")
 ## the best imputed model
 FileInput <- file.path(rh.root, par$dataset, "a1950", "bymonth.fit", "symmetric", "direct", 2, "sp0.015")
@@ -665,7 +665,7 @@ for(j in c("mean.absmeans","mean.std")){
 ##  longitude, latitude, and elevation                     ##
 #############################################################
 bestStlplus <- "t241td1_speriodicsd1_ffd"
-FileInput
+FileInput <- file.path(rh.root, par$dataset, "a1950", "bymonth.fit", "symmetric", "direct", 2, "sp0.015.bystation")
 FileOutput <- file.path(rh.root, par$dataset, "a1950", "STL.bymonth", bestStlplus)
 
 swapTomonth(FileInput, FileOutput)
@@ -710,10 +710,6 @@ residSpaFitVisl <- function(i, j, bestStlplus) {
     input=FileInput, plotEng.residualDate, 
     name="resid.vs.time", sample = TRUE, multiple=NULL
   )
-##  a1950.spafitVisualStat(
-##    input=FileInput, plotEng.residual, 
-##    name="resid.vs.timeMulti", sample = TRUE, multiple=NULL
-##  )
   
   ## the overall quantile plot of the residual for each month
   FileInput <- file.path(
@@ -752,7 +748,11 @@ residSpaFitVisl <- function(i, j, bestStlplus) {
       , data = df
       , xlab = list(label="f-value", cex=1.5)
       , ylab = list(label="Residual", cex=1.5)
-      , scale = list(cex=1.2)
+      , scale = list(cex=1.2, y=list(at=seq(-2,2,1)))
+      , panel = function(x, y,...) {
+          panel.abline(v=seq(0,1,0.2), h=seq(-2,2,1), col="lightgray", lwd=0.5)
+          panel.xyplot(x,y,...)
+      }
     )
     print(b)
   dev.off()  
@@ -766,7 +766,7 @@ residSpaFitVisl <- function(i, j, bestStlplus) {
       , data = df
       , xlab = list(label="Quantiles of t-distribution", cex=1.5)
       , ylab = list(label="Residual", cex=1.5)
-      , scale = list(cex=1.2)
+      , scale = list(cex=1.2, y=list(at=seq(-2,2,1)))
       , aspect = 1
       , panel = function(x, y, ...) {
           panel.qqmathline(y,y=y, distribution=function(p) qt(p, df=3),...)
@@ -807,7 +807,8 @@ for (ii in c(0.05,0.025,0.015, 0.005)) {
 ############################################
 ##  Cross validation for the spatial fit  ##
 ############################################
-FileInput <- "/ln/tongx/Spatial/tmp/tmax/a1950/STL.bymonth/t241td1_speriodicsd1_ffd"
+bestStlplus <- "t241td1_speriodicsd1_ffd"
+FileInput <- file.path(rh.root, par$dataset, "a1950", "STL.bymonth", bestStlplus)
 FileInput <- bymonthSplit(input=FileInput, leaf = 100, vari="remainder")
 
 for(i in c(1, 2)) {
@@ -832,110 +833,76 @@ imputeCrossValid(
 ##############################################
 ## Visualize all outliers after spatial fit ##
 ##############################################
-FileInput <- "/ln/tongx/Spatial/tmp/tmax/a1950/STL.bymonth.remaindfit/t241td1_speriodicsd1_ffd/symmetric/direct/2/sp0.015"
+bestStlplus <- "t241td1_speriodicsd1_ffd"
+FileInput <- file.path(
+  rh.root, par$dataset, "a1950", "STL.bymonth.remaindfit", bestStlplus, "symmetric", "direct", "2", "sp0.015"
+)
 FileOutput <- paste(FileInput, "outliers", sep=".")
+## generate the outliers.a1950.RData object which 
+## is a vector of station.id
+outliersStations(FileInput, FileOutput, lim=2)
+## generate the dataframe including all outliers
+outliers <- outliersTotal(FileInput, FileOutput, lim=2)
 
-job <- list()
-job$map <- expression({
-  lapply(seq_along(map.keys), function(r) {
-    value <- subset(map.values[[r]], flag == 1)
-    value$resid <- with(value, remainder - spafit)
-    value <- subset(value, select=c(lon, lat, elev2, resid, resp, fitted, seasonal, trend, station.id, remainder))
-    value$month <- map.keys[[r]][2]
-    value$year <- as.numeric(map.keys[[r]][1])
-    value <- subset(value, resid <= -5.8 | resid >= 5.8)
-    rhcollect(1, value)
-  })
-})
-job$reduce <- expression(
-  pre = {
-    combine <- data.frame()
-  },
-  reduce = {
-    combine <- rbind(combine, do.call("rbind", reduce.values))
-  },
-  post = {
-    rhcollect(reduce.key, combine)
-  }
+tmp <- unique(outliers[, c("lon","lat")])
+trellis.device(
+  device = postscript, 
+  file = file.path(local.root, "output", "a1950.outliersLoc.ps"),
+  color = TRUE, 
+  paper = "letter"
 )
-job$setup <- expression(
-  map = {
-    library(plyr, lib.loc=lib.loc)
-  }
-)
-job$mapred <- list(
-  mapred.reduce.tasks = 1,
-  mapred.tasktimeout = 0
-)
-job$input <- rhfmt(FileInput, type="sequence")
-job$output <- rhfmt(FileOutput, type="sequence")
-job$mon.sec <- 10
-job$jobname <- FileOutput
-job$readback <- TRUE
-job.mr <- do.call("rhwatch", job)  
-
 xyplot(lat ~ lon
-  , data = job.mr[[1]][[2]]
+  , data = tmp
+  , xlab = list(label="Logitude", cex=1.5)
+  , ylab = list(label="Latitude", cex=1.5)
+  , scale = list(cex=1.2)
   , panel = function(x,y,...) {
       panel.polygon(us.map$x,us.map$y)   
       panel.xyplot(x,y,...)
   }
 )
+dev.off()
 
-xyplot(resid ~ elev2 
-  , data = job.mr[[1]][[2]]
+trellis.device(
+  device = postscript, 
+  file = file.path(local.root, "output", "a1950.outliersElev.ps"),
+  color = TRUE, 
+  paper = "letter"
 )
+xyplot(abs(remainder-spafit) ~ elev2 
+  , data = outliers
+  , xlab = list(label="Log Base 2 (Elevation + 128)", cex=1.5)
+  , ylab = list(label="Residual", cex=1.5)
+  , scale = list(cex=1.2, y=list(at=c(seq(0,15,5), 2.5)))
+  , panel = function(x,y,...) {
+      panel.abline(h=c(seq(0,15,5),2.5), v=seq(6,12,1), col="lightgray", lwd=0.5)
+      panel.xyplot(x,y,...)
+      panel.loess(x,y,col="red", lwd=1, span=0.25, degree=1, evaluation = 200)
+  }
+)
+dev.off()
 
-qqmath(~resid | factor(month, levels=month.abb)
-  , data = job.mr[[1]][[2]]
+trellis.device(
+  device = postscript, 
+  file = file.path(local.root, "output", "a1950.outliersQuant.ps"),
+  color = TRUE, 
+  paper = "letter"
+)
+qqmath(~(remainder-spafit)
+  , data = outliers
   , distribution = qunif
+  , xlab = list(label="f-value", cex=1.5)
+  , ylab = list(label="Residual", cex=1.5)
+  , scale = list(cex=1.2)
 )
+dev.off()
+
+xyplot(remainder~(remainder-spafit), data = job.mr[[1]][[2]])
+
+xyplot(radius ~ elev2, data = job.mr[[1]][[2]])
 
 tmp <- ddply(.data=job.mr[[1]][[2]], .vari="month", .fun=summarise, count=length(resid))
 dotplot( factor(month, levels=arrange(tmp, count)$month) ~ count, data=tmp )
-
-
-job <- list()
-job$map <- expression({
-  lapply(seq_along(map.keys), function(r) {
-    value <- map.values[[r]]
-    value$outFlag <- with(value, remainder - spafit) <= -5.8 | with(value, remainder - spafit) >= 5.8
-    x1 <- subset(value, outFlag, select=c(lon, lat))
-    x2 <- subset(value, select=c(lon, lat))
-    if(nrow(x1) > 0) {
-      dist <- as.data.frame(rdist.earth(x2, x1, miles = FALSE, R = NULL))
-    }
-  })
-})
-job$reduce <- expression(
-  pre = {
-    combine <- data.frame()
-  },
-  reduce = {
-    combine <- rbind(combine, do.call("rbind", reduce.values))
-  },
-  post = {
-    rhcollect(reduce.key, combine)
-  }
-)
-job$setup <- expression(
-  map = {
-    library(plyr, lib.loc=lib.loc)
-    library(fields, lib.loc=lib.loc)
-  }
-)
-job$mapred <- list(
-  mapred.reduce.tasks = 1,
-  mapred.tasktimeout = 0
-)
-job$input <- rhfmt(FileInput, type="sequence")
-job$output <- rhfmt(FileOutput, type="sequence")
-job$mon.sec <- 10
-job$jobname <- FileOutput
-job$readback <- TRUE
-job.mr <- do.call("rhwatch", job)  
-
-
 
 ##########################################
 ##      Backfitting for a1950           ##
