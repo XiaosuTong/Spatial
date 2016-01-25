@@ -760,8 +760,12 @@ a1950.STLvisual <- function(paras, input, plotEng, name, sample = TRUE, multiple
             rhcollect(ceiling((index-0.5)/num), map.values[[r]])
           }
         } else {
-          map.values[[r]]$station.id <- map.keys[[r]]
-          rhcollect(1, map.values[[r]])
+          if (map.keys[[r]] %in% outliers.a1950.stations) {
+            num <- multiple[1] * multiple[2]
+            index <- as.numeric(which(outliers.a1950.stations==map.keys[[r]]))
+            map.values[[r]]$station.id <- map.keys[[r]]
+            rhcollect(ceiling((index-0.5)/num), map.values[[r]])
+          }
         }        
       })
     })
@@ -775,8 +779,10 @@ a1950.STLvisual <- function(paras, input, plotEng, name, sample = TRUE, multiple
             rhcollect(as.numeric(index), serialize(pp, NULL))
           }
         } else {
-          pp <- plotEng(map.values[[r]], map.keys[[r]], NULL)
-          rhcollect(map.keys[[r]], serialize(pp, NULL))
+          if (map.keys[[r]] %in% outliers.a1950.stations) {
+            pp <- plotEng(map.values[[r]], map.keys[[r]], NULL)
+            rhcollect(map.keys[[r]], serialize(pp, NULL))
+          }
         }
       })
     })
@@ -795,10 +801,14 @@ a1950.STLvisual <- function(paras, input, plotEng, name, sample = TRUE, multiple
       }
     )
   }
-  job$shared <- file.path(rh.root, par$dataset, "a1950", "Rdata", "sample.a1950.RData")
+  job$shared <- c(
+    file.path(rh.root, par$dataset, "a1950", "Rdata", "sample.a1950.RData"), 
+    file.path(rh.root, par$dataset, "a1950", "Rdata", "outliers.a1950.RData")
+  )
   job$setup <- expression(
     map = {
       load("sample.a1950.RData")
+      load("outliers.a1950.RData")
       library(lattice)
       library(plyr)
     },
