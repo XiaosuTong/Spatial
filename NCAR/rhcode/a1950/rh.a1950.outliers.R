@@ -35,7 +35,7 @@ outliersStations <- function(input, output, lim=5) {
   job$input <- rhfmt(input, type="sequence")
   job$output <- rhfmt(output, type="sequence")
   job$mon.sec <- 10
-  job$jobname <- FileOutput
+  job$jobname <- output
   job$readback <- TRUE
   job.mr <- do.call("rhwatch", job)    
 
@@ -85,7 +85,7 @@ outliersTotal <- function(input, output, lim=2) {
   job$input <- rhfmt(input, type="sequence")
   job$output <- rhfmt(output, type="sequence")
   job$mon.sec <- 10
-  job$jobname <- FileOutput
+  job$jobname <- output
   job$readback <- TRUE
   job.mr <- do.call("rhwatch", job)    
 
@@ -95,10 +95,55 @@ outliersTotal <- function(input, output, lim=2) {
 }
 
 
-outliersCount <- function() {
+outliersCount <- function(input, output, lim=2, by) {
 
+  job <- list()
+  job$map <- expression({
+    lapply(seq_along(map.keys), function(r) {
+      resid <- with(map.values[[r]], remainder - spafit)
+      outlier <- sum(resid <=-lim | resid >= lim)
+      impute <- sum(map.values[[r]]$flag == 0)
+      if (by == "station") {
+        value <- data.frame(station.id = map.keys[[r]], out = outlier, imp = impute)
+      } else {
+        value <- data.frame(year = map.keys[[r]][1], month = map.keys[[r]][2], out = outlier, imp = impute)
+      }
+      rhcollect(1, value)
+    })
+  })
+  job$reduce <- expression(
+    pre = {
+      combine <- data.frame()
+    },
+    reduce = {
+      combine <- rbind(combine, do.call("rbind", reduce.values))
+    },
+    post = {
+      rhcollect(reduce.key, unique(combine))
+    }
+  )
+  job$parameters <- list(
+    lim =lim,
+    by = by
+  )
+  job$setup <- expression(
+    map = {
+      library(plyr, lib.loc=lib.loc)
+    }
+  )
+  job$mapred <- list(
+    mapred.reduce.tasks = 1,
+    mapred.tasktimeout = 0
+  )
+  job$input <- rhfmt(input, type="sequence")
+  job$output <- rhfmt(output, type="sequence")
+  job$mon.sec <- 10
+  job$jobname <- FileOutput
+  job$readback <- TRUE
+  job.mr <- do.call("rhwatch", job)  
 
-
+  return(job.mr[[1]][[2]])
+  
 }
 
 
