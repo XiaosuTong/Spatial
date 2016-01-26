@@ -1,4 +1,4 @@
-outliersStations <- function(input, output, lim=5) {
+outliersStatAll <- function(input, output, lim=5) {
 
   job <- list()
   job$map <- expression({
@@ -188,7 +188,8 @@ localRadius <- function() {
   )
   job$mapred <- list(
     mapred.reduce.tasks = 1,
-    mapred.tasktimeout = 0
+    mapred.tasktimeout = 0,
+    #mapreduce.task.timeout = 0
   )
   job$input <- rhfmt(FileInput, type="sequence")
   job$output <- rhfmt(FileOutput, type="sequence")
@@ -197,4 +198,47 @@ localRadius <- function() {
   job$readback <- FALSE
   job.mr <- do.call("rhwatch", job)  
 
+}
+
+
+outliersStatTop <- function(input, output, lim=2, top=2^4) {
+  
+  job <- list()
+  job$map <- expression({
+    lapply(seq_along(map.keys), function(r) {
+      resid <- with(map.values[[r]], remainder - spafit)
+      outlier <- sum(resid <=-lim | resid >= lim)
+      if (outlier > top) {
+        rhcollect(1, map.keys[[r]])
+      }
+    })
+  })
+  job$reduce <- expression(
+    pre = {
+      combine <- character()
+    },
+    reduce = {
+      combine <- c(combine, unlist(reduce.values))
+    },
+    post = {
+      rhcollect(reduce.key, combine)
+    }
+  )
+  job$parameters <- list(
+    lim = lim,
+    top = top
+  )
+  job$mapred <- list(
+    mapred.reduce.tasks = 1,
+    mapred.tasktimeout = 0
+  )
+  job$input <- rhfmt(input, type="sequence")
+  job$output <- rhfmt(output, type="sequence")
+  job$mon.sec <- 10
+  job$jobname <- FileOutput
+  job$readback <- TRUE
+  job.mr <- do.call("rhwatch", job)  
+
+  return(job.mr[[1]][[2]])
+  
 }
