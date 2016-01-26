@@ -840,7 +840,7 @@ FileInput <- file.path(
 FileOutput <- paste(FileInput, "outliers", sep=".")
 ## generate the outliers.a1950.RData object which 
 ## is a vector of station.id
-outliersStations(FileInput, FileOutput, lim=2)
+outliersStatAll(FileInput, FileOutput, lim=2)
 ## generate the dataframe including all outliers
 ## There are 2,096,822 observations, and 21,471 are outliers
 outliers <- outliersTotal(FileInput, FileOutput, lim=2)
@@ -848,18 +848,21 @@ outlierBymonth <- outliersCount(FileInput, FileOutput, lim=2, by="month")
 outlierBymonth$mFlag <- outlierBymonth$month %in% c("Jan","Feb","Dec")
 outliers$mFlag <- outliers$month %in% c("Jan","Feb","Dec")
 
+outlierVisAll(outliers)
+outlierVisAll(outliers, byname="Winter", byvari="mFlag")
+outlierVisMonth(outlierBymonth)
+outlierVisMonth(outlierBymonth, byname="Winter", byvari="mFlag")
 
-
-
-bestStlplus <- "t241td1_speriodicsd1_ffd"
+## generate the count of outliers in each station
 FileInput <- file.path(
   rh.root, par$dataset, "a1950", "STL.bymonth.remaindfit", bestStlplus, "symmetric", "direct", "2", "sp0.015.bystation"
 )
 FileOutput <- paste(FileInput, "outliers", sep=".")
-## generate the count of outliers in each station
 outlierBystation <- outliersCount(FileInput, FileOutput, lim=2, by="station")
 
-
+outlierVisStat(outlierBymonth)
+## generate the stations which has more than 2^4 outliers
+outliersStatTop(FileInput, FileOutput, lim=2, top=2^4)
 
 
 
