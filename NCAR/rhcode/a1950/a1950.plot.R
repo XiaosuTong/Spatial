@@ -742,7 +742,7 @@ spacutRange <- function(input) {
 ############################################################
 ##  Diagnostic plots for components from stlplus fitting  ## 
 ############################################################
-a1950.STLvisual <- function(paras, input, plotEng, name, sample = TRUE, multiple=NULL){
+a1950.STLvisual <- function(paras, input, plotEng, name, sample = TRUE, Alloutlier=TRUE, multiple=NULL){
 
   output <- file.path(
     rh.root, par$dataset, "a1950", "STL.plot", paste("t",paras$tw, "td", paras$td, "_s", paras$sw, 
@@ -780,7 +780,7 @@ a1950.STLvisual <- function(paras, input, plotEng, name, sample = TRUE, multiple
           }
         } else {
           if (map.keys[[r]] %in% outliers.a1950.stations) {
-            pp <- plotEng(map.values[[r]], map.keys[[r]], NULL)
+            pp <- plotEng(map.values[[r]], map.keys[[r]])
             rhcollect(map.keys[[r]], serialize(pp, NULL))
           }
         }
@@ -801,14 +801,27 @@ a1950.STLvisual <- function(paras, input, plotEng, name, sample = TRUE, multiple
       }
     )
   }
-  job$shared <- c(
-    file.path(rh.root, par$dataset, "a1950", "Rdata", "sample.a1950.RData"), 
-    file.path(rh.root, par$dataset, "a1950", "Rdata", "outliers.a1950.RData")
-  )
+  if (Alloutlier) {
+    job$shared <- c(
+      file.path(rh.root, par$dataset, "a1950", "Rdata", "sample.a1950.RData"), 
+      file.path(rh.root, par$dataset, "a1950", "Rdata", "outliers.a1950.RData")
+    )
+  } else {
+    job$shared <- c(
+      file.path(rh.root, par$dataset, "a1950", "Rdata", "sample.a1950.RData"), 
+      file.path(rh.root, par$dataset, "a1950", "Rdata", "outliersTop.a1950.RData")
+    )
+  }
   job$setup <- expression(
     map = {
       load("sample.a1950.RData")
-      load("outliers.a1950.RData")
+      if(Alloutlier) {
+        load("outliers.a1950.RData")
+        rhcounter("setup", "mapall", 1)
+      } else {
+        load("outliersTop.a1950.RData")
+        rhcounter("setup", "mapTop", 1)
+      }
       library(lattice)
       library(plyr)
     },
@@ -822,6 +835,7 @@ a1950.STLvisual <- function(paras, input, plotEng, name, sample = TRUE, multiple
     plotEng = plotEng,
     col = col,
     ylab = ylab,
+    Alloutlier = Alloutlier,
     multiple = multiple
   )
   job$input <- rhfmt(input, type = "sequence")
@@ -1031,15 +1045,15 @@ plotEng.remainderDate <- function(data, station, leaf) {
     , xlab = list(label = "Month", cex=1.5)
     , ylab = list(label = ylab, cex=1.5)
     , sub = list(label=paste("Station ", station, "from cell", leaf), cex=1.2)
-    , scale = list(cex=.12)
+    , scale = list(x = list(at=seq(0, 576, 96)), cex=1.2)
     , key = list(
         text=list(label=c("remainder","loess smoothing")), 
-        lines=list(pch=16, cex=1, lwd=2, type=c("p","l"), col=col[1:2]), 
+        lines=list(pch=1, cex=1, lwd=2, type=c("p","l"), col=col[1:2]), 
         columns=2
       )
     , panel = function(x,y,...){
         panel.abline(h=0, color="black", lty=1)
-        panel.xyplot(x,y, cex = 0.6, pch=16, ...)
+        panel.xyplot(x,y, cex = 0.6, pch=1, ...)
         panel.loess(x,y, span=0.8, degree=1, lwd = 2, col=col[2],...)
       }
   )
@@ -1250,9 +1264,6 @@ plotEng.RevsFit <- function(data, year, month, vars=NULL, target=NULL) {
 }
 
 
-
-
-
 ###############################################
 ##  Visualize the final residuals by station ##
 ###############################################
@@ -1272,8 +1283,12 @@ a1950.spafitVisualStat <- function(input, plotEng, name, sample = TRUE, multiple
             rhcollect(ceiling((index-0.5)/num), subset(map.values[[r]], flag==1))
           }
         } else {
-          map.values[[r]]$station.id <- map.keys[[r]]
-          rhcollect(1, map.values[[r]])
+          if (sum(map.values[[r]]$flag) == 576) {
+            index <- as.numeric(which(a1950Nomiss==map.keys[[r]]))
+            map.values[[r]]$station.id <- map.keys[[r]]
+            num <- multiple[1] * multiple[2]
+            rhcollect(ceiling((index-0.5)/num), map.values[[r]])
+          }
         }        
       })
     })
@@ -1287,8 +1302,10 @@ a1950.spafitVisualStat <- function(input, plotEng, name, sample = TRUE, multiple
             rhcollect(as.numeric(index), serialize(pp, NULL))
           }
         } else {
-          pp <- plotEng(map.values[[r]], map.keys[[r]], NULL)
-          rhcollect(map.keys[[r]], serialize(pp, NULL))
+          if (sum(map.values[[r]]$flag) == 576) {
+            pp <- plotEng(map.values[[r]], map.keys[[r]], NULL)
+            rhcollect(map.keys[[r]], serialize(pp, NULL))
+          }
         }
       })
     })
@@ -1307,10 +1324,14 @@ a1950.spafitVisualStat <- function(input, plotEng, name, sample = TRUE, multiple
       }
     )
   }
-  job$shared <- file.path(rh.root, par$dataset, "a1950", "Rdata", "sample.a1950.RData")
+  if(sample) {
+    job$shared <- c(file.path(rh.root, par$dataset, "a1950", "Rdata", "sample.a1950.RData"))
+  } else {
+    job$shared <- c(file.path(rh.root, par$dataset, "a1950", "Rdata", "nomiss.a1950.RData"))    
+  } 
   job$setup <- expression(
     map = {
-      load("sample.a1950.RData")
+      if(sample) {load("sample.a1950.RData")} else {load("nomiss.a1950.RData")}
       library(lattice)
       library(plyr)
     },
@@ -1355,7 +1376,7 @@ plotEng.residualDate <- function(data, station, leaf) {
     , group = flag
     , xlab = list(label = "Month", cex=1.5)
     , ylab = list(label = ylab, cex=1.5)
-    , sub = list(label=paste("Station ", station, "from cell", leaf), cex=1.2)
+    , sub = list(label=paste("Station ", station), cex=1.2)
     , scale = list(cex=1.2)
 #    , key=list(
 #        cex = 1.2,
