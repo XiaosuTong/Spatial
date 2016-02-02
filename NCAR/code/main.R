@@ -376,6 +376,10 @@ stlplusFitVisl<- function(fileinput=FileInput, SW, SD, TW, TD, FCW=NULL, FCD=NUL
     paras=paras, input=input, plotEng=plotEng.remainderACF, 
     name="remainder.acf", sample = TRUE, multiple=c(3,3)
   )
+  a1950.STLvisual(
+    paras=paras, input=input, plotEng=plotEng.remainderDate, 
+    name="remainder.vs.time", sample = TRUE, multiple=NULL
+  )
 
 }
 
@@ -416,13 +420,13 @@ try(QQDivFromNormal(index="E1", type="a1950"))
 try(QQstationlag(param=parameter, index="E1", type="a1950"))
 for(j in 1:nrow(parameter)) {
   rhget(
-    file.path(rh.root, par$dataset, type, "STLtuning", index, "meanerrorqqplot", "_outputs", 
+    file.path(rh.root, par$dataset, "a1950", "STLtuning", "E1", "meanerrorqqplot", "_outputs", 
       paste("QQ.error", par$dataset, "group", j, "ps", sep= ".")
     ),
     file.path(local.root, "output")
   )
 }
-## filtering only 128 station for visualization
+## filtering only 512 station for visualization
 try(subsetStations(index="E1", type="a1950"))
 for(j in c("absmeans","means","std")) {
   errorVsLag(type="a1950", index="E1", var=c("sw","tw"), target=j)
@@ -437,7 +441,6 @@ parameter <- expand.grid(
   sw = c(11, 41, "periodic"), tw = c(123, 241, 451), td = 2, 
   sd = 1, fc.flag = FALSE, stringsAsFactors=FALSE
 )
-#for(k in c(1,4,5,6,7)) {
 for(k in 1:nrow(parameter)) {
   try(predict36(type="a1950", parameter=parameter, k=k, index="E2", valid=270))
 }
@@ -706,9 +709,13 @@ residSpaFitVisl <- function(i, j, bestStlplus) {
   FileOutput <- paste(FileInput, "bystation", sep=".")
   swapTostation(FileInput, FileOutput, elevFlag = FALSE)
   FileInput <- FileOutput
+  ## find all stations after 1950 without missing value, save all station.id
+  ## as a1950Nomiss vector in nomiss.a1950.RData
+  a1950.Nomiss(FileInput)
+
   a1950.spafitVisualStat(
     input=FileInput, plotEng.residualDate, 
-    name="resid.vs.time", sample = TRUE, multiple=NULL
+    name="resid.vs.time", sample = FALSE, multiple=NULL
   )
   
   ## the overall quantile plot of the residual for each month
@@ -835,7 +842,8 @@ imputeCrossValid(
 ##############################################
 bestStlplus <- "t241td1_speriodicsd1_ffd"
 FileInput <- file.path(
-  rh.root, par$dataset, "a1950", "STL.bymonth.remaindfit", bestStlplus, "symmetric", "direct", "2", "sp0.015"
+  rh.root, par$dataset, "a1950", "STL.bymonth.remaindfit", 
+  bestStlplus, "symmetric", "direct", "2", "sp0.015"
 )
 FileOutput <- paste(FileInput, "outliers", sep=".")
 ## generate the outliers.a1950.RData object which 
@@ -855,15 +863,30 @@ outlierVisMonth(outlierBymonth, byname="Winter", byvari="mFlag")
 
 ## generate the count of outliers in each station
 FileInput <- file.path(
-  rh.root, par$dataset, "a1950", "STL.bymonth.remaindfit", bestStlplus, "symmetric", "direct", "2", "sp0.015.bystation"
+  rh.root, par$dataset, "a1950", "STL.bymonth.remaindfit", 
+  bestStlplus, "symmetric", "direct", "2", "sp0.015.bystation"
 )
 FileOutput <- paste(FileInput, "outliers", sep=".")
 outlierBystation <- outliersCount(FileInput, FileOutput, lim=2, by="station")
 
-outlierVisStat(outlierBymonth)
-## generate the stations which has more than 2^4 outliers
-outliersStatTop(FileInput, FileOutput, lim=2, top=2^4)
+outlierVisStat(outlierBystation)
+## generate the stations which has more than 2^5 outliers or has outliers larger than 10
+## and save the on HDFS as outliersTop.a1950.RData
+outliersStatTop(FileInput, FileOutput, lim=2, top=2^5, ORtop=10)
+## visualize the raw and outliers against time for each station from outliersTop.a1950.RData
+paras <- list(sw="periodic", sd=1, tw=241, td=1, fcw=NULL, fcd=NULL)
+a1950.STLvisual(paras, FileInput, plotEng.rawOutlier, name="stlOutlier.vs.time", sample = FALSE, Alloutlier=FALSE, multiple=NULL)
 
+outliersMonthTop()
+##visualize the outliers in space for each month
+##
+
+
+
+## find out the number of outliers that remainder is small but spafit is very large
+## totally there are 3805 such outliers from 1960 stations
+tmp <- outliersMissCount(FileInput, FileOutput, lim=2)
+dim(tmp)
 
 
 xyplot(radius ~ elev2, data = job.mr[[1]][[2]])
