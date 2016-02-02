@@ -100,13 +100,13 @@ outliersCount <- function(input, output, lim=2, by) {
   job <- list()
   job$map <- expression({
     lapply(seq_along(map.keys), function(r) {
-      resid <- with(map.values[[r]], remainder - spafit)
+      value <- subset(map.values[[r]], flag == 1)
+      resid <- with(value, remainder - spafit)
       outlier <- sum(resid <=-lim | resid >= lim)
-      impute <- sum(map.values[[r]]$flag == 0)
       if (by == "station") {
-        value <- data.frame(station.id = map.keys[[r]], out = outlier, imp = impute)
+        value <- data.frame(station.id = map.keys[[r]], out = outlier)
       } else {
-        value <- data.frame(year = map.keys[[r]][1], month = map.keys[[r]][2], out = outlier, imp = impute)
+        value <- data.frame(year = map.keys[[r]][1], month = map.keys[[r]][2], out = outlier)
       }
       rhcollect(1, value)
     })
@@ -138,13 +138,139 @@ outliersCount <- function(input, output, lim=2, by) {
   job$input <- rhfmt(input, type="sequence")
   job$output <- rhfmt(output, type="sequence")
   job$mon.sec <- 10
-  job$jobname <- FileOutput
+  job$jobname <- output
   job$readback <- TRUE
   job.mr <- do.call("rhwatch", job)  
 
   return(job.mr[[1]][[2]])
   
 }
+
+## MissCount is about to count the outliers which
+## remainder is small but spafit is very large
+outliersMissCount <- function(input, output, lim=2) {
+
+  job <- list()
+  job$map <- expression({
+    lapply(seq_along(map.keys), function(r) {
+      value <- subset(map.values[[r]], flag == 1)
+      value$resid <- with(value, remainder - spafit)
+      value <- subset(value, resid <= -lim | resid >= lim)
+      value <- subset(value, remainder < 1 & remainder > -1)
+      if (nrow(value) > 0) {
+        value$station.id  <- map.keys[[r]]
+        value$lon <- attributes(map.values[[r]])$loc[1]
+        value$lat <- attributes(map.values[[r]])$loc[2]
+        value$elev2 <- attributes(map.values[[r]])$loc[3]      
+        rhcollect(1, value)
+      }
+    })
+  })
+  job$reduce <- expression(
+    pre = {
+      combine <- data.frame()
+    },
+    reduce = {
+      combine <- rbind(combine, do.call("rbind", reduce.values))
+    },
+    post = {
+      rhcollect(reduce.key, unique(combine))
+    }
+  )
+  job$parameters <- list(
+    lim =lim
+  )
+  job$mapred <- list(
+    mapred.reduce.tasks = 1,
+    mapred.tasktimeout = 0
+  )
+  job$input <- rhfmt(input, type="sequence")
+  job$output <- rhfmt(output, type="sequence")
+  job$mon.sec <- 10
+  job$jobname <- output
+  job$readback <- TRUE
+  job.mr <- do.call("rhwatch", job)  
+
+  return(job.mr[[1]][[2]])
+  
+}
+
+outliersStatTop <- function(input, output, lim=2, top=2^4, ORtop=0) {
+  
+  job <- list()
+  job$map <- expression({
+    lapply(seq_along(map.keys), function(r) {
+      value <- subset(map.values[[r]], flag == 1)
+      resid <- with(value, remainder - spafit)
+      outlier <- sum(resid <= -lim | resid >= lim)
+      if (outlier >= top) {
+        rhcollect(1, map.keys[[r]])
+        rhcounter("outliers", "toomuch", 1)
+      }
+      if (max(resid) >= ORtop | min(resid) <= -ORtop) {
+        rhcollect(1, map.keys[[r]])
+        rhcounter("outliers","toolarge",1)
+      }
+    })
+  })
+  job$reduce <- expression(
+    pre = {
+      combine <- character()
+    },
+    reduce = {
+      combine <- c(combine, unlist(reduce.values))
+    },
+    post = {
+      rhcollect(reduce.key, unique(combine))
+    }
+  )
+  job$parameters <- list(
+    lim = lim,
+    top = top,
+    ORtop = ORtop
+  )
+  job$mapred <- list(
+    mapred.reduce.tasks = 1,
+    mapred.tasktimeout = 0
+  )
+  job$input <- rhfmt(input, type="sequence")
+  job$output <- rhfmt(output, type="sequence")
+  job$mon.sec <- 10
+  job$jobname <- output
+  job$readback <- TRUE
+  job.mr <- do.call("rhwatch", job)  
+
+  outliers.a1950.stations <- (job.mr[[1]][[2]])
+  rhsave(outliers.a1950.stations, file="/ln/tongx/Spatial/tmp/tmax/a1950/Rdata/outliersTop.a1950.RData")
+  
+}
+
+outliersMonthTop <- function(input, output, lim=2, top=45, ORtop=0) {
+
+  job <- list()
+  job$map <- expression({
+    lapply(seq_along(map.keys), function(r) {
+      value <- subset(map.values[[r]], flag == 1)
+      resid <- with(value, remainder - spafit)
+      outlier <- sum(resid <= -lim | resid >= lim)
+      if (outlier >= top) {
+        rhcollect(map.keys[[r]], value)
+        rhcounter("outliers", "toomuch", 1)
+      }
+      if (max(resid) >= ORtop | min(resid) <= -ORtop) {
+        rhcollect(map.keys[[r]], value)
+        rhcounter("outliers","toolarge",1)
+      }      
+    })
+  })
+}
+
+
+
+
+
+
+
 
 
 localRadius <- function() {
@@ -198,47 +324,4 @@ localRadius <- function() {
   job$readback <- FALSE
   job.mr <- do.call("rhwatch", job)  
 
-}
-
-
-outliersStatTop <- function(input, output, lim=2, top=2^4) {
-  
-  job <- list()
-  job$map <- expression({
-    lapply(seq_along(map.keys), function(r) {
-      resid <- with(map.values[[r]], remainder - spafit)
-      outlier <- sum(resid <=-lim | resid >= lim)
-      if (outlier > top) {
-        rhcollect(1, map.keys[[r]])
-      }
-    })
-  })
-  job$reduce <- expression(
-    pre = {
-      combine <- character()
-    },
-    reduce = {
-      combine <- c(combine, unlist(reduce.values))
-    },
-    post = {
-      rhcollect(reduce.key, combine)
-    }
-  )
-  job$parameters <- list(
-    lim = lim,
-    top = top
-  )
-  job$mapred <- list(
-    mapred.reduce.tasks = 1,
-    mapred.tasktimeout = 0
-  )
-  job$input <- rhfmt(input, type="sequence")
-  job$output <- rhfmt(output, type="sequence")
-  job$mon.sec <- 10
-  job$jobname <- FileOutput
-  job$readback <- TRUE
-  job.mr <- do.call("rhwatch", job)  
-
-  return(job.mr[[1]][[2]])
-  
 }
