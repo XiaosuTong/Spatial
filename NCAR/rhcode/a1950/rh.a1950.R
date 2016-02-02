@@ -300,9 +300,6 @@ bymonthSplit <- function(input, leaf = 100, vari) {
           rhcounter("Map","keyvalue", 1)
           value <- v
           value$flag[ii$idx] <- 1
-          if(nrow(value) == nrow(v)){
-            rhcounter("Map","nrow",1)
-          }
           if(sum(value$flag) == 128) {
             rhcounter("Map", "128", 1)
           } else {
@@ -893,6 +890,7 @@ a1950.residQuant <- function(input, target="residual", by=NULL, probs=seq(0, 1, 
     }
     ## inds is a list of vector, each element of list is a vector of row index for the given level
     ## of conditional variable by. Next we loop over all different levels of by variable
+    ## If by is NULL, then inds length is 1.
     for (ii in seq_along(inds)) {
       vv <- dat$v[inds[[ii]]]  ## get the target variable for the given level of by variable
       vv <- vv[!is.na(vv)]
@@ -985,5 +983,43 @@ a1950.residQuant <- function(input, target="residual", by=NULL, probs=seq(0, 1, 
   }
 
   res
+
+}
+
+a1950.Nomiss <- function(input) {
+
+  output <- paste(input, "plot", sep=".") 
+
+  job <- list()
+  job$map <- expression({
+    lapply(seq_along(map.keys), function(r) {
+      if (sum(map.values[[r]]$flag) == 576) {
+        rhcollect(1, map.keys[[r]])
+      }
+    })
+  })
+  job$reduce <- expression(
+    pre = {
+      combine <- character()
+    },
+    reduce = {
+      combine <- c(combine, unlist(reduce.values))
+    },
+    post = {
+      rhcollect(reduce.key, combine)
+    }
+  )
+  job$input <- rhfmt(input, type = "sequence")
+  job$output <- rhfmt(output, type = "sequence")
+  job$mapred <- list(
+    mapred.reduce.tasks = 1,  #cdh3,4
+    mapreduce.job.reduces = 1  #cdh5
+  )
+  job$readback <- TRUE
+  job$jobname <- output
+  job.mr <- do.call("rhwatch", job)  
+
+  a1950Nomiss <- job.mr[[1]][[2]]
+  rhsave(a1950Nomiss, file=file.path(rh.root, par$dataset, "a1950","Rdata","nomiss.a1950.RData"))
 
 }
