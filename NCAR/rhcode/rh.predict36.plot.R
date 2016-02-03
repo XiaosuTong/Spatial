@@ -122,48 +122,38 @@ QQDivFromNormal <- function(index="E1", type="a1950") {
 #################################################################################
 ## plotEngine is the plotting function called in reduce function for each group.
 ## orderdf is the data.frame contains station order and station leaf.
-plotEngine <- function(data, dataset, key, orderdf) { 
+plotEngine <- function(dataset, station, leaf) { 
 
-  data$lag <- as.numeric(data$lag)
-  trellis.device(
-    device = postscript, 
-    file = file.path(".", "tmp", paste("QQ.error", dataset, "group", key, "ps", sep= ".")), 
-    color = TRUE, 
-    paper = "legal"
-  )
-  for(i in orderdf$station.id){
-    yrange <- range(subset(data, station.id == i)$residual)
-    if(yrange[2] >= 20 & yrange[2]<30) {
-      yscale <- list(cex=1.2, at=seq(-20,20,10))
-    } else if(yrange[2] >= 30) {
-      yscale <- list(cex=1.2, at=seq(-30,30,15))
-    } else {
-      yscale <- list(cex=1.2, at=seq(-10,10,5))
-    }
-    b <- qqmath( ~ residual | lag
-      , data = subset(data, station.id==i)
-      , xlab = list(label = "Unit normal quantile", cex = 1.5)
-      , ylab = list(label = ylab, cex = 1.5)
-      , sub = paste("Station", i, "from cell", with(orderdf, leaf[which(station.id==i)]))
-      , type = "p"
-      , aspect = 1
-      , col = "red"
-      , layout = c(9,4)
-      , scale = list(
-          x = list(cex=1.2, at = seq(-2,2,2)),
-          y = yscale
-        )
-      , pch=16
-      , cex=0.3
-      , prepanel = prepanel.qqmathline
-      , panel = function(x,...) {
-          panel.qqmathline(x, distribution = qnorm)
-          panel.qqmath(x,...)
-        }
-    )
-    print(b)
+  dataset$lag <- as.numeric(dataset$lag)
+  yrange <- range(dataset$residual)
+  if(yrange[2] >= 20 & yrange[2]<30) {
+    yscale <- list(cex=1.2, at=seq(-20,20,10))
+  } else if(yrange[2] >= 30) {
+    yscale <- list(cex=1.2, at=seq(-30,30,15))
+  } else {
+    yscale <- list(cex=1.2, at=seq(-10,10,5))
   }
-  dev.off()
+  b <- qqmath( ~ residual | lag
+    , data = dataset
+    , xlab = list(label = "Unit normal quantile", cex = 1.5)
+    , ylab = list(label = ylab, cex = 1.5)
+    , sub = paste("Station", station, "from cell", leaf)
+    , type = "p"
+    , aspect = 1
+    , col = "red"
+    , layout = c(9,4)
+    , scale = list(
+        x = list(cex=1.2, at = seq(-2,2,2)),
+        y = yscale
+      )
+    , pch=16
+    , cex=0.3
+    , prepanel = prepanel.qqmathline
+    , panel = function(x,...) {
+        panel.qqmathline(x, distribution = qnorm)
+        panel.qqmath(x,...)
+      }
+  )
 
 }
 QQstationlag <- function(param=parameter, index="E1", type="a1950") {
@@ -171,17 +161,18 @@ QQstationlag <- function(param=parameter, index="E1", type="a1950") {
   stationOrder <- rhread(
     file.path(rh.root, par$dataset, type, "STLtuning", index, "group.divorderstations")
   )
+
   job <- list()
   job$map <- expression({
     lapply(seq_along(map.keys), function(r){
       if(map.keys[[r]][1] %in% sample.a1950$station.id) {
-        value <- subset(map.values[[r]], select = c(residual))
-        value$lag <- map.keys[[r]][3]
-        value$station.id <- map.keys[[r]][1]
+        value <- map.values[[r]][, "residual", drop=FALSE]
         group <- as.numeric(map.keys[[r]][2])
+        value$lag <- map.keys[[r]][3]
         value$sw <- param[group, "sw"]
         value$tw <- param[group, "tw"]
-        rhcollect(group, value)
+        attr(value, "leaf") <- subset(sample.a1950, station.id == map.keys[[r]][1])$leaf
+        rhcollect(map.keys[[r]][1:2], value)
       }
     })
   })  
@@ -193,8 +184,7 @@ QQstationlag <- function(param=parameter, index="E1", type="a1950") {
       combined <- rbind(combined, do.call(rbind, reduce.values))
     },
     post={
-      I <- which(unlist(lapply(div.stations, "[[", 1))==reduce.key)
-      plotEngine(data=combined, dataset=dataset, key=reduce.key, orderdf=div.stations[[I]][[2]])
+      rhcollect(reduce.key, combined)
     }
   )
   job$shared <- c(file.path(rh.root, par$dataset, type, "Rdata", "sample.a1950.RData"))
@@ -206,14 +196,75 @@ QQstationlag <- function(param=parameter, index="E1", type="a1950") {
     }
   )
   job$parameters <- list(
+    param = param
+  )
+  job$input <- rhfmt(
+    file.path(rh.root, par$dataset, type, "STLtuning", index, "by.stagrouplag"), 
+    type = "sequence"
+  )
+  job$output <- rhfmt(
+    file.path(rh.root, par$dataset, type, "STLtuning", index, "by.stagroup"),
+    type="sequence"
+  )
+  job$mapred <- list(
+    mapred.reduce.tasks = 72,
+    mapred.tasktimeout = 0
+  )
+  job$jobname <- file.path(rh.root, par$dataset, type, "STLtuning", index, "by.stagroup")
+  job$readback <- FALSE
+  job$mon.sec <- 15
+  job.mr <- do.call("rhwatch", job)  
+
+  job <- list()
+  job$map <- expression({
+    lapply(seq_along(map.keys), function(r) {
+      leaf <- attributes(map.values[[r]])$leaf
+      pp <- plotEngine(map.values[[r]], map.keys[[r]][1], leaf)
+      rhcollect(as.numeric(map.keys[[r]][2]), list(map.keys[[r]][1], serialize(pp, NULL)))
+    })
+  })
+  job$reduce <- expression(
+    pre = {
+      plots <- list()
+      stations <- character()
+    },
+    reduce = {
+      stations <- c(stations, unlist(lapply(reduce.values, "[[", 1)))
+      plots <- append(plots, lapply(reduce.values, "[[", 2))
+    },
+    post = {
+      ii <- which(unlist(lapply(stationOrder, "[[", 1))==reduce.key)
+      trellis.device(
+        device = postscript, 
+        file = file.path(".", "tmp", paste("QQ.error", dataset, "group", reduce.key, "ps", sep= ".")), 
+        color = TRUE, 
+        paper = "legal"
+      )
+      for(i in 1:length(stations)) {
+        target <- stationOrder[[ii]][[2]]$station.id[i]
+        index <- which(stations == target)
+        print(unserialize(plots[[index]]))
+      }
+      dev.off()
+    }
+  )
+  job$parameters <- list(
     param = param, 
     ylab = ylab,
     dataset = par$dataset,
     plotEngine = plotEngine,
-    div.stations = stationOrder
+    stationOrder = stationOrder
+  )
+  job$setup <- expression(
+    map = {
+      library(lattice)
+    },
+    reduce = {
+      library(lattice)
+    }
   )
   job$input <- rhfmt(
-    file.path(rh.root, par$dataset, type, "STLtuning", index, "by.stagrouplag"), 
+    file.path(rh.root, par$dataset, type, "STLtuning", index, "by.stagroup"), 
     type = "sequence"
   )
   job$output <- rhfmt(
@@ -221,11 +272,12 @@ QQstationlag <- function(param=parameter, index="E1", type="a1950") {
     type="sequence"
   )
   job$mapred <- list(
-    mapred.reduce.tasks = 10
+    mapred.reduce.tasks = 10,
+    mapred.tasktimeout = 0
   )
   job$jobname <- file.path(rh.root, par$dataset, type, "STLtuning", index, "meanerrorqqplot")
   job$readback <- FALSE
-  job$mon.sec <- 10
+  job$mon.sec <- 15
   job$copyFiles <- TRUE
   job.mr <- do.call("rhwatch", job)  
 
@@ -319,7 +371,7 @@ errorVsLag <- function(type, index, var, target, sd.rm=FALSE) {
     color = TRUE, 
     paper="letter"
   )
-  for(i in 1:128) {
+  for(i in 1:nrow(sample.a1950)) {
     b <- xyplot( get(target) ~ lag | get(var[2])
       , data = subset(rst, station.id == with(sample.a1950, station.id[which(leaf==i)]))
       , sub = paste("Station", with(sample.a1950, station.id[which(leaf==i)]), "from cell", i)
@@ -359,7 +411,7 @@ errorVsLag <- function(type, index, var, target, sd.rm=FALSE) {
     color  = TRUE, 
     paper  = "letter"
   )
-  for(i in 1:128) {
+  for(i in 1:nrow(sample.a1950)) {
     b <- xyplot( get(target) ~ lag | get(var[1])
       , data = subset(rst, station.id == with(sample.a1950, station.id[which(leaf==i)]))
       , sub = paste("Station", with(sample.a1950, station.id[which(leaf==i)]), "from cell", i)
