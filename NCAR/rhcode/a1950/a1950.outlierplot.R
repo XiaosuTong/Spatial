@@ -235,20 +235,6 @@ outlierVisMonth <- function(dataset, byname=NULL, byvari=NULL) {
 
 }
 
-
-xyplot( remainder-spafit ~ lon | equal.count(lat, 20, overlap=0)
-  , data = outliers
-)
-
-xyplot( lat ~ lon
-  , data = outliers
-  , subset = station.id %in% subset(outlierBystation, out>=2^4)$station.id
-  , panel = function(x,y,...) {
-      panel.polygon(us.map$x,us.map$y)   
-      panel.xyplot(x,y,...)
-  }
-)
-
 plotEng.rawOutlier <- function(data, station, lim=2) {
 
   data <- arrange(data, date)
@@ -290,4 +276,8 @@ plotEng.rawOutlier <- function(data, station, lim=2) {
   )
   return(b)
 
+}
+
+outlierMonth <- function() {
+  
 }

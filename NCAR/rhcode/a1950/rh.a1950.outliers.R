@@ -195,7 +195,7 @@ outliersMissCount <- function(input, output, lim=2) {
   
 }
 
-outliersStatTop <- function(input, output, lim=2, top=2^4, ORtop=0) {
+outliersTop <- function(input, output, lim=2, top=2^4, ORtop=0, by) {
   
   job <- list()
   job$map <- expression({
@@ -209,21 +209,36 @@ outliersStatTop <- function(input, output, lim=2, top=2^4, ORtop=0) {
       }
       if (max(resid) >= ORtop | min(resid) <= -ORtop) {
         rhcollect(1, map.keys[[r]])
-        rhcounter("outliers","toolarge",1)
+        rhcounter("outliers","toolarge", 1)
       }
     })
   })
-  job$reduce <- expression(
-    pre = {
-      combine <- character()
-    },
-    reduce = {
-      combine <- c(combine, unlist(reduce.values))
-    },
-    post = {
-      rhcollect(reduce.key, unique(combine))
-    }
-  )
+  if(by == "station") {
+    job$reduce <- expression(
+      pre = {
+        combine <- character()
+      },
+      reduce = {
+        combine <- c(combine, unlist(reduce.values))
+      },
+      post = {
+        rhcollect(reduce.key, unique(combine))
+      }
+    )
+  } else {
+    job$reduce <- expression(
+      pre = {
+        combine <- data.frame()
+      },
+      reduce = {
+        combine <- rbind(combine, do.call("rbind", reduce.values))
+      },
+      post = {
+        names(combine) <- c("year","month")
+        rhcollect(reduce.key, combine)
+      }
+    )
+  } 
   job$parameters <- list(
     lim = lim,
     top = top,
@@ -240,30 +255,16 @@ outliersStatTop <- function(input, output, lim=2, top=2^4, ORtop=0) {
   job$readback <- TRUE
   job.mr <- do.call("rhwatch", job)  
 
-  outliers.a1950.stations <- (job.mr[[1]][[2]])
-  rhsave(outliers.a1950.stations, file="/ln/tongx/Spatial/tmp/tmax/a1950/Rdata/outliersTop.a1950.RData")
+  if(by=="station") { 
+    outliers.a1950.stations <- (job.mr[[1]][[2]])
+    rhsave(outliers.a1950.stations, file="/ln/tongx/Spatial/tmp/tmax/a1950/Rdata/outliersStatTop.a1950.RData")
+  } else {
+    outliers.a1950.stations <- (job.mr[[1]][[2]])
+    rhsave(outliers.a1950.stations, file="/ln/tongx/Spatial/tmp/tmax/a1950/Rdata/outliersMonthTop.a1950.RData")    
+  }
   
 }
 
-outliersMonthTop <- function(input, output, lim=2, top=45, ORtop=0) {
-
-  job <- list()
-  job$map <- expression({
-    lapply(seq_along(map.keys), function(r) {
-      value <- subset(map.values[[r]], flag == 1)
-      resid <- with(value, remainder - spafit)
-      outlier <- sum(resid <= -lim | resid >= lim)
-      if (outlier >= top) {
-        rhcollect(map.keys[[r]], value)
-        rhcounter("outliers", "toomuch", 1)
-      }
-      if (max(resid) >= ORtop | min(resid) <= -ORtop) {
-        rhcollect(map.keys[[r]], value)
-        rhcounter("outliers","toolarge",1)
-      }      
-    })
-  })
-}
 
 
 
