@@ -1377,54 +1377,112 @@ plotEng.residualDate <- function(data, station, leaf) {
     , xlab = list(label = "Month", cex=1.5)
     , ylab = list(label = ylab, cex=1.5)
     , sub = list(label=paste("Station ", station), cex=1.2)
-    , scale = list(cex=1.2)
-#    , key=list(
-#        cex = 1.2,
-#        text = list(label=c("raw", "imputed")), 
-#        lines = list(pch=16, cex=0.7, lwd=1.5, type=c("p","p"), col=col[c(2,1)]),
-#        columns=2
-#      )
+    , scale = list(x = list(at=seq(0, 576, 96)), cex=1.2)
+    , key = list(
+        text=list(label=c("remainder","loess smoothing")), 
+        lines=list(pch=1, cex=1, lwd=2, type=c("p","l"), col=col[1:2]), 
+        columns=2
+      )
     , panel = function(x,y,...){
         panel.abline(h=0, color="black", lty=1)
-        panel.xyplot(x,y, cex = 0.6, pch=16, ...)
-        panel.loess(x,y, span=0.8, degree=1, lwd = 2, col=col[2],...)
+        panel.xyplot(x,y, cex = 0.6, pch=1, ...)
+        panel.loess(x,y, span=0.75, degree=1, lwd = 2, col=col[2],...)
       }
   )
 
 }
-plotEng.residual <- function(data, station, leaf) {
 
-  data <- arrange(data, date)
-  data$factor <- factor(
-    x = rep(paste("Period", 1:6), c(rep(108,5), 36)),
-    levels = paste("Period", c(6:1))
-  )
-  data$time <- c(rep(0:107, times = 5), 0:35) 
 
-  b <- xyplot( remainder-spafit ~ time | factor,
-    , data = data
-    , group = flag
-    , xlab = list(label = "Month", cex = 1.5)
-    , ylab = list(label = ylab, cex = 1.5)
-    , sub = list(label=paste("Station ", station, "from cell", leaf), cex=1.2)
-    , layout = c(1,6)
-    , strip = FALSE,
-    , xlim = c(0, 107)
-    , key=list(
-        cex = 1.2,
-        text = list(label=c("raw", "imputed")), 
-        lines = list(pch=16, cex=0.7, lwd=1.5, type=c("p","p"), col=col[c(2,1)]),
-        columns=2
-      )
-    , scales = list(
-        y = list(tick.number=4, cex=1.2), 
-        x = list(at=seq(0, 107, by=12), relation='same', cex=1.2)
-      )
-    , panel = function(x,y,...) {
-        panel.abline(v=seq(0,108, by=12), color="lightgrey", lty=3, lwd=0.5)
-        panel.xyplot(x, y, type="p", pch=16, cex=0.5, ...)
-      }
+residSpaFitVisl <- function(i, j, bestStlplus) {
+
+  FileInput <- file.path(rh.root, par$dataset, "a1950", "STL.bymonth", bestStlplus)
+
+  spaPara <- data.frame(permutations(3, 2, c("lon","lat","elev")))
+  para <- list(span=i, Edeg=j, degree=2, surf="direct")
+  FileOutput <- file.path(
+    rh.root, par$dataset, "a1950", "STL.bymonth.remaindfit", 
+    bestStlplus, "symmetric", para$surf, para$Edeg, paste("sp", para$span, sep="")
   )
-  return(b)
+#  a1950.Spatialfit(input=FileInput, output=FileOutput, argumt=para)
+#  a1950.spafitVisualMon(input=FileOutput, plotEng.RevsFit, vars=NULL, target=NULL)
+#  for (k in 1:nrow(spaPara)) {
+#    vars <- spaPara[k, ]
+#    a1950.spafitVisualMon(input=FileOutput, plotEng.RevsSpa, vars, target="spaResid")
+#  }
+  ## the residual against time for each station which does not have missing value
+  FileInput <- FileOutput 
+  FileOutput <- paste(FileInput, "bystation", sep=".")
+#  swapTostation(FileInput, FileOutput, elevFlag = FALSE)
+  FileInput <- FileOutput
+  a1950.spafitVisualStat(
+    input=FileInput, plotEng.residualDate, 
+    name="resid.vs.time", sample = FALSE, multiple=NULL
+  )
+  
+  ## the overall quantile plot of the residual for each month
+#  FileInput <- file.path(
+#    rh.root, par$dataset, "a1950", "STL.bymonth.remaindfit", 
+#    bestStlplus, "symmetric", para$surf, para$Edeg, paste("sp", para$span, sep="")
+#  )
+#  df <- a1950.residQuant(
+#    input=FileInput, target="residual", by=NULL, 
+#    probs=seq(0.005, 0.995, 0.005), nBins = 10000, tails = 100
+#  )
+#  trellis.device(
+#    device = postscript, 
+#    file = file.path(local.root, "output", "a1950.residual.quant.ps"),
+#    color = TRUE, 
+#    paper = "letter"
+#  )
+#    b <- xyplot(q ~ fval
+#      , data = df
+#      , xlab = list(label="f-value", cex=1.5)
+#      , ylab = list(label="Residual", cex=1.5)
+#      , scale = list(cex=1.2)
+#    )
+#    print(b)
+#  dev.off()      
+#  df <- a1950.residQuant(
+#    input=FileInput, target="residual", by=NULL, 
+#    probs=seq(0.005, 0.995, 0.005), nBins = 10000, tails = 0
+#  )
+#  trellis.device(
+#    device = postscript, 
+#    file = file.path(local.root, "output", "a1950.residual.centerquant.ps"),
+#    color = TRUE, 
+#    paper = "letter"
+#  )
+#    b <- xyplot(q ~ fval
+#      , data = df
+#      , xlab = list(label="f-value", cex=1.5)
+#      , ylab = list(label="Residual", cex=1.5)
+#      , scale = list(cex=1.2, y=list(at=seq(-2,2,1)))
+#      , panel = function(x, y,...) {
+#          panel.abline(v=seq(0,1,0.2), h=seq(-2,2,1), col="lightgray", lwd=0.5)
+#          panel.xyplot(x,y,...)
+#      }
+#    )
+#    print(b)
+#  dev.off()  
+#  trellis.device(
+#    device = postscript, 
+#    file = file.path(local.root, "output", "a1950.residual.QQ.ps"),
+#    color = TRUE, 
+#    paper = "letter"
+#  )
+#    b <- xyplot(q ~ qt(fval,3)
+#      , data = df
+#      , xlab = list(label="Quantiles of t-distribution", cex=1.5)
+#      , ylab = list(label="Residual", cex=1.5)
+#      , scale = list(cex=1.2, y=list(at=seq(-2,2,1)))
+#      , aspect = 1
+#      , panel = function(x, y, ...) {
+#          panel.qqmathline(y,y=y, distribution=function(p) qt(p, df=3),...)
+#          panel.xyplot(x, y, col = col[1], pch = 1, cex = 1, ...)
+#      }
+#    )
+#    print(b)
+#  dev.off() 
+
 
 }

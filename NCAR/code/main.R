@@ -688,101 +688,9 @@ for (k in 1:nrow(spaPara)) {
 ##  and finally visualize the overall quantiles  ##
 ##  of the residual                              ##
 ###################################################
-residSpaFitVisl <- function(i, j, bestStlplus) {
-
-  FileInput <- file.path(rh.root, par$dataset, "a1950", "STL.bymonth", bestStlplus)
-
-  spaPara <- data.frame(permutations(3, 2, c("lon","lat","elev")))
-  para <- list(span=i, Edeg=j, degree=2, surf="direct")
-  FileOutput <- file.path(
-    rh.root, par$dataset, "a1950", "STL.bymonth.remaindfit", 
-    bestStlplus, "symmetric", para$surf, para$Edeg, paste("sp", para$span, sep="")
-  )
-  a1950.Spatialfit(input=FileInput, output=FileOutput, argumt=para)
-  a1950.spafitVisualMon(input=FileOutput, plotEng.RevsFit, vars=c("fitted", ""), target="spaResid")
-  for (k in 1:nrow(spaPara)) {
-    vars <- spaPara[k, ]
-    a1950.spafitVisualMon(input=FileOutput, plotEng.RevsSpa, vars, target="spaResid")
-  }
-  ## the residual against time for each station
-  FileInput <- FileOutput 
-  FileOutput <- paste(FileInput, "bystation", sep=".")
-  swapTostation(FileInput, FileOutput, elevFlag = FALSE)
-  FileInput <- FileOutput
-  ## find all stations after 1950 without missing value, save all station.id
-  ## as a1950Nomiss vector in nomiss.a1950.RData
-  a1950.Nomiss(FileInput)
-
-  a1950.spafitVisualStat(
-    input=FileInput, plotEng.residualDate, 
-    name="resid.vs.time", sample = FALSE, multiple=NULL
-  )
-  
-  ## the overall quantile plot of the residual for each month
-  FileInput <- file.path(
-    rh.root, par$dataset, "a1950", "STL.bymonth.remaindfit", 
-    bestStlplus, "symmetric", para$surf, para$Edeg, paste("sp", para$span, sep="")
-  )
-  df <- a1950.residQuant(
-    input=FileInput, target="residual", by=NULL, 
-    probs=seq(0.005, 0.995, 0.005), nBins = 10000, tails = 100
-  )
-  trellis.device(
-    device = postscript, 
-    file = file.path(local.root, "output", "a1950.residual.quant.ps"),
-    color = TRUE, 
-    paper = "letter"
-  )
-    b <- xyplot(q ~ fval
-      , data = df
-      , xlab = list(label="f-value", cex=1.5)
-      , ylab = list(label="Residual", cex=1.5)
-      , scale = list(cex=1.2)
-    )
-    print(b)
-  dev.off()      
-  df <- a1950.residQuant(
-    input=FileInput, target="residual", by=NULL, 
-    probs=seq(0.005, 0.995, 0.005), nBins = 10000, tails = 0
-  )
-  trellis.device(
-    device = postscript, 
-    file = file.path(local.root, "output", "a1950.residual.centerquant.ps"),
-    color = TRUE, 
-    paper = "letter"
-  )
-    b <- xyplot(q ~ fval
-      , data = df
-      , xlab = list(label="f-value", cex=1.5)
-      , ylab = list(label="Residual", cex=1.5)
-      , scale = list(cex=1.2, y=list(at=seq(-2,2,1)))
-      , panel = function(x, y,...) {
-          panel.abline(v=seq(0,1,0.2), h=seq(-2,2,1), col="lightgray", lwd=0.5)
-          panel.xyplot(x,y,...)
-      }
-    )
-    print(b)
-  dev.off()  
-  trellis.device(
-    device = postscript, 
-    file = file.path(local.root, "output", "a1950.residual.QQ.ps"),
-    color = TRUE, 
-    paper = "letter"
-  )
-    b <- xyplot(q ~ qt(fval,3)
-      , data = df
-      , xlab = list(label="Quantiles of t-distribution", cex=1.5)
-      , ylab = list(label="Residual", cex=1.5)
-      , scale = list(cex=1.2, y=list(at=seq(-2,2,1)))
-      , aspect = 1
-      , panel = function(x, y, ...) {
-          panel.qqmathline(y,y=y, distribution=function(p) qt(p, df=3),...)
-          panel.xyplot(x, y, col = col[1], pch = 1, cex = 1, ...)
-      }
-    )
-    print(b)
-  dev.off() 
-}
+## find all stations after 1950 without missing value, save all station.id
+## as a1950Nomiss vector in nomiss.a1950.RData
+a1950.Nomiss(file.path(rh.root, par$dataset, "a1950", "bystation"))
 
 for (ii in c(0.05,0.025,0.015, 0.005)) {
   for (jj in c(1, 2)) {
@@ -872,12 +780,17 @@ outlierBystation <- outliersCount(FileInput, FileOutput, lim=2, by="station")
 outlierVisStat(outlierBystation)
 ## generate the stations which has more than 2^5 outliers or has outliers larger than 10
 ## and save the on HDFS as outliersTop.a1950.RData
-outliersStatTop(FileInput, FileOutput, lim=2, top=2^5, ORtop=10)
+outliersTop(FileInput, FileOutput, lim=2, top=2^5, ORtop=10, by="station")
 ## visualize the raw and outliers against time for each station from outliersTop.a1950.RData
 paras <- list(sw="periodic", sd=1, tw=241, td=1, fcw=NULL, fcd=NULL)
 a1950.STLvisual(paras, FileInput, plotEng.rawOutlier, name="stlOutlier.vs.time", sample = FALSE, Alloutlier=FALSE, multiple=NULL)
 
-outliersMonthTop()
+FileInput <- file.path(
+  rh.root, par$dataset, "a1950", "STL.bymonth.remaindfit", 
+  bestStlplus, "symmetric", "direct", "2", "sp0.015"
+)
+FileOutput <- paste(FileInput, "outliers", sep=".")
+outliersTop(FileInput, FileOutput, lim=2, top=45, ORtop=10, by="month")
 ##visualize the outliers in space for each month
 ##
 
