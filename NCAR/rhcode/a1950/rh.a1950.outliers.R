@@ -195,6 +195,9 @@ outliersMissCount <- function(input, output, lim=2) {
   
 }
 
+##  outliersTop is trying to find either a month or a station
+##  which contains outliers more than top, or contains a outliers larger
+##  than ORtop.
 outliersTop <- function(input, output, lim=2, top=2^4, ORtop=0, by) {
   
   job <- list()
