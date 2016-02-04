@@ -988,12 +988,12 @@ a1950.residQuant <- function(input, target="residual", by=NULL, probs=seq(0, 1, 
 
 a1950.Nomiss <- function(input) {
 
-  output <- paste(input, "plot", sep=".") 
+  output <- paste(input, "noMissStations", sep=".") 
 
   job <- list()
   job$map <- expression({
     lapply(seq_along(map.keys), function(r) {
-      if (sum(map.values[[r]]$flag) == 576) {
+      if (sum(is.na(map.values[[r]]$resp)) == 0) {
         rhcollect(1, map.keys[[r]])
       }
     })
