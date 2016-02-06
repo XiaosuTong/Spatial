@@ -157,6 +157,18 @@ outlierVisStat <- function(dataset, byname=NULL, byvari=NULL) {
   print(b)
   dev.off()
 
+  trellis.device(
+    device = postscript, 
+    file = file.path(local.root, "output", "a1950.outliersCountbystation.ps"),
+    color = TRUE, 
+    paper = "letter"
+  )
+  b <- 
+
+  )
+  print(b)
+  dev.off()  
+
 }
 
 
@@ -233,6 +245,37 @@ outlierVisMonth <- function(dataset, byname=NULL, byvari=NULL) {
   print(b)
   dev.off()
 
+  date <- paste(dataset$year, match(dataset$month, month.abb), "01", sep="-")
+  dataset$date <- as.POSIXct(strptime(date, format = "%Y-%m-%d"), format='%Y%m%d', tz="")
+  dataset <- arrange(dataset, year, match(month, month.abb))
+  start <- head(dataset$date, 1)
+  end <- tail(dataset$date, 1)
+  trellis.device(
+    device = postscript, 
+    file = file.path(local.root, "output", "a1950.outliersCountvsTime.ps"),
+    color = TRUE, 
+    paper = "letter"
+  )
+  b <- xyplot( out ~ date
+    , data = dataset
+    , type = "l"
+    , ylim = c(-5, 205)
+    , ylab = list(label = "Number of Outliers", cex=1.5)
+    , xlab = list(label = "Month", cex=1.5)
+    , scale = list(cex=1.2,
+        y = list(at = seq(0, 200, 50)),
+        x = list(format = "%b %Y", at = c(seq(start, end, by="96 month"), end))
+      )
+    , panel = function(x,y,...) {
+        panel.abline(v=c(seq(start, end, by="96 month"), end), col = "lightgray", lwd=0.5)
+        panel.abline(h=seq(0, 200, 50), col = "lightgray", lwd=0.5)
+        panel.xyplot(x,y,...)
+        panel.loess(x,y,span=0.2, degree=1, evaluation=200, col = "red", ... )
+    }
+  )
+  print(b)
+  dev.off()
+
 }
 
 plotEng.rawOutlier <- function(data, station, lim=2) {
@@ -278,6 +321,97 @@ plotEng.rawOutlier <- function(data, station, lim=2) {
 
 }
 
-outlierMonth <- function() {
-  
+plotEng.outlierMonth <- function(dataset, ym, lim=2) {
+
+#  hexbinplot(rnorm(10000)~rnorm(10000), colramp= function(n){heat.ob (n, beg=1, end=256)})
+
+  colcold <- BTC(4, beg=50, end=140)
+  colhot <- magent(4, beg=140, end=50)
+  col <- c(colcold, colhot)
+  dataset <- subset(dataset, remainder-spafit <= -lim | remainder-spafit >= lim)
+  b <- xyplot( lat ~ lon
+    , data = dataset
+    , xlab = list(label="Longitude", cex = 1.5)
+    , ylab = list(label="Latitude", cex = 1.5)
+    , sub = paste(ym[1], ym[2])
+    , xlim = c(-125,-66)
+    , ylim = c(24, 50)
+    , key = list(
+        type = "p", 
+        text = list(label=c("<-15","[-15, -10)","[-10, -5)", "[-5, -2)", "(2, 5]", "(5, 10]", "(10, 15]",">15")),  
+        points = list(cex=1, pch=16, col=col[1:8]), 
+        columns = 4
+      )
+    , pch = 16
+    , cex = 1
+    , scales = list(
+        y = list(cex = 1.2),x = list(cex = 1.2)
+      )
+    , panel = function(x,y,...) {
+        panel.polygon(us.map$x,us.map$y) 
+        panel.text(x=-123, y=26, labels=paste("Outliers:", nrow(dataset)), adj=c(0,0))
+        for(i in 1:4) {
+          sub <- subset(dataset, remainder-spafit > (0 + (i-1)*5) & remainder-spafit <= ( 5 + (i-1)*5))
+          panel.xyplot(sub$lon, sub$lat, col=col[i+4], ...)
+          sub <- subset(dataset, remainder-spafit < (0 - (i-1)*5) & remainder-spafit >= (-5 - (i-1)*5))
+          panel.xyplot(sub$lon, sub$lat, col=col[5-i], ...)
+        }
+      }
+  )
+  return(b)
+
 }
+
+outlierMonth <- function(input, output, name, plotEng=plotEng.outlierMonth) {
+ 
+  job <- list()
+  job$map <- expression({
+    lapply(seq_along(map.keys), function(r) {
+      mindex <- (as.numeric(map.keys[[r]][1]) - 1950)*12 + match(map.keys[[r]][2], month.abb)
+      if (mindex %in% outliers.a1950.month) {
+        rhcounter("map", "month", 1)
+        value <- subset(map.values[[r]], flag == 1, select = c(spafit, remainder, lon, lat, elev2, station.id))
+        pp <- plotEng(dataset=value, ym=map.keys[[r]])
+        rhcollect(mindex, serialize(pp, NULL))
+      }
+    })
+  }) 
+  job$setup <- expression(
+    map = {
+      load("outliersMonthTop.a1950.RData")
+      library(maps)
+      library(lattice)
+      library(hexbin, lib.loc=lib.loc)
+      us.map <- map('state', plot = FALSE, fill = TRUE)
+    }
+  )
+  job$shared <- c(
+    file.path(file.path(rh.root, par$dataset, "a1950", "Rdata", "outliersMonthTop.a1950.RData"))
+  )
+  job$parameters <- list(
+    plotEng = plotEng
+  )
+  job$mapred <- list(
+    mapred.reduce.tasks = 1,
+    mapred.tasktimeout = 0
+  )
+  job$input <- rhfmt(input, type="sequence")
+  job$output <- rhfmt(output, type="sequence")
+  job$mon.sec <- 10
+  job$jobname <- output
+  job$readback <- TRUE
+  job.mr <- do.call("rhwatch", job) 
+
+  trellis.device(
+    device = postscript, 
+    file = file.path(local.root, "output", paste("a1950", name, "ps", sep=".")),
+    color = TRUE, 
+    paper = "letter"
+  )
+  for(ii in order(unlist(lapply(job.mr, "[[", 1)))) {
+    print(unserialize(job.mr[[ii]][[2]]))
+  }
+  dev.off()
+
+}
+

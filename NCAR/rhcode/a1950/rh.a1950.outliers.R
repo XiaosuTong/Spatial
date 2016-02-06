@@ -102,11 +102,23 @@ outliersCount <- function(input, output, lim=2, by) {
     lapply(seq_along(map.keys), function(r) {
       value <- subset(map.values[[r]], flag == 1)
       resid <- with(value, remainder - spafit)
-      outlier <- sum(resid <=-lim | resid >= lim)
+      outlier <- sum(resid <= -lim | resid >= lim)
       if (by == "station") {
-        value <- data.frame(station.id = map.keys[[r]], out = outlier)
+        value <- data.frame(
+          station.id = map.keys[[r]], 
+          lon = attributes(map.values[[r]])$loc[1], 
+          lat = attributes(map.values[[r]])$loc[2], 
+          elev2 = attributes(map.values[[r]])$loc[3], 
+          out = outlier,
+          stringsAsFactors = FALSE
+        )
       } else {
-        value <- data.frame(year = map.keys[[r]][1], month = map.keys[[r]][2], out = outlier)
+        value <- data.frame(
+          year = map.keys[[r]][1], 
+          month = map.keys[[r]][2], 
+          out = outlier,
+          stringsAsFactors = FALSE
+        )
       }
       rhcollect(1, value)
     })
@@ -238,6 +250,7 @@ outliersTop <- function(input, output, lim=2, top=2^4, ORtop=0, by) {
       },
       post = {
         names(combine) <- c("year","month")
+        combine$year <- as.character(combine$year)
         rhcollect(reduce.key, combine)
       }
     )
@@ -262,13 +275,12 @@ outliersTop <- function(input, output, lim=2, top=2^4, ORtop=0, by) {
     outliers.a1950.stations <- (job.mr[[1]][[2]])
     rhsave(outliers.a1950.stations, file="/ln/tongx/Spatial/tmp/tmax/a1950/Rdata/outliersStatTop.a1950.RData")
   } else {
-    outliers.a1950.stations <- (job.mr[[1]][[2]])
-    rhsave(outliers.a1950.stations, file="/ln/tongx/Spatial/tmp/tmax/a1950/Rdata/outliersMonthTop.a1950.RData")    
+    outliers.a1950.month <- (job.mr[[1]][[2]])
+    outliers.a1950.month <- (as.numeric(outliers.a1950.month$year) - 1950)*12 + match(outliers.a1950.month$month, month.abb)
+    rhsave(outliers.a1950.month, file="/ln/tongx/Spatial/tmp/tmax/a1950/Rdata/outliersMonthTop.a1950.RData")    
   }
   
 }
-
-
 
 
 
