@@ -790,9 +790,10 @@ FileInput <- file.path(
   bestStlplus, "symmetric", "direct", "2", "sp0.015"
 )
 FileOutput <- paste(FileInput, "outliers", sep=".")
-outliersTop(FileInput, FileOutput, lim=2, top=45, ORtop=10, by="month")
-##visualize the outliers in space for each month
-##
+outliersTop(FileInput, FileOutput, lim=2, top=2^6, ORtop=50, by="month")
+##visualize the outliers location in space for each month
+outlierMonth(FileInput, FileOutput, name="outlierLocbyMonth", plotEng=plotEng.outlierMonth)
+
 
 
 
