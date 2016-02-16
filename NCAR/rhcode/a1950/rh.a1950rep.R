@@ -1,4 +1,4 @@
-repTime <- function(input, output, Rep=8000, buffSize=7){
+repTime <- function(input, output, Rep=8000){
 
   job <- list()
   job$map <- expression({
@@ -19,7 +19,7 @@ repTime <- function(input, output, Rep=8000, buffSize=7){
   job$mapred <- list(
     mapred.reduce.tasks = 100,  #cdh3,4
     mapreduce.job.reduces = 100,  #cdh5
-    rhipe_map_buff_size = buffSize
+    #rhipe_map_buff_size = buffSize
     #rhipe_reduce_buff_size = 10000
   )
   job$mon.sec <- 20
