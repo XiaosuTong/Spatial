@@ -60,6 +60,10 @@ swapTomonth <- function(input, output, elevFlag=TRUE) {
       rhcollect(reduce.key, combine)
     }
   )
+  job$parameters <- list(
+    lib.loc = lib.loc,
+    elevFlag = elevFlag
+  )
   job$setup <- expression(
     map = {library(dplyr, lib.loc=lib.loc)}
   )
