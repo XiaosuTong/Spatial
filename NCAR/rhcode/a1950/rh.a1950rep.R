@@ -11,8 +11,11 @@ repTime <- function(input, output, Rep=8000, buffSize=7){
   job$setup <- expression(
     map = {library(dplyr, lib.loc=lib.loc)}
   )
-  job$input <- rhfmt(Input, type = "sequence")
-  job$output <- rhfmt(Output, type = "sequence")
+  job$parameters <- list(
+    Rep = Rep
+  )
+  job$input <- rhfmt(input, type = "sequence")
+  job$output <- rhfmt(output, type = "sequence")
   job$mapred <- list(
     mapred.reduce.tasks = 100,  #cdh3,4
     mapreduce.job.reduces = 100,  #cdh5
