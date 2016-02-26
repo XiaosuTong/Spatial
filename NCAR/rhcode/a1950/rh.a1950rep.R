@@ -1,15 +1,22 @@
-repTime <- function(input, output, Rep=8000){
+repTime <- function(input, output, buffSize, Rep=9600){
 
   job <- list()
   job$map <- expression({
     lapply(seq_along(map.keys), function(r) {
-      value <- rdply(Rep, arrange(map.values[[r]], year, match(month, month.abb)), .id=NULL)
+      Index <- which(is.na(map.values[[r]]$resp))
+      map.values[[r]][Index, "resp"] <- map.values[[r]]$fitted[Index]
+      value <- subset(arrange(map.values[[r]], year, match(month, month.abb)), select = -c(fitted, year))
+      value <- rdply(Rep, value, .id=NULL)
       value$date <- 1:nrow(value)
+      row.names(value) <- NULL
+      attr(value, "loc") <- attributes(map.values[[r]])$loc
       rhcollect(map.keys[[r]], value)
     })
   })
   job$setup <- expression(
-    map = {library(dplyr, lib.loc=lib.loc)}
+    map = {
+      suppressMessages(library(plyr, lib.loc=lib.loc))
+    }
   )
   job$parameters <- list(
     Rep = Rep
@@ -17,9 +24,9 @@ repTime <- function(input, output, Rep=8000){
   job$input <- rhfmt(input, type = "sequence")
   job$output <- rhfmt(output, type = "sequence")
   job$mapred <- list(
-    mapred.reduce.tasks = 100,  #cdh3,4
-    mapreduce.job.reduces = 100,  #cdh5
-    #rhipe_map_buff_size = buffSize
+    mapred.reduce.tasks = 0,  #cdh3,4
+    mapreduce.job.reduces = 0,  #cdh5
+    rhipe_map_buff_size = buffSize
     #rhipe_reduce_buff_size = 10000
   )
   job$mon.sec <- 20
@@ -29,27 +36,23 @@ repTime <- function(input, output, Rep=8000){
 
 }
 
-swapTomonth <- function(input, output, elevFlag=TRUE) {
+swapTomonth <- function(input, output, io_sort, spill_percent, parallelcopies, reduce_merge_inmem, reduce_input_buffer) {
 
   job <- list()
   job$map <- expression({
     lapply(seq_along(map.values), function(r) {
-      d_ply(
-        .data = map.values[[r]],
-        .variable = c("year","month"),
-        .fun = function(k, station = map.keys[[r]]) {
-          key <- c(unique(k$year), unique(as.character(k$month)))
-          value <- subset(k, select = -c(year, month))
-          value$station.id <- station
-          value$lon <- as.numeric(attributes(map.values[[r]])$loc[1])
-          value$lat <- as.numeric(attributes(map.values[[r]])$loc[2])
-          if (!elevFlag) {
-            value$elev2 <- as.numeric(attributes(map.values[[r]])$loc[3])
-          } else {
-          	value$elev2 <- log2(as.numeric(attributes(map.values[[r]])$loc[3]) + 128)
-          }
-          rhcollect(key, value)
-      })
+      for(i in 1:nrow(map.values[[r]])) {
+        key <- c(map.values[[r]]$date[i], as.character(map.values[[r]]$month[i]))
+        value <- data.frame(
+          station.id = map.keys[[r]],
+          lon = as.numeric(attributes(map.values[[r]])$loc[1]),
+          lat = as.numeric(attributes(map.values[[r]])$loc[2]),
+          elev2 = as.numeric(attributes(map.values[[r]])$loc[3]),
+          resp = map.values[[r]]$resp[i],
+          stringsAsFactors = FALSE
+        )
+        rhcollect(key, value)
+      }
     })
   })
   job$reduce <- expression(
@@ -63,23 +66,24 @@ swapTomonth <- function(input, output, elevFlag=TRUE) {
       rhcollect(reduce.key, combine)
     }
   )
-  job$parameters <- list(
-    lib.loc = lib.loc,
-    elevFlag = elevFlag
-  )
   job$setup <- expression(
-    map = {library(dplyr, lib.loc=lib.loc)}
+    map = {library(plyr, lib.loc=lib.loc)}
   )
   job$mapred <- list(
     mapred.reduce.tasks = 100,  #cdh3,4
     mapreduce.job.reduces = 100,  #cdh5
+    mapreduce.task.io.sort.mb = io_sort,
+    mapreduce.map.sort.spill.percent = spill_percent,
+    mapreduce.reduce.shuffle.parallelcopies = parallelcopies,
+    mapreduce.reduce.merge.inmem.threshold = reduce_merge_inmem,
+    mapreduce.reduce.input.buffer.percent = reduce_input_buffer,
     mapred.tasktimeout = 0,
     rhipe_reduce_buff_size = 10000
   )
   job$combiner <- TRUE
   job$input <- rhfmt(input, type="sequence")
   job$output <- rhfmt(output, type="sequence")
-  job$mon.sec <- 20
+  job$mon.sec <- 10
   job$jobname <- output
   job$readback <- FALSE  
 

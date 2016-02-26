@@ -14,7 +14,7 @@ source("~/Rhipe/rhinitial.R")
 
 par <- list()
 par$dataset <- "tmax"
-par$Machine <- "adhara"
+par$Machine <- "wsc"
 source("~/Projects/Spatial/NCAR/rhcode/rh.setup.R")
 
 
@@ -804,6 +804,66 @@ dim(tmp)
 
 
 xyplot(radius ~ elev2, data = job.mr[[1]][[2]])
+
+
+
+
+
+
+
+
+
+
+
+
+
+####################################
+##    Duplicate each time series  ##
+####################################
+FileInput <- file.path(rh.root, par$dataset, "a1950", "bymonth.fit", "symmetric", "direct", 2, "sp0.015")
+FileOutput <- file.path(rh.root, par$dataset, "simulate", "bystation.orig")
+swapTostation(FileInput, FileOutput)
+
+FileInput <- file.path(rh.root, par$dataset, "simulate", "bystation.orig")
+FileOutput <- file.path(rh.root, par$dataset, "simulate", "bystation")
+repTime(FileInput, FileOutput, buffSize=10000, Rep=10)
+
+FileInput <- file.path(rh.root, par$dataset, "simulate", "bystation")
+FileOutput <- file.path(rh.root, par$dataset, "simulate", "bymonth")
+
+rst <- data.frame(large=c(0,0,0), small=c(0,0,0), rep = c(1,2,3))
+for (i in 1:3) {
+  
+  rst[i, 1] <- system.time(swapTomonth(FileInput, FileOutput, io_sort=1000, spill_percent=0.9, parallelcopies=5))[3]
+  Sys.sleep(60)
+  rst[i, 2] <- system.time(swapTomonth(FileInput, FileOutput, io_sort=10, spill_percent=0.6, parallelcopies=5))[3]
+  Sys.sleep(60)
+
+}
+#   large   small rep
+# 295.755 339.719   1
+# 309.155 330.587   2
+# 309.345 326.252   3
+
+rst <- data.frame(large=c(0,0,0), small=c(0,0,0), rep = c(1,2,3))
+for (i in 1:3) {
+  
+  rst[i, 1] <- system.time(swapTomonth(FileInput, FileOutput, io_sort=1000, spill_percent=0.8, parallelcopies=5, reduce_merge_inmem=1000, reduce_input_buffer=0.0))[3]
+  Sys.sleep(60)
+  rst[i, 2] <- system.time(swapTomonth(FileInput, FileOutput, io_sort=1000, spill_percent=0.8, parallelcopies=5, reduce_merge_inmem=0, reduce_input_buffer=1))[3]
+  Sys.sleep(60)
+  
+}
+
+
+
+
+
+
+
+
+
+
 
 
 ##########################################
