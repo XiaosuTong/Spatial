@@ -550,7 +550,8 @@ swapTostation <- function(input, output, elevFlag=TRUE) {
     job$output <- rhfmt(output, type = "sequence")
     job$mapred <- list(
       mapred.tasktimeout = 0,
-      mapred.reduce.tasks = 72
+      mapred.reduce.tasks = 100,
+      rhipe_reduce_buff_size = 10000
     )
     job$mon.sec <- 10
     job$jobname <- output  
