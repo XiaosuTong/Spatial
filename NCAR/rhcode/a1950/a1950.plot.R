@@ -880,9 +880,9 @@ plotEng.raw <- function(data, station, leaf) {
     , ylim = c(min(c(data$resp, data$fitted), na.rm=TRUE), max(c(data$resp, data$fitted), na.rm=TRUE))
     , key=list(
         cex = 1.2,
-        text = list(label=c("raw", "imputed", "fitted")), 
-        lines = list(pch=16, cex=0.7, lwd=1.5, type=c("p","p","l"), col=col[c(1,3,2)]),
-        columns=3
+        text = list(label=c("spatial smoothed value", "temporal fitted value")), 
+        lines = list(pch=16, cex=0.7, lwd=1.5, type=c("p","l"), col=col[c(1:2)]),
+        columns=2
       )
     , scales = list(
         y = list(tick.number=4, cex=1.2), 
@@ -893,7 +893,7 @@ plotEng.raw <- function(data, station, leaf) {
         fit <- subset(data[subscripts,], flag == 0)
         obs <- subset(data[subscripts,], flag == 1)
         panel.xyplot(obs$time, obs$resp, type="p", col=col[1], pch=16, cex=0.5, ...)
-        panel.xyplot(fit$time, fit$fitted, type="p", col=col[3], pch=16, cex=0.5, ...)
+        panel.xyplot(fit$time, fit$fitted, type="p", col=col[1], pch=16, cex=0.5, ...)
         if (!any(grepl("fc", names(data)))) {
           panel.xyplot(data[subscripts,]$time, (data[subscripts,]$trend+data[subscripts,]$seasonal), type="l", col=col[2], lwd=1, ...)            
         } else {

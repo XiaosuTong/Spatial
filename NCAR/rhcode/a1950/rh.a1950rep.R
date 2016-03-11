@@ -1,4 +1,4 @@
-repTime <- function(input, output, buffSize, Rep=9600){
+repTime <- function(input, output, Rep=9600){
 
   job <- list()
   job$map <- expression({
@@ -26,7 +26,15 @@ repTime <- function(input, output, buffSize, Rep=9600){
   job$mapred <- list(
     mapred.reduce.tasks = 0,  #cdh3,4
     mapreduce.job.reduces = 0,  #cdh5
-    rhipe_map_buff_size = buffSize
+    mapreduce.task.io.sort.mb = 512,
+    mapreduce.map.sort.spill.percent = 0.9,
+    mapreduce.reduce.shuffle.parallelcopies = 10,
+    mapreduce.reduce.merge.inmem.threshold = 0,
+    mapreduce.reduce.input.buffer.percent = 1,
+    mapreduce.task.io.sort.factor = 100,
+    mapreduce.reduce.shuffle.input.buffer.percent = 0.8,
+    mapreduce.reduce.shuffle.merge.percent = 0.8,
+    mapred.tasktimeout = 0
     #rhipe_reduce_buff_size = 10000
   )
   job$mon.sec <- 20
@@ -201,7 +209,7 @@ swapTostation <- function(input, output, elevFlag=FALSE) {
 
 }
 
-a1950.STLfit <- function(input, output, reduce, tuning) {
+a1950.STLfit <- function(input, output, tuning) {
   
   job <- list()
   job$map <- expression({
@@ -209,16 +217,16 @@ a1950.STLfit <- function(input, output, reduce, tuning) {
       loc <- attributes(map.values[[r]])$loc
       value <- arrange(map.values[[r]], date)
       #value$station.id <- map.keys[[r]]
-      Index <- which(is.na(value$resp))
+      #Index <- which(is.na(value$resp))
       Resp <- value$resp
-      value$flag <- 1
-      value$flag[Index] <- 0
-      Resp[Index] <- value$fitted[Index]
+      #value$flag <- 1
+      #value$flag[Index] <- 0
+      #Resp[Index] <- value$fitted[Index]
       if (is.null(par$fcw)) {
         
         fit <- stlplus(
           x=Resp, t=value$date, n.p=12, s.window=par$sw, s.degree=par$sd, 
-          t.window=par$tw, t.degree=par$td, inner=10, outer=0
+          t.window=par$tw, t.degree=par$td, inner=par$inner, outer=par$outer
         )$data
         value <- cbind(value, subset(fit, select = c(seasonal, trend, remainder)))
 
@@ -236,32 +244,32 @@ a1950.STLfit <- function(input, output, reduce, tuning) {
       rhcollect(map.keys[[r]], value)
     })
   })
-  job$reduce <- expression(
-    pre = {
-      combined <- data.frame()
-    },
-    reduce = {
-      combined <- rbind(combined, do.call("rbind", reduce.values))
-    },
-    post = { 
-      rhcollect(reduce.key, combined)
-    }
-  )
+#  job$reduce <- expression(
+#    pre = {
+#      combined <- data.frame()
+#    },
+#    reduce = {
+#      combined <- rbind(combined, do.call("rbind", reduce.values))
+#    },
+#    post = { 
+#      rhcollect(reduce.key, combined)
+#    }
+#  )
   job$parameters <- list(
     par = tuning
   )
   job$setup <- expression(
     map = {
       suppressMessages(library(stlplus, lib.loc=lib.loc))
-      library(dplyr, lib.loc=lib.loc)
+      library(plyr, lib.loc=lib.loc)
     }
   )
   job$input <- rhfmt(input, type = "sequence")
   job$output <- rhfmt(output, type = "sequence")
   job$mapred <- list(
     mapred.tasktimeout = 0,
-    mapred.reduce.tasks = reduce,  #cdh3,4
-    mapreduce.job.reduces = reduce  #cdh5
+    mapred.reduce.tasks = 0,  #cdh3,4
+    mapreduce.job.reduces = 0  #cdh5
   )
   job$readback <- FALSE
   job$jobname <- output
