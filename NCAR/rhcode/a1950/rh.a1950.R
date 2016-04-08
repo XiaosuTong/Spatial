@@ -563,7 +563,7 @@ swapTostation <- function(input, output, elevFlag=TRUE) {
 }
 
 a1950.STLfit <- function(input, reduce, tuning) {
-  
+
   output <- file.path(
     rh.root, par$dataset, "a1950", "STL", paste("t",tuning$tw, "td", tuning$td, "_s", tuning$sw, 
     "sd", tuning$sd, "_f", tuning$fcw, "fd", tuning$fcd, sep="")
@@ -1023,5 +1023,74 @@ a1950.Nomiss <- function(input) {
 
   a1950Nomiss <- job.mr[[1]][[2]]
   rhsave(a1950Nomiss, file=file.path(rh.root, par$dataset, "a1950","Rdata","nomiss.a1950.RData"))
+
+}
+
+
+a1950.spafitSTLfit <- function(input, tuning) {
+
+  output <- file.path(
+    rh.root, par$dataset, "a1950", "spafitSTL", paste("t",tuning$tw, "td", tuning$td, "_s", tuning$sw, 
+    "sd", tuning$sd, "_f", tuning$fcw, "fd", tuning$fcd, sep="")
+  )
+
+  job <- list()
+  job$map <- expression({
+    lapply(seq_along(map.keys), function(r) {
+      loc <- attributes(map.values[[r]])$loc
+      value <- arrange(map.values[[r]], date)
+      if (is.null(par$fcw)) {
+        
+        fit <- stlplus(
+          x=value$spafit, t=value$date, n.p=12, s.window=par$sw, s.degree=par$sd, 
+          t.window=par$tw, t.degree=par$td, inner=10, outer=0
+        )$data
+        names(fit)[which(names(fit) == "seasonal" | names(fit) == "trend")] <- c("spafitseasonal","spafittrend")
+        value <- cbind(value, subset(fit, select = c(spafitseasonal, spafittrend)))
+
+      } else {
+
+        fit <- do.call("cbind", stlplus(
+          x=value$spafit, t=value$date, n.p=12, s.window=par$sw, s.degree=par$sd, t.window=par$tw, 
+          t.degree=par$td, fc.window=c(par$tw,par$fcw), fc.degree=c(par$td,par$fcd), inner=10, outer=0
+        )[c("data","fc")])
+        value <- cbind(value, subset(fit, select = -c(data.raw, data.trend, data.remainder, data.weights, data.sub.labels)))
+        names(value)[grep("fc.fc", names(value))] <- c("fc.first", "fc.second")
+
+      }
+      attr(value, "loc") <- loc
+      rhcollect(map.keys[[r]], value)
+    })
+  })
+  job$reduce <- expression(
+    pre = {
+      combined <- data.frame()
+    },
+    reduce = {
+      combined <- rbind(combined, do.call("rbind", reduce.values))
+    },
+    post = { 
+      rhcollect(reduce.key, combined)
+    }
+  )
+  job$parameters <- list(
+    par = tuning
+  )
+  job$setup <- expression(
+    map = {
+      suppressMessages(library(stlplus, lib.loc=lib.loc))
+      library(plyr)
+    }
+  )
+  job$input <- rhfmt(input, type = "sequence")
+  job$output <- rhfmt(output, type = "sequence")
+  job$mapred <- list(
+    mapred.tasktimeout = 0,
+    mapred.reduce.tasks = 72,  #cdh3,4
+    mapreduce.job.reduces = 72  #cdh5
+  )
+  job$readback <- FALSE
+  job$jobname <- output
+  job.mr <- do.call("rhwatch", job)
 
 }
