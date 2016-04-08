@@ -1435,7 +1435,7 @@ plotEng.spafitDate <- function(data, station, leaf) {
     , data = data
     , xlab = list(label = "Month", cex=1.5)
     , ylab = list(label = ylab, cex=1.5)
-    , sub = list(label=paste("Station ", station), cex=1.2)
+    , sub = list(label=paste("Station ", station, "from cell", leaf), cex=1.2)
     , scale = list(x = list(at=seq(0, 576, 96)), cex=1.2)
     , key = list(
         text=list(label=c("remainder spatial fit","loess smoothing")), 
@@ -1458,7 +1458,7 @@ plotEng.spafitDateMulti <- function(data, station, leaf) {
   )
   data$time <- c(rep(0:107, times = 5), 0:35) 
 
-  b <- xyplot( resp ~ time | factor
+  b <- xyplot( spafit ~ time | factor
     , data = data
     , xlab = list(label = "Month", cex = 1.5)
     , ylab = list(label = ylab, cex = 1.5)
@@ -1466,10 +1466,13 @@ plotEng.spafitDateMulti <- function(data, station, leaf) {
     , layout = c(1,6)
     , strip = FALSE,
     , xlim = c(0, 107)
-    , ylim = c(min(c(data$resp, data$fitted), na.rm=TRUE), max(c(data$resp, data$fitted), na.rm=TRUE))
+    , ylim = c(
+        min(c(data$spafit, data$spafitseasonal+data$spafittrend), na.rm=TRUE), 
+        max(c(data$spafit, data$spafitseasonal+data$spafittrend), na.rm=TRUE)
+      )
     , key=list(
         cex = 1.2,
-        text = list(label=c("spatial smoothed value", "temporal fitted value")), 
+        text = list(label=c("spatial smoothed value of remainder", "temporal fitted value")), 
         lines = list(pch=16, cex=0.7, lwd=1.5, type=c("p","l"), col=col[c(1:2)]),
         columns=2
       )
@@ -1479,12 +1482,9 @@ plotEng.spafitDateMulti <- function(data, station, leaf) {
       )
     , panel = function(x,y,subscripts,...) {
         panel.abline(v=seq(0,108, by=12), color="lightgrey", lty=3, lwd=0.5)
-        fit <- subset(data[subscripts,], flag == 0)
-        obs <- subset(data[subscripts,], flag == 1)
-        panel.xyplot(obs$time, obs$resp, type="p", col=col[1], pch=16, cex=0.5, ...)
-        panel.xyplot(fit$time, fit$fitted, type="p", col=col[1], pch=16, cex=0.5, ...)
+        panel.xyplot(x, y, type="p", col=col[1], pch=16, cex=0.5, ...)
         if (!any(grepl("fc", names(data)))) {
-          panel.xyplot(data[subscripts,]$time, (data[subscripts,]$trend+data[subscripts,]$seasonal), type="l", col=col[2], lwd=1, ...)            
+          panel.xyplot(data[subscripts,]$time, (data[subscripts,]$spafittrend+data[subscripts,]$spafitseasonal), type="l", col=col[2], lwd=1, ...)            
         } else {
           panel.xyplot(data[subscripts,]$time, (data[subscripts,]$data.seasonal+data[subscripts,]$fc.first+data[subscripts,]$fc.second), type="l", col=col[2], lwd=1, ...)
         }

@@ -729,27 +729,119 @@ imputeCrossValid(
 ##########################################################
 ##  Visualize the spatial smoothing value of remainder  ##
 ##########################################################
+paras <- list(sw=21, sd=1, tw=241, td=1, fcw=NULL, fcd=NULL)
+
+## stlplus fit of spafit from span=0.015, degree=2
 bestStlplus <- "t241td1_speriodicsd1_ffd"
 bestSpatial <- "symmetric/direct/2/sp0.015.bystation"
 FileInput <- file.path(rh.root, par$dataset, "a1950", "STL.bymth.remfit", bestStlplus, bestSpatial)
-
 a1950.spafitVisualStat(
   input=FileInput, plotEng.spafitDate, 
   name="spafit.vs.time", sample = TRUE, multiple=NULL
 )
+FileInput <- a1950.spafitSTLfit(FileInput, tuning=paras, spamodel="d2sp0.015")
+a1950.spafitVisualStat(
+  input=FileInput, plotEng.spafitDateMulti, 
+  name="spafit.vs.timeMlti", sample = TRUE, multiple=NULL
+)
 
-paras <- list(sw=21, sd=1, tw=241, td=1, fcw=NULL, fcd=NULL)
-a1950.spafitSTLfit(FileInput, tuning=paras)
+## stlplus fit of spafit from span=0.005, degree=2
+bestStlplus <- "t241td1_speriodicsd1_ffd"
+bestSpatial <- "symmetric/direct/2/sp0.005.bystation"
+FileInput <- file.path(rh.root, par$dataset, "a1950", "STL.bymth.remfit", bestStlplus, bestSpatial)
+a1950.spafitVisualStat(
+  input=FileInput, plotEng.spafitDate, 
+  name="spafit.vs.time", sample = TRUE, multiple=NULL
+)
+FileInput <- a1950.spafitSTLfit(FileInput, tuning=paras, spamodel="d2sp0.005")
+a1950.spafitVisualStat(
+  input=FileInput, plotEng.spafitDateMulti, 
+  name="spafit.vs.timeMlti", sample = TRUE, multiple=NULL
+)
 
+## stlplus fit of spafit from span=0.025, degree=2
+bestStlplus <- "t241td1_speriodicsd1_ffd"
+bestSpatial <- "symmetric/direct/2/sp0.025.bystation"
+FileInput <- file.path(rh.root, par$dataset, "a1950", "STL.bymth.remfit", bestStlplus, bestSpatial)
+a1950.spafitVisualStat(
+  input=FileInput, plotEng.spafitDate, 
+  name="spafit.vs.time", sample = TRUE, multiple=NULL
+)
+FileInput <- a1950.spafitSTLfit(FileInput, tuning=paras, spamodel="d2sp0.025")
+a1950.spafitVisualStat(
+  input=FileInput, plotEng.spafitDateMulti, 
+  name="spafit.vs.timeMlti", sample = TRUE, multiple=NULL
+)
 
+## stlplus fit of spafit from span=0.05, degree=2
+bestStlplus <- "t241td1_speriodicsd1_ffd"
+bestSpatial <- "symmetric/direct/2/sp0.05.bystation"
+FileInput <- file.path(rh.root, par$dataset, "a1950", "STL.bymth.remfit", bestStlplus, bestSpatial)
+a1950.spafitVisualStat(
+  input=FileInput, plotEng.spafitDate, 
+  name="spafit.vs.time", sample = TRUE, multiple=NULL
+)
+FileInput <- a1950.spafitSTLfit(FileInput, tuning=paras, spamodel="d2sp0.05")
+a1950.spafitVisualStat(
+  input=FileInput, plotEng.spafitDateMulti, 
+  name="spafit.vs.timeMlti", sample = TRUE, multiple=NULL
+)
 
+## stlplus fit of spafit from span=0.05, degree=1
+bestStlplus <- "t241td1_speriodicsd1_ffd"
+bestSpatial <- "symmetric/direct/1/sp0.05.bystation"
+FileInput <- file.path(rh.root, par$dataset, "a1950", "STL.bymth.remfit", bestStlplus, bestSpatial)
+a1950.spafitVisualStat(
+  input=FileInput, plotEng.spafitDate, 
+  name="spafit.vs.time", sample = TRUE, multiple=NULL
+)
+FileInput <- a1950.spafitSTLfit(FileInput, tuning=paras, spamodel="d1sp0.05")
+a1950.spafitVisualStat(
+  input=FileInput, plotEng.spafitDateMulti, 
+  name="spafit.vs.timeMlti", sample = TRUE, multiple=NULL
+)
 
+## stlplus fit of spafit from span=0.025, degree=1
+bestStlplus <- "t241td1_speriodicsd1_ffd"
+bestSpatial <- "symmetric/direct/1/sp0.025.bystation"
+FileInput <- file.path(rh.root, par$dataset, "a1950", "STL.bymth.remfit", bestStlplus, bestSpatial)
+a1950.spafitVisualStat(
+  input=FileInput, plotEng.spafitDate, 
+  name="spafit.vs.time", sample = TRUE, multiple=NULL
+)
+FileInput <- a1950.spafitSTLfit(FileInput, tuning=paras, spamodel="d1sp0.025")
+a1950.spafitVisualStat(
+  input=FileInput, plotEng.spafitDateMulti, 
+  name="spafit.vs.timeMlti", sample = TRUE, multiple=NULL
+)
 
+## stlplus fit of spafit from span=0.015, degree=1
+bestStlplus <- "t241td1_speriodicsd1_ffd"
+bestSpatial <- "symmetric/direct/1/sp0.015.bystation"
+FileInput <- file.path(rh.root, par$dataset, "a1950", "STL.bymth.remfit", bestStlplus, bestSpatial)
+a1950.spafitVisualStat(
+  input=FileInput, plotEng.spafitDate, 
+  name="spafit.vs.time", sample = TRUE, multiple=NULL
+)
+FileInput <- a1950.spafitSTLfit(FileInput, tuning=paras, spamodel="d1sp0.015")
+a1950.spafitVisualStat(
+  input=FileInput, plotEng.spafitDateMulti, 
+  name="spafit.vs.timeMlti", sample = TRUE, multiple=NULL
+)
 
-
-
-
-
+## stlplus fit of spafit from span=0.005, degree=1
+bestStlplus <- "t241td1_speriodicsd1_ffd"
+bestSpatial <- "symmetric/direct/1/sp0.005.bystation"
+FileInput <- file.path(rh.root, par$dataset, "a1950", "STL.bymth.remfit", bestStlplus, bestSpatial)
+a1950.spafitVisualStat(
+  input=FileInput, plotEng.spafitDate, 
+  name="spafit.vs.time", sample = TRUE, multiple=NULL
+)
+FileInput <- a1950.spafitSTLfit(FileInput, tuning=paras, spamodel="d1sp0.005")
+a1950.spafitVisualStat(
+  input=FileInput, plotEng.spafitDateMulti, 
+  name="spafit.vs.timeMlti", sample = TRUE, multiple=NULL
+)
 
 
 

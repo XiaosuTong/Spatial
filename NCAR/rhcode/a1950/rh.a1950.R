@@ -1027,10 +1027,10 @@ a1950.Nomiss <- function(input) {
 }
 
 
-a1950.spafitSTLfit <- function(input, tuning) {
+a1950.spafitSTLfit <- function(input, tuning, spamodel) {
 
   output <- file.path(
-    rh.root, par$dataset, "a1950", "spafitSTL", paste("t",tuning$tw, "td", tuning$td, "_s", tuning$sw, 
+    rh.root, par$dataset, "a1950", "spafitSTL", spamodel, paste("t",tuning$tw, "td", tuning$td, "_s", tuning$sw, 
     "sd", tuning$sd, "_f", tuning$fcw, "fd", tuning$fcd, sep="")
   )
 
@@ -1092,5 +1092,7 @@ a1950.spafitSTLfit <- function(input, tuning) {
   job$readback <- FALSE
   job$jobname <- output
   job.mr <- do.call("rhwatch", job)
+
+  return(output)
 
 }
