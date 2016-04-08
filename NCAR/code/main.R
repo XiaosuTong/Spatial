@@ -668,7 +668,7 @@ for(j in c("mean.absmeans","mean.std")){
 ##  longitude, latitude, and elevation                     ##
 #############################################################
 bestStlplus <- "t241td1_speriodicsd1_ffd"
-FileInput <- file.path(rh.root, par$dataset, "a1950", "bymonth.fit", "symmetric", "direct", 2, "sp0.015.bystation")
+FileInput <- file.path(rh.root, par$dataset, "a1950", "STL", bestStlplus)
 FileOutput <- file.path(rh.root, par$dataset, "a1950", "STL.bymonth", bestStlplus)
 
 swapTomonth(FileInput, FileOutput)
@@ -681,7 +681,7 @@ for (k in 1:nrow(spaPara)) {
 }
 
 ###################################################
-##  Spatial fit on the remainder of stlplus      ##
+##  Spatial fit on the remainder of stlplus; and ##
 ##  parallelly visualize the residual against    ##
 ##  three spatial factors for each month.        ##
 ##  Then visualize the residual against time,    ##
@@ -699,25 +699,6 @@ for (ii in c(0.05,0.025,0.015, 0.005)) {
 }
 
 
-#  df <- a1950.residQuant(
-#    input=FileInput, target="residual", by="coastdis", 
-#    probs=seq(0.005, 0.995, 0.005), nBins = 10000, tails = 100, coast=TRUE, dislim=300
-#  )
-#  trellis.device(
-#    device = postscript, 
-#    file = file.path(local.root, "output", "tmp.ps"),
-#    color = TRUE, 
-#    paper = "letter"
-#  )
-#    b <- xyplot(q ~ fval
-#      , data = df
-#      , group = coastdis
-#      , xlab = list(label="f-value", cex=1.5)
-#      , ylab = list(label="Residual", cex=1.5)
-#      , scale = list(cex=1.2)
-#    )
-#    print(b)
-#  dev.off()  
 
 ############################################
 ##  Cross validation for the spatial fit  ##
@@ -743,6 +724,31 @@ imputeCrossValid(
   input=file.path(rh.root, par$dataset, "a1950", "STL.bymonth", "t241td1_speriodicsd1_ffd.fit.cv", "symmetric", "direct"), 
   Edeg = TRUE
 )
+
+
+##########################################################
+##  Visualize the spatial smoothing value of remainder  ##
+##########################################################
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 ##############################################
@@ -804,55 +810,6 @@ dim(tmp)
 
 
 xyplot(radius ~ elev2, data = job.mr[[1]][[2]])
-
-
-
-
-
-
-####################################
-##    Duplicate each time series  ##
-####################################
-FileInput <- file.path(rh.root, par$dataset, "a1950", "bymonth.fit", "symmetric", "direct", 2, "sp0.015")
-FileOutput <- file.path(rh.root, par$dataset, "simulate", "bystation.orig")
-swapTostation(FileInput, FileOutput)
-
-FileInput <- file.path(rh.root, par$dataset, "simulate", "bystation.orig")
-FileOutput <- file.path(rh.root, par$dataset, "simulate", "bystation")
-system.time(repTime(FileInput, FileOutput, buffSize=10000, Rep=5800))
-
-FileInput <- file.path(rh.root, par$dataset, "simulate", "bystation")
-FileOutput <- file.path(rh.root, par$dataset, "simulate", "bymonth")
-
-rst <- data.frame(large=c(0,0,0), small=c(0,0,0), rep = c(1,2,3))
-for (i in 1:3) {
-  
-  rst[i, 1] <- system.time(swapTomonth(FileInput, FileOutput, io_sort=400, spill_percent=0.9, parallelcopies=5, reduce_merge_inmem=1000, reduce_input_buffer=0.0))[3]
-  Sys.sleep(60)
-  rst[i, 2] <- system.time(swapTomonth(FileInput, FileOutput, io_sort=10, spill_percent=0.6, parallelcopies=5))[3]
-  Sys.sleep(60)
-
-}
-#   large   small rep
-# 295.755 339.719   1
-# 309.155 330.587   2
-# 309.345 326.252   3
-
-rst <- data.frame(large=c(0,0,0), small=c(0,0,0), rep = c(1,2,3))
-for (i in 1:3) {
-  
-  rst[i, 1] <- system.time(swapTomonth(FileInput, FileOutput, io_sort=400, spill_percent=0.8, parallelcopies=5, reduce_merge_inmem=1000, reduce_input_buffer=0.0))[3]
-  Sys.sleep(60)
-  rst[i, 2] <- system.time(swapTomonth(FileInput, FileOutput, io_sort=400, spill_percent=0.8, parallelcopies=5, reduce_merge_inmem=0, reduce_input_buffer=1))[3]
-  Sys.sleep(60)
-  
-}
-
-
-
-
-
-
 
 
 
