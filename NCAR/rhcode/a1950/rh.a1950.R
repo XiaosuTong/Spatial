@@ -319,7 +319,8 @@ bymonthSplit <- function(input, leaf = 100, vari) {
     }
   )
   job$shared <- c(
-    file.path(file.path(rh.root, par$dataset, "shareRLib", "cppkdtree.so"))
+    #file.path(file.path(rh.root, par$dataset, "shareRLib", "cppkdtree.so"))
+    file.path(file.path(rh.root, "shareRLib", "cppkdtree.so"))
   )
   job$parameters <- list(
     leaf = leaf,

@@ -1158,7 +1158,7 @@ a1950.spafitVisualMon <- function(input, plotEng, vars, target) {
     lapply(seq_along(map.keys), function(r) {
       year <- map.keys[[r]][1]
       month <- map.keys[[r]][2]
-      pp <- plotEng(subset(map.values[[r]], flag==1), year, month, vars, target)
+      pp <- plotEng(subset(map.values[[r]], !is.na(resp)), year, month, vars, target)
       index <- (as.numeric(year) - 1950)*12 + match(month, month.abb)
       rhcollect(index, serialize(pp, NULL))
     })
@@ -1438,7 +1438,7 @@ residSpaFitVisl <- function(i, j, bestStlplus) {
   spaPara <- data.frame(permutations(3, 2, c("lon","lat","elev")))
   para <- list(span=i, Edeg=j, degree=2, surf="direct")
   FileOutput <- file.path(
-    rh.root, par$dataset, "a1950", "STL.bymonth.remaindfit", 
+    rh.root, par$dataset, "a1950", "STL.bymth.remfit", 
     bestStlplus, "symmetric", para$surf, para$Edeg, paste("sp", para$span, sep="")
   )
   a1950.Spatialfit(input=FileInput, output=FileOutput, argumt=para)
@@ -1462,7 +1462,7 @@ residSpaFitVisl <- function(i, j, bestStlplus) {
   )  
   ## the overall quantile plot of the residual for each month
   FileInput <- file.path(
-    rh.root, par$dataset, "a1950", "STL.bymonth.remaindfit", 
+    rh.root, par$dataset, "a1950", "STL.bymth.remfit", 
     bestStlplus, "symmetric", para$surf, para$Edeg, paste("sp", para$span, sep="")
   )
   df <- a1950.residQuant(
