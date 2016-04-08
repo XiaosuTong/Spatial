@@ -729,12 +729,17 @@ imputeCrossValid(
 ##########################################################
 ##  Visualize the spatial smoothing value of remainder  ##
 ##########################################################
+bestStlplus <- "t241td1_speriodicsd1_ffd"
+bestSpatial <- "symmetric/direct/2/sp0.015.bystation"
+FileInput <- file.path(rh.root, par$dataset, "a1950", "STL.bymth.remfit", bestStlplus, bestSpatial)
 
+a1950.spafitVisualStat(
+  input=FileInput, plotEng.spafitDate, 
+  name="spafit.vs.time", sample = TRUE, multiple=NULL
+)
 
-
-
-
-
+paras <- list(sw=21, sd=1, tw=241, td=1, fcw=NULL, fcd=NULL)
+a1950.spafitSTLfit(FileInput, tuning=paras)
 
 
 
