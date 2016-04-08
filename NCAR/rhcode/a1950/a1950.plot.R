@@ -1298,7 +1298,7 @@ a1950.spafitVisualStat <- function(input, plotEng, name, sample = TRUE, multiple
         if (sample) {
           if (map.keys[[r]] %in% sample.a1950$station.id) {
             index <- sample.a1950$leaf[which(sample.a1950$station.id==map.keys[[r]])]
-            pp <- plotEng(subset(map.values[[r]], flag==1), map.keys[[r]], index)
+            pp <- plotEng(map.values[[r]], map.keys[[r]], index)
             rhcollect(as.numeric(index), serialize(pp, NULL))
           }
         } else {
@@ -1429,7 +1429,70 @@ plotEng.residACF <- function(data, layout) {
   return(b)
 
 }
+plotEng.spafitDate <- function(data, station, leaf) {
 
+  b <- xyplot( spafit ~ date
+    , data = data
+    , xlab = list(label = "Month", cex=1.5)
+    , ylab = list(label = ylab, cex=1.5)
+    , sub = list(label=paste("Station ", station), cex=1.2)
+    , scale = list(x = list(at=seq(0, 576, 96)), cex=1.2)
+    , key = list(
+        text=list(label=c("remainder spatial fit","loess smoothing")), 
+        lines=list(pch=1, cex=1, lwd=2, type=c("p","l"), col=col[1:2]), 
+        columns=2
+      )
+    , panel = function(x,y,...){
+        panel.abline(h=0, color="black", lty=1)
+        panel.xyplot(x,y, cex = 0.6, pch=1, ...)
+        panel.loess(x,y, span=0.5, degree=1, lwd = 2, col=col[2],...)
+      }
+  )
+
+}  
+plotEng.spafitDateMulti <- function(data, station, leaf) {
+
+  data$factor <- factor(
+    x = rep(paste("Period", 1:6), c(rep(108,5), 36)),
+    levels = paste("Period", c(6:1))
+  )
+  data$time <- c(rep(0:107, times = 5), 0:35) 
+
+  b <- xyplot( resp ~ time | factor
+    , data = data
+    , xlab = list(label = "Month", cex = 1.5)
+    , ylab = list(label = ylab, cex = 1.5)
+    , sub = list(label=paste("Station ", station, "from cell", leaf), cex=1.2)
+    , layout = c(1,6)
+    , strip = FALSE,
+    , xlim = c(0, 107)
+    , ylim = c(min(c(data$resp, data$fitted), na.rm=TRUE), max(c(data$resp, data$fitted), na.rm=TRUE))
+    , key=list(
+        cex = 1.2,
+        text = list(label=c("spatial smoothed value", "temporal fitted value")), 
+        lines = list(pch=16, cex=0.7, lwd=1.5, type=c("p","l"), col=col[c(1:2)]),
+        columns=2
+      )
+    , scales = list(
+        y = list(tick.number=4, cex=1.2), 
+        x = list(at=seq(0, 107, by=12), relation='same', cex=1.2)
+      )
+    , panel = function(x,y,subscripts,...) {
+        panel.abline(v=seq(0,108, by=12), color="lightgrey", lty=3, lwd=0.5)
+        fit <- subset(data[subscripts,], flag == 0)
+        obs <- subset(data[subscripts,], flag == 1)
+        panel.xyplot(obs$time, obs$resp, type="p", col=col[1], pch=16, cex=0.5, ...)
+        panel.xyplot(fit$time, fit$fitted, type="p", col=col[1], pch=16, cex=0.5, ...)
+        if (!any(grepl("fc", names(data)))) {
+          panel.xyplot(data[subscripts,]$time, (data[subscripts,]$trend+data[subscripts,]$seasonal), type="l", col=col[2], lwd=1, ...)            
+        } else {
+          panel.xyplot(data[subscripts,]$time, (data[subscripts,]$data.seasonal+data[subscripts,]$fc.first+data[subscripts,]$fc.second), type="l", col=col[2], lwd=1, ...)
+        }
+      }
+  )
+  return(b)
+
+}  
 
 residSpaFitVisl <- function(i, j, bestStlplus) {
 
