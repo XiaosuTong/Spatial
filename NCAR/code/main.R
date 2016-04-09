@@ -739,6 +739,10 @@ a1950.spafitVisualStat(
   input=FileInput, plotEng.spafitDate, 
   name="spafit.vs.time", sample = TRUE, multiple=NULL
 )
+a1950.spafitVisualStat(
+  input=FileInput, plotEng.spafitACF, 
+  name="spafitACF", sample = FALSE, multiple=c(3, 3)
+)  
 FileInput <- a1950.spafitSTLfit(FileInput, tuning=paras, spamodel="d2sp0.015")
 a1950.spafitVisualStat(
   input=FileInput, plotEng.spafitDateMulti, 
@@ -753,6 +757,10 @@ a1950.spafitVisualStat(
   input=FileInput, plotEng.spafitDate, 
   name="spafit.vs.time", sample = TRUE, multiple=NULL
 )
+a1950.spafitVisualStat(
+  input=FileInput, plotEng.spafitACF, 
+  name="spafitACF", sample = FALSE, multiple=c(3, 3)
+)  
 FileInput <- a1950.spafitSTLfit(FileInput, tuning=paras, spamodel="d2sp0.005")
 a1950.spafitVisualStat(
   input=FileInput, plotEng.spafitDateMulti, 
@@ -767,6 +775,10 @@ a1950.spafitVisualStat(
   input=FileInput, plotEng.spafitDate, 
   name="spafit.vs.time", sample = TRUE, multiple=NULL
 )
+a1950.spafitVisualStat(
+  input=FileInput, plotEng.spafitACF, 
+  name="spafitACF", sample = FALSE, multiple=c(3, 3)
+)  
 FileInput <- a1950.spafitSTLfit(FileInput, tuning=paras, spamodel="d2sp0.025")
 a1950.spafitVisualStat(
   input=FileInput, plotEng.spafitDateMulti, 
@@ -781,6 +793,10 @@ a1950.spafitVisualStat(
   input=FileInput, plotEng.spafitDate, 
   name="spafit.vs.time", sample = TRUE, multiple=NULL
 )
+a1950.spafitVisualStat(
+  input=FileInput, plotEng.spafitACF, 
+  name="spafitACF", sample = FALSE, multiple=c(3, 3)
+)  
 FileInput <- a1950.spafitSTLfit(FileInput, tuning=paras, spamodel="d2sp0.05")
 a1950.spafitVisualStat(
   input=FileInput, plotEng.spafitDateMulti, 
@@ -795,6 +811,10 @@ a1950.spafitVisualStat(
   input=FileInput, plotEng.spafitDate, 
   name="spafit.vs.time", sample = TRUE, multiple=NULL
 )
+a1950.spafitVisualStat(
+  input=FileInput, plotEng.spafitACF, 
+  name="spafitACF", sample = FALSE, multiple=c(3, 3)
+)  
 FileInput <- a1950.spafitSTLfit(FileInput, tuning=paras, spamodel="d1sp0.05")
 a1950.spafitVisualStat(
   input=FileInput, plotEng.spafitDateMulti, 
@@ -809,6 +829,10 @@ a1950.spafitVisualStat(
   input=FileInput, plotEng.spafitDate, 
   name="spafit.vs.time", sample = TRUE, multiple=NULL
 )
+a1950.spafitVisualStat(
+  input=FileInput, plotEng.spafitACF, 
+  name="spafitACF", sample = FALSE, multiple=c(3, 3)
+)  
 FileInput <- a1950.spafitSTLfit(FileInput, tuning=paras, spamodel="d1sp0.025")
 a1950.spafitVisualStat(
   input=FileInput, plotEng.spafitDateMulti, 
@@ -823,6 +847,10 @@ a1950.spafitVisualStat(
   input=FileInput, plotEng.spafitDate, 
   name="spafit.vs.time", sample = TRUE, multiple=NULL
 )
+a1950.spafitVisualStat(
+  input=FileInput, plotEng.spafitACF, 
+  name="spafitACF", sample = FALSE, multiple=c(3, 3)
+)
 FileInput <- a1950.spafitSTLfit(FileInput, tuning=paras, spamodel="d1sp0.015")
 a1950.spafitVisualStat(
   input=FileInput, plotEng.spafitDateMulti, 
@@ -836,6 +864,10 @@ FileInput <- file.path(rh.root, par$dataset, "a1950", "STL.bymth.remfit", bestSt
 a1950.spafitVisualStat(
   input=FileInput, plotEng.spafitDate, 
   name="spafit.vs.time", sample = TRUE, multiple=NULL
+)
+a1950.spafitVisualStat(
+  input=FileInput, plotEng.spafitACF, 
+  name="spafitACF", sample = FALSE, multiple=c(3, 3)
 )
 FileInput <- a1950.spafitSTLfit(FileInput, tuning=paras, spamodel="d1sp0.005")
 a1950.spafitVisualStat(

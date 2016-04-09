@@ -1449,6 +1449,42 @@ plotEng.spafitDate <- function(data, station, leaf) {
       }
   )
 
+}
+plotEng.spafitACF <- function(data, layout) {
+
+  alpha <- 0.95
+  data <- arrange(data, date)
+  ACF <- ddply(
+    .data = data,
+    .variables = "station.id",
+    .fun = function(r) {
+      corr <- acf(r$spafit, plot=FALSE)
+      data.frame(
+        correlation = corr$acf,
+        lag = corr$lag 
+      )
+    }
+  )
+  clim <- qnorm((1 + alpha)/2)/sqrt(576)
+
+  b <- xyplot( correlation ~ lag | factor(station.id)
+    , data = ACF
+    , subset = lag != 0
+    , layout = layout
+    , xlab = list(label = "Lag", cex = 1.5)
+    , ylab = list(label = "Autocorrelation Function", cex = 1.5)
+    , scales = list(
+        y = list(cex=1.2), 
+        x = list(relation='same', cex=1.2)
+      )
+    , panel = function(x,y,...) {
+        panel.abline(h=0)
+        panel.xyplot(x,y, type="h", lwd=1.5,...)
+        panel.abline(h=c(-clim, clim), lty=2, col="red",...)
+      }
+  )
+  return(b)
+
 }  
 plotEng.spafitDateMulti <- function(data, station, leaf) {
 
