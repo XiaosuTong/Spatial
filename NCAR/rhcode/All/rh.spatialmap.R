@@ -187,16 +187,19 @@ trellis.device(
 )
   b <- xyplot( lat ~ lon
     , data = info
-    , subset = station.id %in% a1950.stations
+    , subset = station.id %in% stations.a1950
     , xlab = list(label="Longitude", cex = 1.5)
     , ylab = list(label="Latitude", cex = 1.5)
     , pch = 16
     , cex = 0.4
+    , xlim = c(-125.5, -66.5)
+    , aspect = 0.66
     , col = "red"
     , scales = list(
         y = list(cex = 1.2),x = list(cex = 1.2)
       )
     , panel = function(x,y,...) {
+        panel.abline(h=seq(25,50,5),v=seq(-120,-70,10), lty=1, lwd=0.5, col="lightgray")
         panel.polygon(us.map$x,us.map$y)   
         panel.xyplot(x,y,...)
       }
@@ -230,25 +233,28 @@ label <- ddply(
 
 trellis.device(
   device = postscript, 
-  file = file.path(local.root, "output", "allstationsone.ps"), 
+  file = file.path(local.root, "output", "allstations.ps"), 
   color = TRUE, 
   paper = "letter"
 )
-  b <- xyplot( lat ~ lon #| factor(group, label = label$label)
+  b <- xyplot( lat ~ lon | factor(group, label = label$label)
     , data = info
     , xlab = list(label="Longitude", cex = 1.5)
     , ylab = list(label="Latitude", cex = 1.5)
     , layout = c(1,1)
     , pch = 16
+    , xlim = c(-125.5, -66.5)
+    , aspect = 0.66
     , cex = 0.4
     , col = "red"
     , scales = list(
         y = list(cex = 1.2),
         x = list(cex = 1.2)
       )
-#   , strip = strip.custom(par.strip.text= list(cex = 1.5)),
-#   , par.settings = list(layout.heights = list(strip = 1.5)),
+   , strip = strip.custom(par.strip.text= list(cex = 1.2)),
+   , par.settings = list(layout.heights = list(strip = 1.2)),
     , panel = function(x,y,...) {
+        panel.abline(h=seq(25,50,5),v=seq(-120,-70,10), lty=1, lwd=0.5, col="lightgray")
         panel.polygon(us.map$x,us.map$y)   
         panel.xyplot(x,y,...)
       }

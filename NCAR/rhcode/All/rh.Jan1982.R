@@ -41,7 +41,7 @@ job$jobname <- file.path(rh.root, par$dataset, "All", "Jan1982")
 job.mr <- do.call("rhwatch", job)
 
 
-rst <- rhread("/ln/tongx/Spatial/tmp/tmax/All/Jan1982")
+rst <- rhread("/ln/tongx/spatem/tmax/All/Jan1982")
 
 IDec1981 <- which(unlist(lapply(lapply(rst, "[[", 1), function(r){all(r==c("1981","Dec"))})))
 IJan1982 <- which(unlist(lapply(lapply(rst, "[[", 1), function(r){all(r==c("1982","Jan"))})))
@@ -77,6 +77,8 @@ trellis.device(
     , xlab = list(label="Longitude", cex = 1.5)
     , ylab = list(label="Latitude", cex = 1.5)
     , scale = list(cex=1.2)
+    , xlim = c(-125.5, -66.5)
+    , aspect = 0.66
     , key = list(
         columns = 2, 
         cex = 1.2,
@@ -89,6 +91,7 @@ trellis.device(
     , pch = c(16,1),
     , cex = 1.2,
     , panel = function(x,y,...) {
+        panel.abline(h=seq(25,50,5),v=seq(-120,-70,10), lty=1, lwd=0.5, col="lightgray")
         panel.polygon(us.map$x,us.map$y)   
         panel.xyplot(x,y,...)
       }

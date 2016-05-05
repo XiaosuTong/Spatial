@@ -885,7 +885,7 @@ a1950.spafitVisualStat(
 ##############################################
 bestStlplus <- "t241td1_speriodicsd1_ffd"
 FileInput <- file.path(
-  rh.root, par$dataset, "a1950", "STL.bymonth.remaindfit", 
+  rh.root, par$dataset, "a1950", "STL.bymth.remfit", 
   bestStlplus, "symmetric", "direct", "2", "sp0.015"
 )
 FileOutput <- paste(FileInput, "outliers", sep=".")
