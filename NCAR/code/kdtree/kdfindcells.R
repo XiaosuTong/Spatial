@@ -49,9 +49,11 @@ trellis.device(
   paper="letter"
 )
 a <- xyplot( lat ~ lon
-  , data  = vert[[1]]
+  , data  = places
   , xlab  = list(label = "Longitude", cex=1.5)
   , ylab  = list(label = "Latitude", cex=1.5)
+  , xlim = c(-125.5, -66.5)
+  , aspect = 0.66  
 #  , key=list(
 #    text = list(label=c("station location", "kdtree cell boundry")),
 #    lines = list(pch = 16, cex = 0.7, lwd = 1, lty = 2, type = c("p","l"), col = c("blue", "red")), 
@@ -59,13 +61,14 @@ a <- xyplot( lat ~ lon
 #    )
   , scale = list(cex=1.2)
   , panel = function(x, y, ...) {
-      panel.xyplot(x = places$lon, y = places$lat, cex = 0.7, col = "blue", 
+      panel.abline(h=seq(25,50,5),v=seq(-120,-70,10), lty=1, lwd=0.5, col="lightgray")
+      panel.xyplot(x = places$lon, y = places$lat, cex = 0.75, col = "blue", 
         pch = 16, type = "p", ...
       )
       for(k in 1:nrow(places)){
         panel.text(
           places$lon[k], places$lat[k], sample.a1950$leaf[k], 
-          adj = c(0,0), col = "red", cex=0.5
+          adj = c(0,0), col = "red", cex=0.7
         )
       }
 #		  for(i in seq(1, nrow(vert[[1]]), by = 2)){
