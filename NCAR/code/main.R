@@ -340,46 +340,49 @@ FileOutput <- file.path(rh.root, par$dataset, "a1950", "bymonth.fit", "symmetric
 swapTostation(FileInput, FileOutput)
 FileInput <- FileOutput
 
-stlplusFitVisl<- function(fileinput=FileInput, SW, SD, TW, TD, FCW=NULL, FCD=NULL) {
+stlplusFitVisl<- function(fileinput=FileInput, SW, SD, TW, TD, FCW=NULL, FCD=NULL, visual=TRUE) {
 
   paras <- list(sw=SW, sd=SD, tw=TW, td=TD, fcw=FCW, fcd=FCD)
   input <- a1950.STLfit(fileinput, reduce=72, tuning=paras)
-  a1950.STLvisual(
-    paras=paras, input=input, plotEng=plotEng.raw, 
-    name="stlraw.vs.time", sample = TRUE, multiple=NULL
-  )
-  a1950.STLvisual(
-    paras=paras, input=input, plotEng=plotEng.trend, 
-    name="trend.vs.time", sample = TRUE, multiple=c(4,3)
-  )
-  a1950.STLvisual(
-    paras=paras, input=input, plotEng=plotEng.periodicseason, 
-    name="seasonal.vs.year", sample = TRUE, multiple=c(5,4)
-  )
-  a1950.STLvisual(
-    paras=paras, input=input, plotEng=plotEng.searemainder, 
-    name="searemainder.vs.year", sample = TRUE, multiple=NULL
-  )
-  a1950.STLvisual(
-    paras=paras, input=input, plotEng=plotEng.QQremaider, 
-    name="QQ.remainder", sample = TRUE, multiple=c(5,3)
-  )
-  a1950.STLvisual(
-    paras=paras, input=input, plotEng=plotEng.remainderMonth, 
-    name="remainder.vs.year", sample = TRUE, multiple=NULL
-  )
-  a1950.STLvisual(
-    paras=paras, input=input, plotEng=plotEng.remainderMonth2, 
-    name="remainder.vs.year2", sample = TRUE, multiple=NULL
-  )
-  a1950.STLvisual(
-    paras=paras, input=input, plotEng=plotEng.remainderACF, 
-    name="remainder.acf", sample = TRUE, multiple=c(3,3)
-  )
-  a1950.STLvisual(
-    paras=paras, input=input, plotEng=plotEng.remainderDate, 
-    name="remainder.vs.time", sample = TRUE, multiple=NULL
-  )
+
+  if (visual) {
+    a1950.STLvisual(
+      paras=paras, input=input, plotEng=plotEng.raw, 
+      name="stlraw.vs.time", sample = TRUE, multiple=NULL
+    )
+    a1950.STLvisual(
+      paras=paras, input=input, plotEng=plotEng.trend, 
+      name="trend.vs.time", sample = TRUE, multiple=c(4,3)
+    )
+    a1950.STLvisual(
+      paras=paras, input=input, plotEng=plotEng.periodicseason, 
+      name="seasonal.vs.year", sample = TRUE, multiple=c(5,4)
+    )
+    a1950.STLvisual(
+      paras=paras, input=input, plotEng=plotEng.searemainder, 
+      name="searemainder.vs.year", sample = TRUE, multiple=NULL
+    )
+    a1950.STLvisual(
+      paras=paras, input=input, plotEng=plotEng.QQremaider, 
+      name="QQ.remainder", sample = TRUE, multiple=c(5,3)
+    )
+    a1950.STLvisual(
+      paras=paras, input=input, plotEng=plotEng.remainderMonth, 
+      name="remainder.vs.year", sample = TRUE, multiple=NULL
+    )
+    a1950.STLvisual(
+      paras=paras, input=input, plotEng=plotEng.remainderMonth2, 
+      name="remainder.vs.year2", sample = TRUE, multiple=NULL
+    )
+    a1950.STLvisual(
+      paras=paras, input=input, plotEng=plotEng.remainderACF, 
+      name="remainder.acf", sample = TRUE, multiple=c(3,3)
+    )
+    a1950.STLvisual(
+      paras=paras, input=input, plotEng=plotEng.remainderDate, 
+      name="remainder.vs.time", sample = TRUE, multiple=NULL
+    )
+  }
 
 }
 
@@ -389,7 +392,7 @@ stlplusFitVisl(fileinput=FileInput, SW=41, SD=1, TW=241, TD=1, FCW=NULL, FCD=NUL
 
 stlplusFitVisl(fileinput=FileInput, SW=45, SD=2, TW=451, TD=1, FCW=NULL, FCD=NULL)
 
-stlplusFitVisl(fileinput=FileInput, SW="periodic", SD=1, TW=241, TD=1, FCW=NULL, FCD=NULL)
+stlplusFitVisl(fileinput=FileInput, SW="periodic", SD=1, TW=241, TD=1, FCW=NULL, FCD=NULL, visual=FALSE)
 
 stlplusFitVisl(fileinput=FileInput, SW="periodic", SD=1, TW=451, TD=1, FCW=NULL, FCD=NULL)
 
@@ -653,7 +656,7 @@ for(j in 1:nrow(parameter)) {
     file.path(local.root, "output")
   )
 }
-## filtering only 128 station for visualization
+## filtering only 512 station for visualization
 try(subsetStations(index="E8blend", type="a1950"))
 for(j in c("absmeans","means","std")) {
   errorVsLag(type="a1950", index="E8blend", var=c("sw","sd"), target=j)
@@ -694,7 +697,7 @@ a1950.Nomiss(file.path(rh.root, par$dataset, "a1950", "bystation"))
 
 for (ii in c(0.05,0.025,0.015, 0.005)) {
   for (jj in c(1, 2)) {
-    residSpaFitVisl(i=ii, j=jj, bestStlplus="t241td1_speriodicsd1_ffd")
+    residSpaFitVisl(i=ii, j=jj, bestStlplus="t241td1_speriodicsd1_ffd", visual=FALSE)
   }
 }
 
