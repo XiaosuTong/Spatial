@@ -74,7 +74,7 @@ trellis.device(
   print(b)
 dev.off()
 
-rst <- rhread("/ln/tongx/Spatial/tmp/tmax/a1950/bymonth")
+rst <- rhread("/ln/tongx/spatem/tmax/a1950/bymonth")
 trellis.device(
   device = postscript, 
   file = file.path(local.root, "output", paste(par$dataset, "a1950", "status", "ps", sep=".")), 
@@ -95,11 +95,14 @@ for(i in 1:576) {
         columns = 2
       )
     , pch = 16
+    , xlim = c(-125.5, -66.5)
+    , aspect = 0.66
     , cex = 0.4
     , scales = list(
         y = list(cex = 1.2),x = list(cex = 1.2)
       )
     , panel = function(x,y,...) {
+        panel.abline(h=seq(25,50,5),v=seq(-120,-70,10), lty=1, lwd=0.5, col="lightgray")
         panel.polygon(us.map$x,us.map$y)   
         panel.xyplot(x,y,...)
         panel.text(x=-123, y=26, labels=paste("Missing:", sum(is.na(rst[[i]][[2]]$resp))), adj=c(0,0))
