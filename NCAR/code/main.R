@@ -58,6 +58,110 @@ source("~/Projects/Spatial/NCAR/rhcode/All/RawtoHDFS.R")
 
 
 
+#########################################################
+##                                                     ##
+##     Exploratory analysis of the a1950 dataset       ##
+##                                                     ##
+#########################################################
+## load the data of a1950 of tmax
+load(file.path(local.root, "RData", "a1950.RData"))
+a1950_all$month <- substring(a1950_all$month, 1,3)
+
+## get the 10000th quantiles of the tmax 
+target <- sort(a1950_all$tmax)
+f <- (1:length(target) - 0.5)/length(target)
+qqtmax <- data.frame(tmax = target, fvalue = f)
+trellis.device(
+  device = postscript, 
+  file = file.path(local.root, "output", "tempdist.ps"),
+  color = TRUE, 
+  paper = "letter"
+)
+b <- xyplot( tmax ~ fvalue
+  , data = qqtmax[c(seq(1, nrow(qqtmax), 290), nrow(qqtmax)), ]
+  , xlab = list(label="f-value", cex=1.5)
+  , ylab = list(label="Maximum Temperature", cex=1.5)
+  , scale = list(cex=1.2)
+  , pch = 16
+  , cex = 0.6
+  , panel = function(x,y,...) {
+      panel.grid(h=-1,v=-1, lwd=0.5, col="lightgray")
+      panel.xyplot(x,y, ...)
+  }
+)
+print(b)
+dev.off()
+
+
+trellis.device(
+  device = postscript, 
+  file = file.path(local.root, "output", "tempdist_month.ps"),
+  color = TRUE, 
+  paper = "letter"
+)
+for(i in 1950:1997) {
+  for(j in month.abb) {
+    sub <- subset(a1950_all, year == i & month == j)
+    b <- qqmath( ~ tmax
+      , data = sub
+      , distribution = qunif
+      , sub = paste(j, i) 
+      , pch = 16
+      , cex = 0.6
+      , xlab = list(label="f-value", cex=1.5)
+      , ylab = list(label="Maximum Temperature", cex=1.5)
+      , scale = list(cex=1.2)
+      , panel = function(x,...) {
+          panel.grid(h=-1,v=-1, lwd=0.5, col="lightgray")
+          panel.qqmath(x,...)
+      }
+    )
+    print(b)
+  }
+}
+dev.off()
+
+
+load(file.path(local.root, "RData", "sample.a1950.RData"))
+sub <- subset(a1950_all, station.id %in% sample.a1950$station.id)
+sub <- arrange(sub, station.id, year, match(month, month.abb))
+trellis.device(
+  device = postscript, 
+  file = file.path(local.root, "output", "tmax_raw_station.ps"),
+  color = TRUE, 
+  paper = "letter"
+)
+for(i in 1:512) {
+  data <- subset(sub, station.id == sample.a1950$station.id[which(sample.a1950$leaf == i)])
+  data$factor <- factor(
+    x = rep(paste("Period", 1:6), c(rep(108,5), 36)),
+    levels = paste("Period", c(6:1))
+  )
+  data$time <- c(rep(0:107, times = 5), 0:35) 
+
+  b <- xyplot( tmax ~ time | factor
+    , data = data
+    , xlab = list(label = "Month", cex = 1.5)
+    , ylab = list(label = ylab, cex = 1.5)
+    , sub = list(label=paste("Station ", unique(data$station.id), "from cell", i), cex=1.2)
+    , layout = c(1,6)
+    , xlim = c(0, 107)
+    , strip = FALSE,
+    , scales = list(
+        y = list(tick.number=4, cex=1.2), 
+        x = list(at=seq(0, 107, by=12), relation='same', cex=1.2)
+      )
+    , panel = function(x,y,subscripts,...) {
+        panel.abline(v=seq(0,108, by=12), color="lightgrey", lty=3, lwd=0.5)
+        panel.xyplot(x, y, type="b", col=col[1], pch=16, cex=0.5, ...)
+      }
+  )
+  print(b)
+
+}
+dev.off()
+
+
 #################################################################
 ##                                                             ##
 ##               Dataset of the 100 Stations                   ##
@@ -276,32 +380,37 @@ for(i in c(0)) {
   ))
 }
 
-imputeCrossValid(input=file.path(rh.root, par$dataset, "a1950", "bymonth.fit.cv", "symmetric", "direct"), Edeg = FALSE)
+CrossValidVisual(input=file.path(rh.root, par$dataset, "a1950", "bymonth.fit.cv", "symmetric", "direct"), Edeg = FALSE)
 
 
 ########################################
 ## Imputation of missing w/ elevation ##
 ########################################
 for(ii in c(1,2)) {
-  ## E1 span = 0.05, degree=2, without Elevation
+  para <- list(span=0.002, Edeg=ii)
+  try(interpolate(sp=para$span, deg=2, Edeg=para$Edeg, surf="direct", fam="symmetric"))
+}
+
+for(ii in c(1,2)) {
+  ## E1 span = 0.05, degree=2, Elevation
   para <- list(span=0.05, Edeg=ii)
   try(interpolate(sp=para$span, deg=2, Edeg=para$Edeg, surf="direct", fam="symmetric"))
   ## Check the residual of the spatial loess imputing
   a1950.spaImputeVisual(family="symmetric", surf="direct", Edeg=para$Edeg, span=para$span)  
 
-  ## E2 span = 0.025, degree=2, without Elevation
+  ## E2 span = 0.025, degree=2, Elevation
   para <- list(span=0.025, Edeg=ii)
   try(interpolate(sp=para$span, deg=2, Edeg=para$Edeg, surf="direct", fam="symmetric"))
   ## Check the residual of the spatial loess imputing
   a1950.spaImputeVisual(family="symmetric", surf="direct", Edeg=para$Edeg, span=para$span)  
 
-  ## E3 span = 0.015, degree=2, without Elevation
+  ## E3 span = 0.015, degree=2, Elevation
   para <- list(span=0.015, Edeg=ii)
   try(interpolate(sp=para$span, deg=2, Edeg=para$Edeg, surf="direct", fam="symmetric"))
   ## Check the residual of the spatial loess imputing
   a1950.spaImputeVisual(family="symmetric", surf="direct", Edeg=para$Edeg, span=para$span)  
 
-  ## E4 span = 0.005, degree=2, without Elevation
+  ## E4 span = 0.005, degree=2, Elevation
   para <- list(span=0.005, Edeg=ii)
   try(interpolate(sp=para$span, deg=2, Edeg=para$Edeg, surf="direct", fam="symmetric"))
   ## Check the residual of the spatial loess imputing
@@ -311,20 +420,18 @@ for(ii in c(1,2)) {
 ## Try the new code for Cross Validation. Each month 128 sampled 
 ## (from a kd-tree) locations is predicted (leave-p-out cross validation, p=128) 
 
-for(i in c(1, 2)) {
-  for(j in seq(0.1, 0.2, 0.05)) {
-    try(newCrossValid(input=FileInput, vari="resp", sp=j, deg=2, Edeg=i, surf="direct", fam="symmetric", error="mse"))
-  }
-  for(j in seq(0.005, 0.1, 0.01)) {
+for(i in c(0, 1, 2)) {
+  for(j in c(0.005, 0.015, 0.035, 0.095)) {
     try(newCrossValid(input=FileInput, vari="resp", sp=j, deg=2, Edeg=i, surf="direct", fam="symmetric", error="mse"))
   }
   try(crossValidMerge(
     input=file.path(rh.root, par$dataset, "a1950", "bymonth.fit.cv", "symmetric", "direct", i), 
-    span = c(seq(0.005, 0.1, 0.01),seq(0.1,0.2,0.05))
+    span = c(0.005, 0.015, 0.035, 0.095)
   ))
 }
 
-imputeCrossValid(input=file.path(rh.root, par$dataset, "a1950", "bymonth.fit.cv", "symmetric", "direct"), Edeg = TRUE)
+
+CrossValidVisual(input=file.path(rh.root, par$dataset, "a1950", "bymonth.fit.cv", "symmetric", "direct"), Edeg = TRUE)
 
 
 ##############################################
@@ -710,16 +817,16 @@ bestStlplus <- "t241td1_speriodicsd1_ffd"
 FileInput <- file.path(rh.root, par$dataset, "a1950", "STL.bymonth", bestStlplus)
 FileInput <- bymonthSplit(input=FileInput, leaf = 100, vari="remainder")
 
-for(i in c(1, 2)) {
-  for(j in seq(0.1, 0.2, 0.05)) {
-    try(newCrossValid(input=FileInput, vari="remainder", sp=j, deg=2, Edeg=i, surf="direct", fam="symmetric", error="mse"))
-  }
-  for(j in seq(0.005, 0.1, 0.01)) {
+for(i in c(0, 1, 2)) {
+#  for(j in seq(0.1, 0.2, 0.05)) {
+#    try(newCrossValid(input=FileInput, vari="remainder", sp=j, deg=2, Edeg=i, surf="direct", fam="symmetric", error="mse"))
+#  }
+  for(j in c(0.005, 0.015, 0.05, 0.15)) {
     try(newCrossValid(input=FileInput, vari="remainder", sp=j, deg=2, Edeg=i, surf="direct", fam="symmetric", error="mse"))
   }
   try(crossValidMerge(
     input=file.path(rh.root, par$dataset, "a1950", "STL.bymonth", "t241td1_speriodicsd1_ffd.fit.cv", "symmetric", "direct", i), 
-    span = c(seq(0.005, 0.085, 0.01),seq(0.1,0.2,0.05))
+    span = c(0.005, 0.015, 0.05, 0.15)
   ))
 }
 
