@@ -109,88 +109,76 @@ intpolat.visual <- function(size = "letter", surf, SPsize, check=NULL) {
 }
 
 
-imputeCrossValid <- function(input, Edeg = TRUE) {
+CrossValidVisual <- function(input, Edeg = TRUE) {
 
-  if (Edeg) {
-    layout <- c(2,1)
-    fo <- ~ mse | factor(degree)
-    rst1 <- rhread(file.path(input, "1", "MABSE"))[[1]][[2]]
-    rst2 <- rhread(file.path(input, "2", "MABSE"))[[1]][[2]]
+  layout <- c(3,1)
+  fo <- ~ mse | factor(degree)
+  rst0 <- rhread(file.path(input, "0", "MABSE"))[[1]][[2]]
+  rst1 <- rhread(file.path(input, "1", "MABSE"))[[1]][[2]]
+  rst2 <- rhread(file.path(input, "2", "MABSE"))[[1]][[2]]
 
+  rst <- rbind(rst0, rst1, rst2)
+  rst$degree <- rep(c(0,1,2), each = nrow(rst1))
+  sub <- subset(rst, mse <=10)
 
-    rst <- rbind(rst1, rst2)
-    rst$degree <- rep(c(1,2), each = nrow(rst1))
-    sub <- subset(rst, span %in% c(0.005, 0.015, 0.035, 0.055, 0.085) & mse <=10)
+  trellis.device(
+    device = postscript, 
+    file = file.path(local.root, "output", paste("QuanMABSE", "a1950", par$dataset, "span", "ps", sep=".")), 
+    color=TRUE, 
+    paper="letter"
+  )
+  b <- qqmath( ~ mse | as.factor(span)
+    , data = sub
+    , group = degree
+    , dist = qunif
+    , cex = 0.4
+    , pch = 16
+    , layout = c(4,1)
+    , xlab = list(label="f-value", cex=1.5)
+    , ylab = list(label="Mean Square Error", cex=1.5)
+    , key=list(
+        text = list(label=c("degree=0","degree=1","degree=2")),
+        lines = list(pch=16, cex=1, type="p", col=col[1:length(unique(sub$degree))]), 
+        columns = length(unique(sub$degree))
+      )
+    , scale = list(cex=1.2, y=list(relation="same"))
+    , panel = function(x,...) {
+        panel.grid(h=-1, v=-1, lwd=0.5, col="lightgray")
+        panel.qqmath(x,...)
+      }
+  )
+  print(b)
+  dev.off()
 
-    trellis.device(
-      device = postscript, 
-      file = file.path(local.root, "output", paste("QuanMABSE", "a1950", par$dataset, "span", "ps", sep=".")), 
-      color=TRUE, 
-      paper="letter"
-    )
-    b <- qqmath(~mse|as.factor(span)
-      , data = sub
-      , group = degree
-      , dist = qunif
-      , cex = 0.5
-      , layout = c(4,1)
-      , xlab = list(label="f-value", cex=1.5)
-      , ylab = list(label="Mean Square Error", cex=1.5)
-      , key=list(
-          text = list(label=c("degree=1","degree=2")),
-          lines = list(pch=1, cex=1, type="p", col=col[1:2]), 
-          columns = 2
-        )
-      , scale = list(cex=1.2, y=list(relation="same"))
-      , panel = function(x,...) {
-          panel.abline(h=seq(0,1,0.2),v=seq(0,1,0.2), col="lightgray")
-          if(max(x)<5) {
-            #panel.abline(h=seq(0,3,0.5),v=seq(0,1,0.2), col="lightgray")
-          } else {
-            panel.abline(h=seq(0,10,2),v=seq(0,1,0.2), col="lightgray")
-          }
-          panel.qqmath(x,...)
-        }
-    )
-    print(b)
-    dev.off()
-
-  } else {
-    rst <- rhread(file.path(input, "0", "MABSE"))[[1]][[2]]
-    layout <- c(1,1)
-    fo <- ~ mse
-  }
-
-    sub <- subset(rst, span %in% c(0.003, 0.005, 0.015, 0.035, 0.055, 0.085) & mse <=10)
-
-    trellis.device(
-      device = postscript, 
-      file = file.path(local.root, "output", paste("QuanMABSE", "a1950", par$dataset, "degree","ps", sep=".")), 
-      color=TRUE, 
-      paper="letter"
-    )
-    b <- qqmath( fo
-      , data = sub
-      , group = span
-      , dist = qunif
-      , cex = 0.5
-      , layout = layout
-      , xlab = list(label="f-value", cex=1.5)
-      , ylab = list(label="Mean Square Error", cex=1.5)
-      , key=list(
-          text = list(label=paste("span=", sort(unique(sub$span)), sep="")),
-          lines = list(pch=1, cex=1, type="p", col=col[1:length(unique(sub$span))]), 
-          columns = length(unique(sub$span)),
-          cex = 1.2
-        )
-      , scale = list(cex=1.2, y=list(relation="same"))
-      , panel = function(x,...) {
-          panel.abline(h=seq(0,1,0.2), v=seq(0,1,0.2), col="lightgray")
-          panel.qqmath(x,...)
-        }
-    )
-    print(b)
-    dev.off()
+  trellis.device(
+    device = postscript, 
+    file = file.path(local.root, "output", paste("QuanMABSE", "a1950", par$dataset, "degree","ps", sep=".")), 
+    color=TRUE, 
+    paper="letter"
+  )
+  b <- qqmath( ~ mse | as.factor(degree)
+    , data = sub
+    , group = span
+    , dist = qunif
+    , cex = 0.4
+    , pch = 16
+    , layout = c(3,1)
+    , xlab = list(label="f-value", cex=1.5)
+    , ylab = list(label="Mean Square Error", cex=1.5)
+    , key=list(
+        text = list(label=paste("span=", sort(unique(sub$span)), sep="")),
+        lines = list(pch=16, cex=1, type="p", col=col[1:length(unique(sub$span))]), 
+        columns = length(unique(sub$span)),
+        cex = 1
+      )
+    , scale = list(cex=1.2, y=list(relation="same"))
+    , panel = function(x,...) {
+        panel.grid(h=-1, v=-1, lwd=0.5, col="lightgray")
+        panel.qqmath(x,...)
+      }
+  )
+  print(b)
+  dev.off()
 
 } 
 
@@ -221,8 +209,6 @@ a1950.spaImputeVisual <- function(family = "symmetric", surf = "direct", Edeg = 
     rh.root, par$dataset, "a1950", "bymonth.fit", 
     family, surf, Edeg, paste("sp", span, sep="")
   )
-
-  atlevels <- c(seq(-4,-1,0.2),seq(-0.8,0.8,0.1), seq(1,4,0.2))
 
   job <- list()
   job$map <- expression({
@@ -261,7 +247,7 @@ a1950.spaImputeVisual <- function(family = "symmetric", surf = "direct", Edeg = 
   job$combiner <- TRUE
   job$jobname <- file.path(rh.root, par$dataset, "a1950", "bymonth.fit.plot", family, surf, Edeg, paste("sp",span, sep=""))
   job.mr <- do.call("rhwatch", job)
-
+ 
   ## normal quantile plots which includes all quantiles inside and outside of [0.015, 0.985]
   trellis.device(
     device = postscript, 
@@ -294,7 +280,7 @@ a1950.spaImputeVisual <- function(family = "symmetric", surf = "direct", Edeg = 
     print(b)
   }
   dev.off()
-
+ 
   ## Normal quantiles plot which only includes quantiles between 0.015 and 0.985
   trellis.device(
     device = postscript, 
@@ -338,7 +324,8 @@ a1950.spaImputeVisual <- function(family = "symmetric", surf = "direct", Edeg = 
       span = 0.05,
       distance = "Latlong",
       normalize = FALSE,
-      napred = FALSE
+      napred = FALSE,
+      alltree = TRUE
     )
     grid.fit <- predloess(
       object = elev.fit,
@@ -355,10 +342,10 @@ a1950.spaImputeVisual <- function(family = "symmetric", surf = "direct", Edeg = 
     lapply(seq_along(map.keys), function(r) {
       v <- map.values[[r]]
       if(Edeg == 2) {
-        resid.fit <- spaloess( resp-fitted ~ lon + lat + elev2, 
+        resid.fit <- spaloess( resp ~ lon + lat + elev2, 
           data    = v, 
           degree  = 2, 
-          span    = 0.05,
+          span    = 0.015,
           para    = "elev2",
           family  = "symmetric",
           normalize = FALSE,
@@ -367,10 +354,10 @@ a1950.spaImputeVisual <- function(family = "symmetric", surf = "direct", Edeg = 
           napred = FALSE
         )
       } else if(Edeg == 1) {
-        resid.fit <- spaloess( resp-fitted ~ lon + lat + elev2, 
+        resid.fit <- spaloess( resp ~ lon + lat + elev2, 
           data    = v, 
           degree  = 2, 
-          span    = 0.05,
+          span    = 0.015,
           drop    = "elev2",
           para    = "elev2",
           family  = "symmetric",
@@ -380,10 +367,10 @@ a1950.spaImputeVisual <- function(family = "symmetric", surf = "direct", Edeg = 
           napred = FALSE
         )
       } else if (Edeg == 0) {
-        resid.fit <- spaloess( resp-fitted ~ lon + lat, 
+        resid.fit <- spaloess( resp ~ lon + lat, 
           data    = v, 
           degree  = 2, 
-          span    = 0.05,
+          span    = 0.015,
           family  = "symmetric",
           normalize = FALSE,
           distance = "Latlong",
@@ -433,7 +420,7 @@ a1950.spaImputeVisual <- function(family = "symmetric", surf = "direct", Edeg = 
   
   trellis.device(
     device = postscript, 
-    file = file.path(local.root, "output", "a1950.spaResidcontour.bytime.ps"),
+    file = file.path(local.root, "output", "a1950.spaofitcontour.bytime.ps"),
     color = TRUE,
     paper = "letter"
   )
@@ -441,11 +428,11 @@ a1950.spaImputeVisual <- function(family = "symmetric", surf = "direct", Edeg = 
     b <- levelplot( smooth ~ lon * lat
       , data = job.mr[[as.numeric(time$idx[i])]][[2]]
       , region = TRUE
-      , at = atlevels
       , col.regions = colorRampPalette(c("blue", "yellow","red"))
       , xlab = list(label="Longitude", cex=1.5)
       , ylab = list(label="Latitude", cex=1.5)
-      , xlim = c(-125, -66.5)
+      , xlim = c(-125.5, -66.5)
+      , aspect = 0.66
       , scale = list(cex=1.2)
       , sub = paste(time[i, 1], time[i, 2])
       , panel = function(x, y, z, ...) {
