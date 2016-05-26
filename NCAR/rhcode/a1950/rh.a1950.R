@@ -373,7 +373,8 @@ newCrossValid <- function(input, vari, sp, Edeg, deg=2, fam="symmetric", surf="d
           normalize = FALSE,
           distance = "Latlong",
           control = loess.control(surface = surf),
-          napred = TRUE
+          napred = TRUE,
+          alltree = TRUE
         )
       } else if (Edeg == 1) {
         fml <- paste(vari, "~ lon + lat + elev2")
@@ -387,7 +388,8 @@ newCrossValid <- function(input, vari, sp, Edeg, deg=2, fam="symmetric", surf="d
           normalize = FALSE,
           distance = "Latlong",
           control = loess.control(surface = surf),
-          napred = TRUE
+          napred = TRUE,
+          alltree = TRUE
         )
       } else if (Edeg == 0) {
         fml <- paste(vari, "~ lon + lat")
@@ -399,7 +401,8 @@ newCrossValid <- function(input, vari, sp, Edeg, deg=2, fam="symmetric", surf="d
           normalize = FALSE,
           distance = "Latlong",
           control = loess.control(surface = surf),
-          napred = TRUE
+          napred = TRUE,
+          alltree = TRUE
         )
       }
       value <- merge(orig, lo.fit$pred, by= c("lon","lat"))
