@@ -830,7 +830,7 @@ for(i in c(0, 1, 2)) {
   ))
 }
 
-imputeCrossValid(
+CrossValidVisual(
   input=file.path(rh.root, par$dataset, "a1950", "STL.bymonth", "t241td1_speriodicsd1_ffd.fit.cv", "symmetric", "direct"), 
   Edeg = TRUE
 )
@@ -1040,8 +1040,6 @@ outliersTop(FileInput, FileOutput, lim=2, top=2^6, ORtop=50, by="month")
 outlierMonth(FileInput, FileOutput, name="outlierLocbyMonth", plotEng=plotEng.outlierMonth)
 
 
-
-
 ## find out the number of outliers that remainder is small but spafit is very large
 ## totally there are 3805 such outliers from 1960 stations
 tmp <- outliersMissCount(FileInput, FileOutput, lim=2)
@@ -1052,22 +1050,105 @@ xyplot(radius ~ elev2, data = job.mr[[1]][[2]])
 
 
 
+###################################################
+##   Visualize the prediction results  on Hathi  ##
+###################################################
+load("Projects/Spatial/NCAR/RData/USinfo.RData")
+source("~/Rhipe/hathi.initial.R")
+us.map <- map('state', plot = FALSE, fill = TRUE)
+
+new.grid <- expand.grid(
+  lon = seq(-126, -67, by = 0.2),
+  lat = seq(25, 49, by = 0.2)
+)
+instate <- !is.na(map.where("state", new.grid$lon, new.grid$lat))
+new.grid <- new.grid[instate, ]
+
+elev.fit <- spaloess( elev ~ lon + lat,
+  data = UStinfo,
+  degree = 2,
+  span = 0.015,
+  distance = "Latlong",
+  normalize = FALSE,
+  napred = FALSE,
+  alltree = FALSE,
+  family="symmetric",
+  control=loess.control(surface = "direct")
+)
+grid.fit <- predloess(
+  object = elev.fit,
+  newdata = data.frame(
+    lon = new.grid$lon,
+    lat = new.grid$lat
+  )
+)
+new.grid$elev <- grid.fit
+
+mcontrol <- spacetime.control(
+  vari="resp", time="date", n=576, n.p=12, stat_n=7738, mthbytime = 1, surf = "direct",
+  s.window="periodic", t.window = 241, degree=2, span=0.015, Edeg=2
+)
+ccontrol <- mapreduce.control(
+  libLoc= .libPaths(), reduceTask=95, io_sort=128, slow_starts = 0.5,
+  map_jvm = "-Xmx200m", reduce_jvm = "-Xmx200m",
+  map_memory = 1024, reduce_memory = 1024,
+  reduce_input_buffer_percent=0.4, reduce_parallelcopies=10,
+  reduce_merge_inmem=0, task_io_sort_factor=100,
+  spill_percent=0.9, reduce_shuffle_input_buffer_percent = 0.8,
+  reduce_shuffle_merge_percent = 0.4
+)
+
+predNewLocs(
+  fitted="/user/tongx/spatem/output/bymth", 
+  output = "/user/tongx/spatem/newpred", 
+  stat_info = "/user/tongx/spatem/station_info.RData",
+  newdata=new.grid, 
+  model_control=mcontrol,
+  cluster_control = ccontrol
+)
+
+plotEng.contour <- function(data) {
+  df <- cbind(data[[2]], new.grid[, c("lon", "lat")])
+  b <- levelplot( (seasonal+trend+Rspa) ~ lon * lat
+    , data = df
+    , region = TRUE
+    , col.regions = colorRampPalette(c("blue", "yellow","red"))
+    , xlab = list(label="Longitude", cex=1.5)
+    , ylab = list(label="Latitude", cex=1.5)
+    , sub = list(label=paste(month.abb[data[[1]]%%12], 1950 + floor(data[[1]]/12)))
+    , xlim = c(-125.5, -66.5)
+    , cut = 20
+    , aspect = 0.66
+    , scale = list(cex=1.2)
+    , panel = function(x, y, z, ...) {
+       panel.grid(h=-1,v=-1, lwd=0.5, col="lightgray")
+       panel.levelplot(x,y,z,...) 
+       panel.polygon(us.map$x,us.map$y, border = "black")
+     }
+  )
+  return(b)
+}
+we <- lapply(rst, function(r){plotEng.contour(r)})
+
+trellis.device(
+  device = postscript, 
+  file = file.path("./pred.ps"), 
+  color=TRUE, 
+  paper="letter"
+)
+  for(i in order(unlist(lapply(rst, "[[", 1)))) {
+    print(we[[i]])
+  }
+dev.off()
 
 
+######################################################
+##  Check the fitting accuracy with different cell  ##
+######################################################
+MSE <- numeric()
+for(i in seq(0.2, 0.26, 0.01)) {
+  
+  MSE <- c(MSE, cellacurate(cell=i, run = TRUE))
 
-##########################################
-##      Backfitting for a1950           ##
-##########################################
+}
 
-## backfitting iteration for three components
-paramt <- data.frame(
-  sw = "periodic", tw = 425, sd = 1, td = 1, fcw = 425, fcd = 1, scw = 214, scd = 2, fc.flag = TRUE
-) 
-backfitStart(span=0.015, family="symmetric", type="interpolate", degree=2)
-backfitAll(span=0.015, family="symmetric", type="interpolate", parameter=paramt, index="E1", degree=2, inner=5, outer=1)
-
-backfitComp(family="symmetric", type="interpolate", degree=2, span=0.015, index="E1", fc.flag=T, comp="resid")
-
-backfitComp(family="symmetric", type="interpolate", degree=2, span=0.015, index="E1", fc.flag=T, comp="residfit")
-
-residfit(comp = "residfit", family="symmetric", type="interpolate", degree=2, span=0.015, index="E1")
