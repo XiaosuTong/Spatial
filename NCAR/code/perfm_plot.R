@@ -42,20 +42,19 @@ plotEng.raw(tmp, 1,1)
 
 plotEng.contour <- function(data) {
 
-  data <- cbind(data, new.grid)
- levelplot( (seasonal+trend+Rspa) ~ lon * lat
-   , data = data
-   , region = TRUE
-   , col.regions = colorRampPalette(c("blue", "yellow","red"))
-   , xlab = list(label="Longitude", cex=1.5)
-   , ylab = list(label="Latitude", cex=1.5)
-   , xlim = c(-125, -66.5)
-   , scale = list(cex=1.2)
-   , panel = function(x, y, z, ...) {
+  b <- levelplot( (seasonal+trend+Rspa) ~ lon * lat
+    , data = data
+    , region = TRUE
+    , col.regions = colorRampPalette(c("blue", "yellow","red"))
+    , xlab = list(label="Longitude", cex=1.5)
+    , ylab = list(label="Latitude", cex=1.5)
+    , xlim = c(-125, -66.5)
+    , scale = list(cex=1.2)
+    , panel = function(x, y, z, ...) {
        panel.levelplot(x,y,z,...) 
        panel.polygon(us.map$x,us.map$y, border = "black")
      }
- )
+  )
 
 }
 us.map <- map('state', plot = FALSE, fill = TRUE)
@@ -542,4 +541,199 @@ trellis.device(
     }
   )  
   print(b)
+dev.off()
+
+
+####################################################################
+##                                                                ##
+##  pilot experiment results, only input size=1365 is considered  ##
+##                                                                ##
+####################################################################
+rst <- subset(rst, insize==1365)
+rst$job <- c("Step I","Step III","Step V","Step VII")
+
+trellis.device(
+  device = postscript, 
+  file = file.path("~/io_sort.ps"), 
+  color=TRUE, 
+  paper="letter"
+)
+
+  b <- xyplot(log2(elapsed) ~ x | as.factor(job)
+    , data = rst
+    , layout = c(4,1)
+    , ylab = list(label="Log base 2 elapsed time", cex=1.5)
+    , xlab = list(label="ISM", cex=1.5)
+    , scale = list(x=list(at=c(1,2,3,4), labels=c("128","256","512", "768")), cex=1.2)
+    , panel = function(x,y, subscripts, ...) {
+      panel.abline(h=c(8.5,9,9.5), v=c(1,2,3,4), col="lightgray", lwd=1)
+      panel.xyplot(x,y,cex=1.1,...)
+      panel.average(x,y,fun = mean, horizontal = FALSE, col="red",...)
+    }
+  )
+  print(b)
+
+dev.off()
+
+rst$x <- rep(c(1,2,3), each=4)
+trellis.device(
+  device = postscript, 
+  file = file.path("~/iospillpercent.ps"), 
+  color=TRUE, 
+  paper="letter"
+)
+
+  b <- xyplot(log2(elapsed) ~ x | as.factor(job)
+    , data = rst
+    , layout = c(4,1)
+    , ylab = list(label="Log base 2 elapsed time", cex=1.5)
+    , xlab = list(label="SSP", cex=1.5)
+    , scale = list(x=list(at=c(1,2,3), labels=c("0.2","0.8","1")), cex=1.2)
+    , panel = function(x,y, subscripts, ...) {
+      panel.abline(h=c(8.5,9,9.5), v=c(1,2,3), col="lightgray", lwd=1)
+      panel.xyplot(x,y, cex=1.1,...)
+      panel.average(x,y,fun = mean, horizontal = FALSE, col="red",...)
+    }
+  )
+  print(b)
+
+dev.off()
+
+trellis.device(
+  device = postscript, 
+  file = paste0("~/", "parallcopy", ".ps"), 
+  color=TRUE, 
+  paper="letter"
+)  
+
+  b <- xyplot(log2(elapsed) ~ x | as.factor(job)
+    , data = rst
+    , layout = c(4,1)
+    , ylab = list(label="Log base 2 elapsed time", cex=1.5)
+    , xlab = list(label="SPC", cex=1.5)
+    , scale = list(x=list(at=c(1,2,3), labels=c(5,20,50)),cex=1.2)
+    , panel = function(x,y, subscripts, ...) {
+      panel.abline(h=c(8.5,9,9.5), v=c(1,2,3), col="lightgray", lwd=1)
+      panel.xyplot(x,y,cex=1.1,...)
+      panel.average(x,y,fun = mean, horizontal = FALSE, col="red",...)
+    }
+  )  
+  print(b)
+
+dev.off()
+
+
+trellis.device(
+  device = postscript, 
+  file = file.path("~/slowstart.ps"), 
+  color=TRUE, 
+  paper="letter"
+)
+
+  b <- xyplot(log2(elapsed) ~ x | as.factor(job)
+    , data = rst
+    , layout = c(4,1)
+    , ylab = list(label="Log base 2 elapsed time", cex=1.5)
+    , xlab = list(label="RSC", cex=1.5)
+    , scale = list(x=list(at=c(1,2,3), labels=c(0.2, 0.5, 0.8)), cex=1.2)
+    , panel = function(x,y, subscripts, ...) {
+      panel.abline(h=c(8.5,9,9.5), v=c(1,2,3), col="lightgray", lwd=1)
+      panel.xyplot(x,y,cex=1.1,...)
+      panel.average(x,y,fun = mean, horizontal = FALSE, col="red",...)
+    }
+  )
+  print(b)
+
+dev.off()
+
+trellis.device(
+  device = postscript, 
+  file = file.path("~/redtask.ps"), 
+  color=TRUE, 
+  paper="letter"
+)
+
+  b <- xyplot(log2(elapsed) ~ x | as.factor(job)
+    , data = rst
+    , layout = c(4,1)
+    , ylab = list(label="Log base 2 elapsed time", cex=1.5)
+    , xlab = list(label="RTSK", cex=1.5)
+    , scale = list(x=list(at=c(1,2,3,4), labels=c(90, 179, 269, 358)), cex=1.2)
+    , panel = function(x,y, subscripts, ...) {
+      panel.abline(h=c(8.5,9,9.5), v=c(1,2,3,4), col="lightgray", lwd=1)
+      panel.xyplot(x,y,cex=1.1,...)
+      panel.average(x,y,fun = mean, horizontal = FALSE, col="red",...)
+    }
+  )
+  print(b)
+
+dev.off()
+
+trellis.device(
+  device = postscript, 
+  file = paste0("~/", "redinpercent", ".ps"), 
+  color=TRUE, 
+  paper="letter"
+)  
+
+  b <- xyplot(log2(elapsed) ~ redinpercent | as.factor(job)
+    , data = rst
+    , layout = c(4,1)
+    , ylab = list(label="Log base 2 elapsed time", cex=1.5)
+    , xlab = list(label="IBP", cex=1.5)
+    , scale = list(x=list(at=c(0,0.5,1)), cex=1.2)
+    , panel = function(x,y, subscripts, ...) {
+      panel.abline(h=c(8.5,9,9.5), v=c(0,0.5,1), col="lightgray", lwd=1)
+      panel.xyplot(x,y,cex=1.1,...)
+      panel.average(x,y,fun = mean, horizontal = FALSE, col="red",...)
+    }
+  )  
+  print(b)
+
+dev.off()
+
+trellis.device(
+  device = postscript, 
+  file = paste0("~/", "shuffleinput", ".ps"), 
+  color=TRUE, 
+  paper="letter"
+)  
+
+  b <- xyplot(log2(elapsed) ~ x | as.factor(job)
+    , data = rst
+    , layout = c(4,1)
+    , ylab = list(label="Log base 2 elapsed time", cex=1.5)
+    , xlab = list(label="SIBP", cex=1.5)
+    , scale = list(x=list(at=c(1,2,3,4), labels=c(0.4,0.7,0.9,1)), cex=1.2)
+    , panel = function(x,y, subscripts, ...) {
+      panel.abline(h=c(8.5,9,9.5), v=c(1,2,3,4), col="lightgray", lwd=1)
+      panel.xyplot(x,y,cex=1.1,...)
+      panel.average(x,y,fun = mean, horizontal = FALSE, col="red",...)
+    }
+  )  
+  print(b)
+
+dev.off()
+
+trellis.device(
+  device = postscript, 
+  file = paste0("~/", "shufflepercent", ".ps"), 
+  color=TRUE, 
+  paper="letter"
+)  
+
+  b <- xyplot(log2(elapsed) ~ x | as.factor(job)
+    , data = rst
+    , layout = c(4,1)
+    , ylab = list(label="Log base 2 elapsed time", cex=1.5)
+    , xlab = list(label="SMP", cex=1.5)
+    , scale = list(x=list(at=c(1,2,3), labels=c(0.3,0.6,0.9)), cex=1.2)
+    , panel = function(x,y, subscripts, ...) {
+      panel.abline(h=c(8.5,9,9.5), v=c(1,2,3), col="lightgray", lwd=1)
+      panel.xyplot(x,y,cex=1.1, ...)
+      panel.average(x,y,fun = mean, horizontal = FALSE, col="red",...)
+    }
+  )  
+  print(b)
+
 dev.off()
